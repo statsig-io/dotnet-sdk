@@ -14,7 +14,7 @@ namespace Statsig.Server
             {
                 if (_singleDriver._serverSecret != serverSecret)
                 {
-                    throw new InvalidOperationException("Cannot reinitialize SDK with ");
+                    throw new InvalidOperationException("Cannot reinitialize SDK with a different serverSecret");
                 }
                 else
                 {
