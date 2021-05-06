@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Statsig.Network;
@@ -34,7 +32,7 @@ namespace Statsig.Server
             _serverSecret = serverSecret;
             _options = options;
 
-            _requestDispatcher = new RequestDispatcher(_serverSecret, options.ApiUrlBase);
+            _requestDispatcher = new RequestDispatcher(_serverSecret, _options.ApiUrlBase);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
                 Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
@@ -66,10 +64,10 @@ namespace Statsig.Server
             });
             if (response != null)
             {
-                object outVal;
+                JToken outVal;
                 if (response.TryGetValue("value", out outVal))
                 {
-                    bool.TryParse(outVal.ToString(), out result);
+                    result = outVal.Value<bool>();
                 }
             }
 
@@ -91,23 +89,22 @@ namespace Statsig.Server
             });
             if (response != null)
             {
-                object outVal;
+                JToken outVal;
                 if (response.TryGetValue("value", out outVal))
                 {
-                    if (outVal is JObject)
+                    var configVal = outVal.ToObject<Dictionary<string, JToken>>();
+                    JToken groupName;
+                    if (!response.TryGetValue("group", out groupName))
                     {
-                        var configVal = ((JObject)outVal).ToObject<Dictionary<string, object>>();
-                        object groupName = null;
-                        if (!response.TryGetValue("group", out groupName))
-                        {
-                            groupName = "";
-                        }
-                        result = new DynamicConfig(configName, configVal, groupName.ToString());
+                        groupName = "";
                     }
+                    result = new DynamicConfig(configName, configVal, groupName.Value<string>());
                 }
             }
 
-            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(user, result.ConfigName, result.GroupName));
+            _eventLogger.Enqueue(
+                EventLog.CreateConfigExposureLog(user, result.ConfigName, result.GroupName)
+            );
             return result;
         }
 
@@ -204,27 +201,10 @@ namespace Statsig.Server
                 EventName = eventName,
                 Value = value,
                 User = user,
-                Metadata = TrimMetadataAsNeeded(metadata),
+                Metadata = EventLog.TrimMetadataAsNeeded(metadata),
             };
 
             _eventLogger.Enqueue(eventLog);
-        }
-
-        IReadOnlyDictionary<string, string> TrimMetadataAsNeeded(IReadOnlyDictionary<string, string> metadata = null)
-        {
-            if (metadata == null)
-            {
-                return null;
-            }
-
-            int totalLength = metadata.Sum((kv) => kv.Key.Length + (kv.Value == null ? 0 : kv.Value.Length));
-            if (totalLength > Constants.MAX_METADATA_LENGTH)
-            {
-                Debug.WriteLine("Metadata in LogEvent is too big, dropping it.", "warning");
-                return null;
-            }
-
-            return metadata;
         }
 
         #endregion

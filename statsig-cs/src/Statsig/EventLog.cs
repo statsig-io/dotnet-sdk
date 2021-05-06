@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace Statsig
@@ -75,6 +77,23 @@ namespace Statsig
                 IsErrorLog = true,
                 ErrorKey = errorMessage,
             };
+        }
+
+        internal static IReadOnlyDictionary<string, string> TrimMetadataAsNeeded(IReadOnlyDictionary<string, string> metadata = null)
+        {
+            if (metadata == null)
+            {
+                return null;
+            }
+
+            int totalLength = metadata.Sum((kv) => kv.Key.Length + (kv.Value == null ? 0 : kv.Value.Length));
+            if (totalLength > Constants.MAX_METADATA_LENGTH)
+            {
+                Debug.WriteLine("Metadata in LogEvent is too big, dropping it.", "warning");
+                return null;
+            }
+
+            return metadata;
         }
     }
 }
