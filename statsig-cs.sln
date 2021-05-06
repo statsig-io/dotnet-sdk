@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.809.7
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "statsig-cs", "statsig-cs\statsig-cs.csproj", "{F6199094-3F37-4AAE-96F6-5E1EA1886F89}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-statsig", "statsig-cs\dotnet-statsig.csproj", "{F6199094-3F37-4AAE-96F6-5E1EA1886F89}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

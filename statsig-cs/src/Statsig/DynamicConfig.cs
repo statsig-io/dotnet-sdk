@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace Statsig
 {
     public class DynamicConfig
     {
         public string ConfigName { get; }
-        public IReadOnlyDictionary<string, object> Value { get; }
+        public IReadOnlyDictionary<string, JToken> Value { get; }
         public string GroupName { get; }
 
         static DynamicConfig _defaultConfig;
@@ -23,7 +24,7 @@ namespace Statsig
             }
         }
 
-        public DynamicConfig(string configName = null, IReadOnlyDictionary<string, object> value = null, string groupName = null)
+        public DynamicConfig(string configName = null, IReadOnlyDictionary<string, JToken> value = null, string groupName = null)
         {
             if (configName == null)
             {
@@ -31,7 +32,7 @@ namespace Statsig
             }
             if (value == null)
             {
-                value = new Dictionary<string, object>();
+                value = new Dictionary<string, JToken>();
             }
             if (groupName == null)
             {
@@ -43,26 +44,56 @@ namespace Statsig
             GroupName = groupName;
         }
 
+
         public T Get<T>(string key, T defaultValue = default(T))
         {
-            object outVal = null;
+            JToken outVal = null;
             if (!this.Value.TryGetValue(key, out outVal))
             {
                 return defaultValue;
             }
 
-            if (outVal is T)
+            try
+            { 
+                return outVal.Value<T>();
+            }
+            catch
             {
-                return (T)outVal;
+                // There are a bunch of different types of exceptions that could
+                // be thrown at this point - missing converters, format exception
+                // type cast exception, etc.
+                return defaultValue;
+            }
+        }
+
+        internal static DynamicConfig FromJObject(string configName, JObject jobj)
+        {
+            if (jobj == null)
+            {
+                return null;
+            }
+
+            JToken groupToken;
+            if (!jobj.TryGetValue("group", out groupToken))
+            {
+                return null;
+            }
+
+            JToken valueToken;
+            if (!jobj.TryGetValue("value", out valueToken))
+            {
+                return null;
             }
 
             try
             {
-                return (T)Convert.ChangeType(outVal, typeof(T));
+                var value = valueToken.ToObject<Dictionary<string, JToken>>();
+                return new DynamicConfig(configName, value, groupToken.Value<string>());
             }
-            catch (InvalidCastException)
+            catch
             {
-                return defaultValue;
+                // Failed to parse config.  TODO: Log this
+                return null;
             }
         }
     }

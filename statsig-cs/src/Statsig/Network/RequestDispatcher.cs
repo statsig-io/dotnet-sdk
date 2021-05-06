@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Statsig.Network
 {
@@ -26,7 +27,7 @@ namespace Statsig.Network
             ApiBaseUrl = apiBaseUrl;
         }
 
-        public async Task<IReadOnlyDictionary<string, object>> Fetch(
+        public async Task<IReadOnlyDictionary<string, JToken>> Fetch(
             string endpoint,
             IReadOnlyDictionary<string, object> body)
         {
@@ -49,7 +50,7 @@ namespace Statsig.Network
                 }
 
                 var json = await FetchInternal(request);
-                return JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                return JsonConvert.DeserializeObject<Dictionary<string, JToken>>(json);
             }
             catch (Exception)
             {
