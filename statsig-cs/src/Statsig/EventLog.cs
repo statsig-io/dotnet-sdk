@@ -48,7 +48,7 @@ namespace Statsig
         internal static EventLog CreateConfigExposureLog(
             StatsigUser user,
             string configName,
-            string groupName)
+            string ruleID)
         {
             return new EventLog
             {
@@ -57,7 +57,7 @@ namespace Statsig
                 Metadata = new Dictionary<string, string>
                 {
                     ["config"] = configName,
-                    ["ruleID"] = groupName,
+                    ["ruleID"] = ruleID,
                 }
             };
         }

@@ -103,7 +103,7 @@ namespace Statsig.Server
             }
 
             _eventLogger.Enqueue(
-                EventLog.CreateConfigExposureLog(user, result.ConfigName, result.GroupName)
+                EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID)
             );
             return result;
         }
