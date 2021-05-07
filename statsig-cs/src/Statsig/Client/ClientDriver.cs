@@ -102,7 +102,7 @@ namespace Statsig.Client
             }
 
             
-            return value;
+            return gate.Value;
         }
 
         public DynamicConfig GetConfig(string configName)
@@ -117,7 +117,7 @@ namespace Statsig.Client
                 }
             }
 
-            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(_user, configName, null));
+            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(_user, configName, value.GroupName));
             return value;
         }
 

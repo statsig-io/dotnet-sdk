@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 
@@ -37,7 +37,7 @@ namespace Statsig
 
             Name = name;
             Value = value;
-            RuleID = groupName;
+            RuleID = ruleID;
         }
 
         internal static FeatureGate FromJObject(string name, JObject jobj)

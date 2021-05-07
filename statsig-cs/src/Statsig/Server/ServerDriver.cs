@@ -71,7 +71,7 @@ namespace Statsig.Server
                 }
             }
 
-            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString()));
+            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ""));
             return result;
         }
 
