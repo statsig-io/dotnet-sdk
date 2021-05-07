@@ -48,6 +48,7 @@
     <Compile Include="src\Statsig\Client\ClientDriver.cs" />
     <Compile Include="src\Statsig\Client\Storage\PersistentStore.cs" />
     <Compile Include="src\Statsig\Client\StatsigClient.cs" />
+    <Compile Include="src\Statsig\FeatureGate.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src\" />

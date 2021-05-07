@@ -93,7 +93,7 @@ namespace Statsig.Client.Storage
                     }
                 }
             }
-            catch (IsolatedStorageException e)
+            catch (IsolatedStorageException)
             {
                 // Not sure if there's anything to do here
             }

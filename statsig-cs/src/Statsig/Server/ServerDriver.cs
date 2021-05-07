@@ -62,6 +62,7 @@ namespace Statsig.Server
                 ["user"] = user,
                 ["gateName"] = gateName
             });
+            string ruleID = "";
             if (response != null)
             {
                 JToken outVal;
@@ -69,9 +70,13 @@ namespace Statsig.Server
                 {
                     result = outVal.Value<bool>();
                 }
+                if (response.TryGetValue("rule_id", out outVal))
+                {
+                    ruleID = outVal.Value<string>();
+                }
             }
 
-            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString()));
+            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID));
             return result;
         }
 
@@ -93,17 +98,17 @@ namespace Statsig.Server
                 if (response.TryGetValue("value", out outVal))
                 {
                     var configVal = outVal.ToObject<Dictionary<string, JToken>>();
-                    JToken groupName;
-                    if (!response.TryGetValue("group", out groupName))
+                    JToken ruleID;
+                    if (!response.TryGetValue("rule_id", out ruleID))
                     {
-                        groupName = "";
+                        ruleID = "";
                     }
-                    result = new DynamicConfig(configName, configVal, groupName.Value<string>());
+                    result = new DynamicConfig(configName, configVal, ruleID.Value<string>());
                 }
             }
 
             _eventLogger.Enqueue(
-                EventLog.CreateConfigExposureLog(user, result.ConfigName, result.GroupName)
+                EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID)
             );
             return result;
         }

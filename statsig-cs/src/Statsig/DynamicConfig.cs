@@ -8,7 +8,7 @@ namespace Statsig
     {
         public string ConfigName { get; }
         public IReadOnlyDictionary<string, JToken> Value { get; }
-        public string GroupName { get; }
+        public string RuleID { get; }
 
         static DynamicConfig _defaultConfig;
 
@@ -24,7 +24,7 @@ namespace Statsig
             }
         }
 
-        public DynamicConfig(string configName = null, IReadOnlyDictionary<string, JToken> value = null, string groupName = null)
+        public DynamicConfig(string configName = null, IReadOnlyDictionary<string, JToken> value = null, string ruleID = null)
         {
             if (configName == null)
             {
@@ -34,14 +34,14 @@ namespace Statsig
             {
                 value = new Dictionary<string, JToken>();
             }
-            if (groupName == null)
+            if (ruleID == null)
             {
-                groupName = "";
+                ruleID = "";
             }
 
             ConfigName = configName;
             Value = value;
-            GroupName = groupName;
+            RuleID = ruleID;
         }
 
 
@@ -73,8 +73,8 @@ namespace Statsig
                 return null;
             }
 
-            JToken groupToken;
-            if (!jobj.TryGetValue("group", out groupToken))
+            JToken ruleToken;
+            if (!jobj.TryGetValue("rule_id", out ruleToken))
             {
                 return null;
             }
@@ -88,7 +88,7 @@ namespace Statsig
             try
             {
                 var value = valueToken.ToObject<Dictionary<string, JToken>>();
-                return new DynamicConfig(configName, value, groupToken.Value<string>());
+                return new DynamicConfig(configName, value, ruleToken.Value<string>());
             }
             catch
             {
