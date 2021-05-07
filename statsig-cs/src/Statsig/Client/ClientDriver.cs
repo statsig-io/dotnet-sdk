@@ -15,7 +15,7 @@ namespace Statsig.Client
 {
     public class ClientDriver : IDisposable
     {
-        const string gatesStoreKey = "statsig::gates";
+        const string gatesStoreKey = "statsig::featureGates";
         const string configsStoreKey = "statsig::configs";
 
         readonly ConnectionOptions _options;
@@ -24,7 +24,7 @@ namespace Statsig.Client
         RequestDispatcher _requestDispatcher;
         EventLogger _eventLogger;
         StatsigUser _user;
-        Dictionary<string, bool> _gates;
+        Dictionary<string, FeatureGate> _gates;
         Dictionary<string, DynamicConfig> _configs;
         Dictionary<string, string> _statsigMetadata;
 
@@ -52,7 +52,7 @@ namespace Statsig.Client
                 Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC
             );
 
-            _gates = PersistentStore.GetValue(gatesStoreKey, new Dictionary<string, bool>());
+            _gates = PersistentStore.GetValue(gatesStoreKey, new Dictionary<string, FeatureGate>());
             _configs = PersistentStore.GetValue(configsStoreKey, new Dictionary<string, DynamicConfig>());
         }
 
@@ -91,13 +91,17 @@ namespace Statsig.Client
         public bool CheckGate(string gateName)
         {
             var hashedName = GetNameHash(gateName);
-            bool value;
-            if (!_gates.TryGetValue(hashedName, out value))
+            FeatureGate gate;
+            if (!_gates.TryGetValue(hashedName, out gate))
             {
-                _gates.TryGetValue(gateName, out value);
+                _gates.TryGetValue(gateName, out gate);
             }
 
-            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, value.ToString()));
+            if (gate != null) {
+                _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value.ToString(), gate.RuleID));
+            }
+
+            
             return value;
         }
 
@@ -205,9 +209,9 @@ namespace Statsig.Client
             try
             {
                 JToken objVal;
-                if (response.TryGetValue("gates", out objVal))
+                if (response.TryGetValue("featureGates", out objVal))
                 {
-                    _gates = objVal.ToObject<Dictionary<string, bool>>();
+                    _gates = objVal.ToObject<Dictionary<string, FeatureGate>>();
                 }
             }
             catch

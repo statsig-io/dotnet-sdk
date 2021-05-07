@@ -29,7 +29,8 @@ namespace Statsig
         internal static EventLog CreateGateExposureLog(
             StatsigUser user,
             string gateName,
-            string gateValue)
+            string gateValue,
+            String ruleID)
         {
             return new EventLog
             {
@@ -39,6 +40,7 @@ namespace Statsig
                 {
                     ["gate"] = gateName,
                     ["gateValue"] = gateValue,
+                    ["ruleID"] = ruleID
                 }
             };
         }
@@ -55,7 +57,7 @@ namespace Statsig
                 Metadata = new Dictionary<string, string>
                 {
                     ["config"] = configName,
-                    ["configGroup"] = groupName,
+                    ["ruleID"] = groupName,
                 }
             };
         }
