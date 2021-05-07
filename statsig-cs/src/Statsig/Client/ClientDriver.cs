@@ -209,7 +209,7 @@ namespace Statsig.Client
             try
             {
                 JToken objVal;
-                if (response.TryGetValue("featureGates", out objVal))
+                if (response.TryGetValue("feature_gates", out objVal))
                 {
                     _gates = objVal.ToObject<Dictionary<string, FeatureGate>>();
                 }
@@ -222,7 +222,7 @@ namespace Statsig.Client
             try
             {
                 JToken objVal;
-                if (response.TryGetValue("configs", out objVal))
+                if (response.TryGetValue("dynamic_configs", out objVal))
                 {
                     var configMap = objVal.ToObject<Dictionary<string, object>>();
                     foreach (var kv in configMap)

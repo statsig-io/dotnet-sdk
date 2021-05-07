@@ -48,7 +48,7 @@ namespace Statsig
             }
 
             JToken ruleToken;
-            if (!jobj.TryGetValue("rule", out ruleToken))
+            if (!jobj.TryGetValue("rule_id", out ruleToken))
             {
                 return null;
             }
