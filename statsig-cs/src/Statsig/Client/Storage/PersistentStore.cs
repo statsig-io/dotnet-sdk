@@ -117,6 +117,10 @@ namespace Statsig.Client.Storage
                         _properties = serializer.Deserialize<Dictionary<string, object>>(
                             new JsonTextReader(reader)
                         );
+                        if (_properties == null)
+                        {
+                            _properties = new Dictionary<string, object>();
+                        }
                     }
                 }
             }
