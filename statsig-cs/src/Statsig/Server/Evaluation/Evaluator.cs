@@ -44,7 +44,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
             return Evaluate(user, _store.FeatureGates[gateName]);
         }
 
-        internal ConfigEvaluation getConfig(StatsigUser user, string configName)
+        internal ConfigEvaluation GetConfig(StatsigUser user, string configName)
         {
             configName = configName.ToLowerInvariant();
             if (!_initialized || string.IsNullOrWhiteSpace(configName) || !_store.DynamicConfigs.ContainsKey(configName))
@@ -70,7 +70,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
                             var passPercentage = EvaluatePassPercentage(user, rule, spec.Salt);
                             if (passPercentage)
                             {
-                                return new ConfigEvaluation(EvaluationResult.Pass, rule.FeatureGateValue, rule.DynamicConfigValue)
+                                return new ConfigEvaluation(EvaluationResult.Pass, rule.FeatureGateValue, rule.DynamicConfigValue);
                             }
                             else
                             {
