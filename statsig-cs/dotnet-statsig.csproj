@@ -32,6 +32,10 @@
       <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Semver">
+      <HintPath>..\..\..\..\..\Projects\StatsigTest\packages\Semver.2.0.6\lib\net452\Semver.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -49,6 +53,14 @@
     <Compile Include="src\Statsig\Client\Storage\PersistentStore.cs" />
     <Compile Include="src\Statsig\Client\StatsigClient.cs" />
     <Compile Include="src\Statsig\FeatureGate.cs" />
+    <Compile Include="src\Statsig\Server\Evaluation\ConfigCondition.cs" />
+    <Compile Include="src\Statsig\Server\Evaluation\ConfigRule.cs" />
+    <Compile Include="src\Statsig\Server\Evaluation\ConfigSpec.cs" />
+    <Compile Include="src\Statsig\Server\Evaluation\SpecStore.cs" />
+    <Compile Include="src\Statsig\Server\ServerUtils.cs" />
+    <Compile Include="src\Statsig\Server\Evaluation\Evaluator.cs" />
+    <Compile Include="src\Statsig\Server\Evaluation\ConfigEvaluation.cs" />
+    <Compile Include="src\Statsig\Server\Evaluation\Helpers.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src\" />
@@ -57,6 +69,7 @@
     <Folder Include="src\Statsig\Network\" />
     <Folder Include="src\Statsig\Client\" />
     <Folder Include="src\Statsig\Client\Storage\" />
+    <Folder Include="src\Statsig\Server\Evaluation\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

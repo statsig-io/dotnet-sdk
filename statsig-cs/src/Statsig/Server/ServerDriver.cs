@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Statsig.Network;
+using Statsig.src.Statsig.Server.Evaluation;
 
 namespace Statsig.Server
 {
@@ -14,6 +15,7 @@ namespace Statsig.Server
         bool _disposed;
         RequestDispatcher _requestDispatcher;
         EventLogger _eventLogger;
+        Evaluator _evaluator;
 
         public ServerDriver(string serverSecret, ConnectionOptions options = null)
         {
@@ -38,11 +40,13 @@ namespace Statsig.Server
                 Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
                 Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC
             );
+            _evaluator = new Evaluator(serverSecret, options);
         }
 
-        public void Initialize()
+        public async Task Initialize()
         {
             // No op for now
+            await _evaluator.Initialize();
             _initialized = true;
         }
 

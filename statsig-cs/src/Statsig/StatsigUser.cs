@@ -6,28 +6,99 @@ namespace Statsig
 {
     public class StatsigUser
     {
-        Dictionary<string, object> _customProperties;
+        internal Dictionary<string, string> properties;
+        internal Dictionary<string, object> customProperties;
 
         [JsonProperty("userID")]
-        public string UserID { get; set; }
+        public string UserID {
+            get
+            {
+                return properties.TryGetValue("userID", out string value) ? value : null;
+            }
+            set
+            {
+                properties["userID"] = value;
+            }
+        }
         [JsonProperty("email")]
-        public string Email { get; set; }
+        public string Email
+        {
+            get
+            {
+                return properties.TryGetValue("email", out string value) ? value : null;
+            }
+            set
+            {
+                properties["email"] = value;
+            }
+        }
         [JsonProperty("ip")]
-        public string IPAddress { get; set; }
+        public string IPAddress
+        {
+            get
+            {
+                return properties.TryGetValue("ip", out string value) ? value : null;
+            }
+            set
+            {
+                properties["ip"] = value;
+            }
+        }
         [JsonProperty("userAgent")]
-        public string UserAgent { get; set; }
+        public string UserAgent
+        {
+            get
+            {
+                return properties.TryGetValue("userAgent", out string value) ? value : null;
+            }
+            set
+            {
+                properties["userAgent"] = value;
+            }
+        }
         [JsonProperty("country")]
-        public string Country { get; set; }
+        public string Country
+        {
+            get
+            {
+                return properties.TryGetValue("country", out string value) ? value : null;
+            }
+            set
+            {
+                properties["country"] = value;
+            }
+        }
         [JsonProperty("locale")]
-        public string Locale { get; set; }
+        public string Locale
+        {
+            get
+            {
+                return properties.TryGetValue("locale", out string value) ? value : null;
+            }
+            set
+            {
+                properties["locale"] = value;
+            }
+        }
         [JsonProperty("clientVersion")]
-        public string ClientVersion { get; set; }
+        public string ClientVersion
+        {
+            get
+            {
+                return properties.TryGetValue("clientVersion", out string value) ? value : null;
+            }
+            set
+            {
+                properties["clientVersion"] = value;
+            }
+        }
         [JsonProperty("custom")]
-        public IReadOnlyDictionary<string, object> CustomProperties => _customProperties;
+        public IReadOnlyDictionary<string, object> CustomProperties => customProperties;
 
         public StatsigUser()
         {
-            _customProperties = new Dictionary<string, object>();
+            properties = new Dictionary<string, string>();
+            customProperties = new Dictionary<string, object>();
         }
 
         public void AddCustomProperty(string key, object value)
@@ -36,7 +107,7 @@ namespace Statsig
             {
                 throw new ArgumentException("Key cannot be empty.", "key");
             }
-            _customProperties[key] = value;
+            customProperties[key] = value;
         }
     }
 }
