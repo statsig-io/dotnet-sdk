@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Statsig.Network;
+using Statsig.src.Statsig.Server.Evaluation;
 
 namespace Statsig.Server
 {
@@ -14,6 +15,7 @@ namespace Statsig.Server
         bool _disposed;
         RequestDispatcher _requestDispatcher;
         EventLogger _eventLogger;
+        Evaluator _evaluator;
 
         public ServerDriver(string serverSecret, ConnectionOptions options = null)
         {
@@ -38,11 +40,13 @@ namespace Statsig.Server
                 Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
                 Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC
             );
+            _evaluator = new Evaluator(serverSecret, options);
         }
 
-        public void Initialize()
+        public async Task Initialize()
         {
             // No op for now
+            await _evaluator.Initialize();
             _initialized = true;
         }
 
@@ -58,22 +62,33 @@ namespace Statsig.Server
             ValidateNonEmptyArgument(gateName, "gateName");
 
             bool result = false;
-            var response = await _requestDispatcher.Fetch("check_gate", new Dictionary<string, object> {
-                ["user"] = user,
-                ["gateName"] = gateName
-            });
             string ruleID = "";
-            if (response != null)
+            var evaluation = _evaluator.CheckGate(user, gateName);
+            if (evaluation.Result == EvaluationResult.FetchFromServer)
             {
-                JToken outVal;
-                if (response.TryGetValue("value", out outVal))
+                var response = await _requestDispatcher.Fetch("check_gate", new Dictionary<string, object>
                 {
-                    result = outVal.Value<bool>();
-                }
-                if (response.TryGetValue("rule_id", out outVal))
+                    ["user"] = user,
+                    ["gateName"] = gateName
+                });
+                
+                if (response != null)
                 {
-                    ruleID = outVal.Value<string>();
+                    JToken outVal;
+                    if (response.TryGetValue("value", out outVal))
+                    {
+                        result = outVal.Value<bool>();
+                    }
+                    if (response.TryGetValue("rule_id", out outVal))
+                    {
+                        ruleID = outVal.Value<string>();
+                    }
                 }
+            }
+            else
+            {
+                result = evaluation.GateValue.Value;
+                ruleID = evaluation.GateValue.RuleID;
             }
 
             _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID));
@@ -86,27 +101,32 @@ namespace Statsig.Server
             ValidateUser(user);
             ValidateNonEmptyArgument(configName, "configName");
 
-            var result = new DynamicConfig(configName);
-            var response = await _requestDispatcher.Fetch("get_config", new Dictionary<string, object>
+            
+            var evaluation = _evaluator.GetConfig(user, configName);
+            var result = evaluation.ConfigValue;
+            if (evaluation.Result == EvaluationResult.FetchFromServer)
             {
-                ["user"] = user,
-                ["configName"] = configName
-            });
-            if (response != null)
-            {
-                JToken outVal;
-                if (response.TryGetValue("value", out outVal))
+                var response = await _requestDispatcher.Fetch("get_config", new Dictionary<string, object>
                 {
-                    var configVal = outVal.ToObject<Dictionary<string, JToken>>();
-                    JToken ruleID;
-                    if (!response.TryGetValue("rule_id", out ruleID))
+                    ["user"] = user,
+                    ["configName"] = configName
+                });
+                if (response != null)
+                {
+                    JToken outVal;
+                    if (response.TryGetValue("value", out outVal))
                     {
-                        ruleID = "";
+                        var configVal = outVal.ToObject<Dictionary<string, JToken>>();
+                        JToken ruleID;
+                        if (!response.TryGetValue("rule_id", out ruleID))
+                        {
+                            ruleID = "";
+                        }
+                        result = new DynamicConfig(configName, configVal, ruleID.Value<string>());
                     }
-                    result = new DynamicConfig(configName, configVal, ruleID.Value<string>());
                 }
             }
-
+            
             _eventLogger.Enqueue(
                 EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID)
             );

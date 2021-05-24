@@ -74,7 +74,7 @@ namespace Statsig
             }
 
             JToken ruleToken;
-            jobj.TryGetValue("rule", out ruleToken);
+            jobj.TryGetValue("rule_id", out ruleToken);
             
             JToken valueToken;
             jobj.TryGetValue("value", out valueToken);
