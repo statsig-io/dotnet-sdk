@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+
+using UAParser;
 
 namespace Statsig.src.Statsig.Server.Evaluation
 {
@@ -22,10 +25,33 @@ namespace Statsig.src.Statsig.Server.Evaluation
             return "";
         }
 
-        internal static string GetFromUserAgent(StatsigUser user, string field)
+        internal static string GetFromUserAgent(string userAgent, string field)
         {
-            //TODO:
-            return "";
+            if (string.IsNullOrEmpty(userAgent) || string.IsNullOrEmpty(field))
+            {
+                return null;
+            }
+
+            var uaParser = Parser.GetDefault();
+            ClientInfo c = uaParser.Parse(userAgent);
+            Dictionary<string, string> uaValues = new Dictionary<string, string>
+            {
+                ["os_name"] = c.OS.Family,
+                ["os_version"] = string.Join(".", new string[] {
+                    c.OS.Major, c.OS.Minor, c.OS.Patch, c.OS.PatchMinor
+                }.Where(v => !string.IsNullOrEmpty(v)).ToArray()),
+                ["browser_name"] = c.UA.Family,
+                ["browser_version"] = string.Join(".", new string[] {
+                    c.UA.Major, c.UA.Minor, c.UA.Patch
+                }.Where(v => !string.IsNullOrEmpty(v)).ToArray())
+            };
+
+            if (uaValues.TryGetValue(field, out string value))
+            {
+                return value;
+            }
+            
+            return null;
         }
 
         internal static bool CompareNumbers(object val1, object val2, Func<double, double, bool> func)

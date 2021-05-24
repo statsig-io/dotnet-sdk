@@ -33,6 +33,9 @@
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Numerics" />
+    <Reference Include="UAParser">
+      <HintPath>..\..\..\..\..\Projects\StatsigTest\packages\UAParser.3.1.46\lib\net45\UAParser.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />

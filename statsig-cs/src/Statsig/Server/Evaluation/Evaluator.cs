@@ -152,7 +152,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
                     }
                     break;
                 case "ua_based":
-                    value = GetFromUser(user, field) ?? GetFromUserAgent(user, field);
+                    value = GetFromUser(user, field) ?? GetFromUserAgent(user.UserAgent, field);
                     if (fetchFromServer)
                     {
                         return EvaluationResult.FetchFromServer;

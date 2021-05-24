@@ -31,7 +31,7 @@ namespace Statsig.src.Statsig.Server
 
         internal static ConfigRule FromJObject(JObject jobj)
         {
-            JToken name, passPercentage, salt, returnValue, conditions, id;
+            JToken name, passPercentage, returnValue, conditions, id;
 
             if (jobj == null ||
                 !jobj.TryGetValue("name", out name) ||
