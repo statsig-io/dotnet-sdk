@@ -8,6 +8,10 @@
     <RootNamespace>Statsig</RootNamespace>
     <AssemblyName>dotnet-statsig</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <PackageId>Statsig</PackageId>
+    <PackageVersion>1.0</PackageVersion>
+    <Authors>Statsig Inc.</Authors>
+    <Description>SDK for Statsig, for both client (Statsig.Client) and server (Statsig.Server) sides usages.</Description>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -34,7 +38,7 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Numerics" />
     <Reference Include="UAParser">
-      <HintPath>..\..\..\..\..\Projects\StatsigTest\packages\UAParser.3.1.46\lib\net45\UAParser.dll</HintPath>
+      <HintPath>..\packages\UAParser.3.1.46\lib\net45\UAParser.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
