@@ -91,7 +91,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
         {
             using (var sha = SHA256.Create())
             {
-                var bytes = sha.ComputeHash(Encoding.ASCII.GetBytes(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID)));
+                var bytes = sha.ComputeHash(Encoding.ASCII.GetBytes(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID ?? "")));
                 var result = new BigInteger(bytes);
                 var mod = new BigInteger(10000);
                 return (result % mod) < new BigInteger(rule.PassPercentage * 100);
