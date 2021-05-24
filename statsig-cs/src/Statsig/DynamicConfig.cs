@@ -74,21 +74,18 @@ namespace Statsig
             }
 
             JToken ruleToken;
-            if (!jobj.TryGetValue("rule_id", out ruleToken))
-            {
-                return null;
-            }
-
+            jobj.TryGetValue("rule", out ruleToken);
+            
             JToken valueToken;
-            if (!jobj.TryGetValue("value", out valueToken))
-            {
-                return null;
-            }
-
+            jobj.TryGetValue("value", out valueToken);
+            
             try
             {
-                var value = valueToken.ToObject<Dictionary<string, JToken>>();
-                return new DynamicConfig(configName, value, ruleToken.Value<string>());
+                var value = valueToken == null ? null: valueToken.ToObject<Dictionary<string, JToken>>();
+                return new DynamicConfig(
+                    configName,
+                    value,
+                    ruleToken == null ? null : ruleToken.Value<string>());
             }
             catch
             {
