@@ -6,9 +6,14 @@ namespace Statsig.src.Statsig.Server
 {
     class ConfigCondition
     {
+        // The type of the condition, e.g. "public", "ip-based", etc.
         internal string Type { get; }
-        internal JToken TargetValue { get; }
+        // The operator to be used for the condition, e.g. "any", "gt" (greater than), etc.
         internal string Operator { get; }
+        // The targeting value (right-hand operand) for this condition's operation, e.g. ["iOS", "Android"] if the condition is "os_name is any of"
+        internal JToken TargetValue { get; }
+        // The name of the field to be used to retrieve user's value (left-hand operand) to be used for this condition's evaluation.
+        // E.g. "os_name" if the condition is "os_name is any of ['iOS', 'Android']", so we know to get "os_name" from StatsigUser to check.
         internal string Field { get; }
 
         internal ConfigCondition(string type, JToken targetValue, string op, string field)

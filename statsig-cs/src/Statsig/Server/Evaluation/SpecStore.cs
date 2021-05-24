@@ -52,7 +52,7 @@ namespace Statsig.src.Statsig.Server
                 ParseResponse(response);
             }
 
-            _syncTimer.Interval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL;
+            _syncTimer.Interval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC * 1000;
             _syncTimer.Enabled = true;
             _syncTimer.AutoReset = false;
             _syncTimer.Elapsed += async (sender, e) => await SyncValues();

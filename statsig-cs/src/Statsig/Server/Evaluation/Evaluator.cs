@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
-using Semver;
 
 using static Statsig.src.Statsig.Server.Evaluation.Helpers;
 
@@ -193,22 +192,22 @@ namespace Statsig.src.Statsig.Server.Evaluation
 
                 // version
                 case "version_gt":
-                    result = CompareVersions(value, target, (SemVersion v1, SemVersion v2) => (v1 > v2));
+                    result = CompareVersions(value, target, (Version v1, Version v2) => (v1 > v2));
                     break;
                 case "version_gte":
-                    result = CompareVersions(value, target, (SemVersion v1, SemVersion v2) => (v1 >= v2));
+                    result = CompareVersions(value, target, (Version v1, Version v2) => (v1 >= v2));
                     break;
                 case "version_lt":
-                    result = CompareVersions(value, target, (SemVersion v1, SemVersion v2) => (v1 < v2));
+                    result = CompareVersions(value, target, (Version v1, Version v2) => (v1 < v2));
                     break;
                 case "version_lte":
-                    result = CompareVersions(value, target, (SemVersion v1, SemVersion v2) => (v1 <= v2));
+                    result = CompareVersions(value, target, (Version v1, Version v2) => (v1 <= v2));
                     break;
                 case "version_eq":
-                    result = CompareVersions(value, target, (SemVersion v1, SemVersion v2) => (v1 == v2));
+                    result = CompareVersions(value, target, (Version v1, Version v2) => (v1 == v2));
                     break;
                 case "version_neq":
-                    result = CompareVersions(value, target, (SemVersion v1, SemVersion v2) => (v1 != v2));
+                    result = CompareVersions(value, target, (Version v1, Version v2) => (v1 != v2));
                     break;
 
                 // array

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using Semver;
 
 namespace Statsig.src.Statsig.Server.Evaluation
 {
@@ -38,14 +37,26 @@ namespace Statsig.src.Statsig.Server.Evaluation
             return false;
         }
 
-        internal static bool CompareVersions(object val1, object val2, Func<SemVersion, SemVersion, bool> func)
+        internal static bool CompareVersions(object val1, object val2, Func<Version, Version, bool> func)
         {
-            if (SemVersion.TryParse(val1.ToString(), out SemVersion v1) &&
-                SemVersion.TryParse(val2.ToString(), out SemVersion v2))
+            var version1 = RemoveVersionExtension(val1.ToString());
+            var version2 = RemoveVersionExtension(val2.ToString());
+            if (Version.TryParse(version1, out Version v1) &&
+                Version.TryParse(version2, out Version v2))
             {
                 return func(v1, v2);
             }
             return false;
+        }
+
+        private static string RemoveVersionExtension(string version)
+        {
+            int hyphenIndex = version.IndexOf('-');
+            if (hyphenIndex >= 0)
+            {
+                return version.Substring(0, hyphenIndex);
+            }
+            return version;
         }
 
         // Return true if the array contains the value, using case-insensitive comparison for strings
