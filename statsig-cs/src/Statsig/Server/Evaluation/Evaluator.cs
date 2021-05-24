@@ -145,7 +145,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
                     return CheckGate(user, target.ToString().ToLowerInvariant()).Result;
                 case "ip_based":
                     value = GetFromUser(user, field) ??
-                        GetFromIP(user, field, out fetchFromServer);
+                        GetFromIP(user.IPAddress, field, out fetchFromServer);
                     if (fetchFromServer)
                     {
                         return EvaluationResult.FetchFromServer;
@@ -255,8 +255,11 @@ namespace Statsig.src.Statsig.Server.Evaluation
 
                 // dates
                 case "before":
+                    // TODO:
                 case "after":
+                    // TODO:
                 case "on":
+                    // TODO:
                 default:
                     return EvaluationResult.FetchFromServer;
             }
