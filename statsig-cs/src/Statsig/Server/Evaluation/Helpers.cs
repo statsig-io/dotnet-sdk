@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using IP3Country;
 using UAParser;
 
 namespace Statsig.src.Statsig.Server.Evaluation
@@ -18,11 +19,22 @@ namespace Statsig.src.Statsig.Server.Evaluation
                 user.customProperties.TryGetValue(field, out object objVal) ? objVal : null;
         }
 
-        internal static string GetFromIP(StatsigUser user, string field, out bool fetchFromServer)
+        internal static string GetFromIP(string ipAddress, string field, out bool fetchFromServer)
         {
-            //TODO:
-            fetchFromServer = true;
-            return "";
+            fetchFromServer = false;
+            if (string.IsNullOrEmpty(ipAddress) || string.IsNullOrEmpty(field))
+            {
+                return null;
+            }
+
+            if (field.ToLowerInvariant() != "country")
+            {
+                // Currently we only support ip lookup for country
+                fetchFromServer = true;
+                return null;
+            }
+
+            return CountryLookup.LookupIPStr(ipAddress);
         }
 
         internal static string GetFromUserAgent(string userAgent, string field)

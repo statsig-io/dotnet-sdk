@@ -91,7 +91,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
         {
             using (var sha = SHA256.Create())
             {
-                var bytes = sha.ComputeHash(Encoding.ASCII.GetBytes(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID)));
+                var bytes = sha.ComputeHash(Encoding.ASCII.GetBytes(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID ?? "")));
                 var result = new BigInteger(bytes);
                 var mod = new BigInteger(10000);
                 return (result % mod) < new BigInteger(rule.PassPercentage * 100);
@@ -145,7 +145,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
                     return CheckGate(user, target.ToString().ToLowerInvariant()).Result;
                 case "ip_based":
                     value = GetFromUser(user, field) ??
-                        GetFromIP(user, field, out fetchFromServer);
+                        GetFromIP(user.IPAddress, field, out fetchFromServer);
                     if (fetchFromServer)
                     {
                         return EvaluationResult.FetchFromServer;
@@ -255,8 +255,11 @@ namespace Statsig.src.Statsig.Server.Evaluation
 
                 // dates
                 case "before":
+                    // TODO:
                 case "after":
+                    // TODO:
                 case "on":
+                    // TODO:
                 default:
                     return EvaluationResult.FetchFromServer;
             }

@@ -40,6 +40,9 @@
     <Reference Include="UAParser">
       <HintPath>..\packages\UAParser.3.1.46\lib\net45\UAParser.dll</HintPath>
     </Reference>
+    <Reference Include="ip3country">
+      <HintPath>..\packages\IP3Country.1.0.2\lib\net48\ip3country.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
