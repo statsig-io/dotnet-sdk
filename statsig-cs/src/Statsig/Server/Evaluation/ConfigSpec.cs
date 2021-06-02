@@ -21,6 +21,8 @@ namespace Statsig.src.Statsig.Server
             Salt = salt;
             Enabled = enabled;
             Rules = rules;
+            DynamicConfigDefault = new DynamicConfig(name);
+            FeatureGateDefault = new FeatureGate(name);
 
             if (Type.ToLower().Equals(Constants.DYNAMIC_CONFIG_SPEC_TYPE)) {
                 var configVal = defaultValue.ToObject<Dictionary<string, JToken>>();

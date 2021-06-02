@@ -120,7 +120,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
         private EvaluationResult EvaluateCondition(StatsigUser user, ConfigCondition condition)
         {
             var type = condition.Type.ToLowerInvariant();
-            var op = condition.Operator.ToLowerInvariant();
+            var op = condition.Operator?.ToLowerInvariant();
             var target = condition.TargetValue.Value<object>();
             var field = condition.Field;
             bool fetchFromServer = false;
