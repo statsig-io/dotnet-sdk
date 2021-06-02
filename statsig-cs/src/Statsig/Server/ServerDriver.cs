@@ -87,8 +87,8 @@ namespace Statsig.Server
             }
             else
             {
-                result = evaluation.GateValue.Value;
-                ruleID = evaluation.GateValue.RuleID;
+                result = evaluation.GateValue?.Value ?? false;
+                ruleID = evaluation.GateValue?.RuleID ?? "";
             }
 
             _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID));
