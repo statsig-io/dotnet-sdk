@@ -1,16 +1,15 @@
 name: build-and-test
 on:
-   push:
-     branches: [ main ]
-   pull_request:
-     branches: [ main ]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet-version: ['3.1.x', '4.8.x' ]
-
+        dotnet-version: ['3.1.x', '4.8.x']
     steps:
       - uses: actions/checkout@v2
       - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
