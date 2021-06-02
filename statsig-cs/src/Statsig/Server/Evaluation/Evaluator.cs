@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
@@ -173,7 +174,8 @@ namespace Statsig.src.Statsig.Server.Evaluation
             }
 
             bool result = false;
-            var targetArray = target as object[];
+            object[] targetArray = (condition.TargetValue as JArray)?.Cast<object>().ToArray();
+
             switch (op)
             {
                 // numerical
