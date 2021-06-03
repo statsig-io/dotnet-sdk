@@ -15,9 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\statsig-cs\dotnet-statsig.csproj" />
+    <Folder Include="Server\" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Server\" />
+    <ProjectReference Include="..\dotnet-statsig\dotnet-statsig.csproj" />
   </ItemGroup>
 </Project>

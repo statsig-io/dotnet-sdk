@@ -9,13 +9,6 @@ namespace dotnet_statsig_tests
 {
     public class StatsigServerTest
     {
-        private readonly ITestOutputHelper output;
-
-        public StatsigServerTest(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
-
         [Fact]
         public async void TestPublicGate()
         {
