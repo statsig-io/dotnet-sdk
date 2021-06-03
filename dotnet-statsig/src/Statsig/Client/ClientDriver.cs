@@ -94,14 +94,13 @@ namespace Statsig.Client
             FeatureGate gate;
             if (!_gates.TryGetValue(hashedName, out gate))
             {
-                _gates.TryGetValue(gateName, out gate);
+                if (!_gates.TryGetValue(gateName, out gate))
+                {
+                    gate = new FeatureGate(gateName, false, "");
+                }
             }
 
-            if (gate != null) {
-                _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value.ToString(), gate.RuleID));
-            }
-
-            
+            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value.ToString(), gate.RuleID));
             return gate.Value;
         }
 
