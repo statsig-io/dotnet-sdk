@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Statsig.Network;
-using Statsig.src.Statsig.Server.Evaluation;
+using Statsig.Server.Evaluation;
 
 namespace Statsig.Server
 {

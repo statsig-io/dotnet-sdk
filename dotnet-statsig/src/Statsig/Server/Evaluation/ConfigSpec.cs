@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 
-namespace Statsig.src.Statsig.Server
+namespace Statsig.Server
 {
     class ConfigSpec
     {

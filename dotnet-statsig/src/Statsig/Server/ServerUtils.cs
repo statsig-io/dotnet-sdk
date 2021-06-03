@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Statsig.src.Statsig.Server
+namespace Statsig.Server
 {
     static class ServerUtils
     {

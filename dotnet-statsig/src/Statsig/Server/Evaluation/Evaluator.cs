@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
 
-using static Statsig.src.Statsig.Server.Evaluation.Helpers;
+using static Statsig.Server.Evaluation.Helpers;
 
-namespace Statsig.src.Statsig.Server.Evaluation
+namespace Statsig.Server.Evaluation
 {
     class Evaluator
     {

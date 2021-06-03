@@ -5,7 +5,7 @@ using System.Linq;
 using IP3Country;
 using UAParser;
 
-namespace Statsig.src.Statsig.Server.Evaluation
+namespace Statsig.Server.Evaluation
 {
     static class Helpers
     {

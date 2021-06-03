@@ -5,7 +5,7 @@ using System.Timers;
 using Newtonsoft.Json.Linq;
 using Statsig.Network;
 
-namespace Statsig.src.Statsig.Server
+namespace Statsig.Server
 {
     class SpecStore
     {

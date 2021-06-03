@@ -1,5 +1,5 @@
 ﻿using System;
-namespace Statsig.src.Statsig.Server.Evaluation
+namespace Statsig.Server.Evaluation
 {
     enum EvaluationResult
     {
