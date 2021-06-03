@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
@@ -120,7 +121,7 @@ namespace Statsig.src.Statsig.Server.Evaluation
         private EvaluationResult EvaluateCondition(StatsigUser user, ConfigCondition condition)
         {
             var type = condition.Type.ToLowerInvariant();
-            var op = condition.Operator.ToLowerInvariant();
+            var op = condition.Operator?.ToLowerInvariant();
             var target = condition.TargetValue.Value<object>();
             var field = condition.Field;
             bool fetchFromServer = false;
@@ -173,7 +174,8 @@ namespace Statsig.src.Statsig.Server.Evaluation
             }
 
             bool result = false;
-            var targetArray = target as object[];
+            object[] targetArray = (condition.TargetValue as JArray)?.Cast<object>().ToArray();
+
             switch (op)
             {
                 // numerical
