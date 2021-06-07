@@ -9,6 +9,7 @@
     <Authors>Statsig Inc.</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Owners>Statsig Inc.,</Owners>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/statsig-io/dotnet-sdk</PackageProjectUrl>
     <PackageTags>feature flags; feature gates; a/b testing; experimentation</PackageTags>
     <Title>Statsig .NET SDK</Title>
