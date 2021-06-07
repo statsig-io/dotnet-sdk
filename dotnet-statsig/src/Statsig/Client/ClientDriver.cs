@@ -259,6 +259,8 @@ namespace Statsig.Client
                     ["appVersion"] = Assembly.GetEntryAssembly().GetName().Version.ToString(),
                     ["systemVersion"] = Environment.OSVersion.Version.ToString(),
                     ["systemName"] = systemName,
+                    ["sdkType"] = SDKDetails.GetClientSDKDetails().SDKType,
+                    ["sdkVersion"] = SDKDetails.GetClientSDKDetails().SDKVersion,
                 };
             }
             return _statsigMetadata;
