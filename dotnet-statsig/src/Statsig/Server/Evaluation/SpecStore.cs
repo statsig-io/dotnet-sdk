@@ -20,7 +20,6 @@ namespace Statsig.Server
         {
             _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase);
             _lastSyncTime = 0;
-            _syncTimer = new Timer();
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
         }
@@ -52,9 +51,12 @@ namespace Statsig.Server
                 ParseResponse(response);
             }
 
-            _syncTimer.Interval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC * 1000;
-            _syncTimer.Enabled = true;
-            _syncTimer.AutoReset = false;
+            _syncTimer = new Timer
+            {
+                Interval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC * 1000,
+                Enabled = true,
+                AutoReset = false
+            };
             _syncTimer.Elapsed += async (sender, e) => await SyncValues();
         }
 
