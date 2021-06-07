@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -7,14 +8,16 @@ namespace Statsig.Network
     public class EventLogger
     {
         int _maxQueueLength, _maxThresholdSecs;
+        SDKDetails _sdkDetails;
         Timer _threadTimer;
         List<EventLog> _eventLogQueue;
         RequestDispatcher _dispatcher;
         HashSet<string> _errorsLogged;
 
 
-        public EventLogger(RequestDispatcher dispatcher, int maxQueueLength = 100, int maxThresholdSecs = 60)
+        public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60)
         {
+            _sdkDetails = sdkDetails;
             _maxQueueLength = maxQueueLength;
             _maxThresholdSecs = maxThresholdSecs;
 
@@ -75,8 +78,8 @@ namespace Statsig.Network
         {
             return new Dictionary<string, string>
             {
-                ["sdkType"] = SdkDetails.SdkType,
-                ["sdkVersion"] = SdkDetails.SdkVersion,
+                ["sdkType"] = _sdkDetails.SDKType,
+                ["sdkVersion"] = _sdkDetails.SDKVersion,
             };
         }
 

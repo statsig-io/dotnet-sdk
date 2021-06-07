@@ -43,7 +43,7 @@ namespace Statsig.Server
                 new Dictionary<string, object>
                 {
                     ["sinceTime"] = _lastSyncTime,
-                    ["statsigMetadata"] = ServerUtils.GetStatsigMetadata(),
+                    ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
                 }
             );
 

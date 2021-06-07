@@ -5,7 +5,7 @@
     <RootNamespace>statsig_dotnet</RootNamespace>
     <PackOnBuild>true</PackOnBuild>
     <PackageId>Statsig</PackageId>
-    <PackageVersion>0.1.0</PackageVersion>
+    <Version>0.1.1</Version>
     <Authors>Statsig Inc.</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Owners>Statsig Inc.,</Owners>
@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../LICENSE" Pack="true" PackagePath=""/>
+    <None Include="../LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
