@@ -37,6 +37,7 @@ namespace Statsig.Server
             _requestDispatcher = new RequestDispatcher(_serverSecret, _options.ApiUrlBase);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
+                SDKDetails.GetServerSDKDetails(),
                 Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
                 Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC
             );

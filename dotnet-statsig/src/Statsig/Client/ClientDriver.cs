@@ -44,10 +44,10 @@ namespace Statsig.Client
             }
             _clientKey = clientKey;
             _options = options;
-
             _requestDispatcher = new RequestDispatcher(_clientKey, _options.ApiUrlBase);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
+                SDKDetails.GetClientSDKDetails(),
                 Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH,
                 Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC
             );
@@ -259,6 +259,8 @@ namespace Statsig.Client
                     ["appVersion"] = Assembly.GetEntryAssembly().GetName().Version.ToString(),
                     ["systemVersion"] = Environment.OSVersion.Version.ToString(),
                     ["systemName"] = systemName,
+                    ["sdkType"] = SDKDetails.GetClientSDKDetails().SDKType,
+                    ["sdkVersion"] = SDKDetails.GetClientSDKDetails().SDKVersion,
                 };
             }
             return _statsigMetadata;

@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.809.7
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-statsig", "dotnet-statsig\dotnet-statsig.csproj", "{298AEF83-FFCB-492E-98DF-623A14F2BF50}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-statsig-tests", "dotnet-statsig-tests\dotnet-statsig-tests.csproj", "{8F4DE3A2-1995-4F51-B863-51B6FDA4F770}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-statsig-tests", "dotnet-statsig-tests\dotnet-statsig-tests.csproj", "{50B19395-D686-4C3D-BDB4-0233044D2942}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{298AEF83-FFCB-492E-98DF-623A14F2BF50}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{298AEF83-FFCB-492E-98DF-623A14F2BF50}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{298AEF83-FFCB-492E-98DF-623A14F2BF50}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8F4DE3A2-1995-4F51-B863-51B6FDA4F770}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8F4DE3A2-1995-4F51-B863-51B6FDA4F770}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8F4DE3A2-1995-4F51-B863-51B6FDA4F770}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8F4DE3A2-1995-4F51-B863-51B6FDA4F770}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50B19395-D686-4C3D-BDB4-0233044D2942}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50B19395-D686-4C3D-BDB4-0233044D2942}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50B19395-D686-4C3D-BDB4-0233044D2942}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50B19395-D686-4C3D-BDB4-0233044D2942}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
