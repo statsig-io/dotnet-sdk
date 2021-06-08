@@ -13,7 +13,6 @@ namespace Statsig
 
         internal SDKDetails(string type)
         {
-            Console.WriteLine(type);
             SDKType = type;
             SDKVersion = GetType().Assembly.GetName().Version.ToString();
         }
@@ -45,7 +44,6 @@ namespace Statsig
             {
                 _serverDetails = new SDKDetails("dotnet-server");
             }
-            Console.WriteLine(_serverDetails.StatsigMetadata["sdkType"]);
             return _serverDetails;
         }
     }
