@@ -25,7 +25,7 @@ The package is hosted on [Nuget](https://www.nuget.org/packages/Statsig/). You c
 ```
 dotnet add package Statsig --version 0.1.0
 ```
-
-#### Step 3 - Import and use the SDK
+<a name="step3"></a>
+#### Step 3 - Initialize and use the SDK
 
 Refer to our [client side](https://docs.statsig.com/client/dotnetSDK) or [server side](https://docs.statsig.com/server/dotnetSDK) SDK docs on how to use the SDK.
