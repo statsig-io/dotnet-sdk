@@ -183,7 +183,13 @@ namespace Statsig.Server
         {
             if (user == null)
             {
-                throw new ArgumentNullException("user");
+                throw new ArgumentNullException("user", "A StatsigUser with a valid UserID must be provided for the" +
+                    "server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.");
+            }
+            if (user.UserID == null)
+            {
+                throw new ArgumentNullException("UserID", "A StatsigUser with a valid UserID must be provided for the" +
+                    "server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.");
             }
         }
 
