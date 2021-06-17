@@ -13,7 +13,7 @@ namespace dotnet_statsig_tests
         public async void TestPublicGate()
         {
             await StatsigServer.Initialize("secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW");
-            var publicGate = await StatsigServer.CheckGate(new StatsigUser(), "test_public");
+            var publicGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123" }, "test_public");
             Assert.True(publicGate);
         }
 
@@ -21,8 +21,8 @@ namespace dotnet_statsig_tests
         public async void TestEmailGate()
         {
             await StatsigServer.Initialize("secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW");
-            var passEmailGate = await StatsigServer.CheckGate(new StatsigUser { Email = "jkw@statsig.com" }, "test_email");
-            var failEmailGate = await StatsigServer.CheckGate(new StatsigUser { Email = "jkw@gmail.com" }, "test_email");
+            var passEmailGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123", Email = "jkw@statsig.com" }, "test_email");
+            var failEmailGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123", Email = "jkw@gmail.com" }, "test_email");
             Assert.True(passEmailGate);
             Assert.False(failEmailGate);
         }
