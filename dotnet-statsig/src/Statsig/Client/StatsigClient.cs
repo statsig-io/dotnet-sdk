@@ -37,6 +37,12 @@ namespace Statsig.Client
             return _singleDriver.GetConfig(configName);
         }
 
+        public static DynamicConfig GetExperiment(string experimentName)
+        {
+            EnsureInitialized();
+            return _singleDriver.GetConfig(experimentName);
+        }
+
         public static void LogEvent(
             string eventName,
             string value = null,

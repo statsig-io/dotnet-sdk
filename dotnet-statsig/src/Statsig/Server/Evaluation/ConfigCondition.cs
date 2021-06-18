@@ -15,18 +15,21 @@ namespace Statsig.Server
         // The name of the field to be used to retrieve user's value (left-hand operand) to be used for this condition's evaluation.
         // E.g. "os_name" if the condition is "os_name is any of ['iOS', 'Android']", so we know to get "os_name" from StatsigUser to check.
         internal string Field { get; }
+        // Additional values used only for certain conditions, typed as a dictionary
+        internal Dictionary<string, object> AdditionalValues { get; }
 
-        internal ConfigCondition(string type, JToken targetValue, string op, string field)
+        internal ConfigCondition(string type, JToken targetValue, string op, string field, Dictionary<string, object> additionalValues)
         {
             Type = type;
             TargetValue = targetValue;
             Operator = op;
             Field = field;
+            AdditionalValues = additionalValues;
         }
 
         internal static ConfigCondition FromJObject(JObject jobj)
         {
-            JToken type, targetValue, op, field;
+            JToken type, targetValue, op, field, additionalValues;
             if (jobj == null || !jobj.TryGetValue("type", out type))
             {
                 return null;
@@ -35,7 +38,8 @@ namespace Statsig.Server
                 type.Value<string>(),
                 jobj.TryGetValue("targetValue", out targetValue) ? targetValue : null,
                 jobj.TryGetValue("operator", out op) ? op.Value<string>() : null,
-                jobj.TryGetValue("field", out field) ? field.Value<string>() : null
+                jobj.TryGetValue("field", out field) ? field.Value<string>() : null,
+                jobj.TryGetValue("additionalValues", out additionalValues) ? additionalValues.ToObject<Dictionary<string, object>>() : new Dictionary<string, object>()
             );
         }
     }
