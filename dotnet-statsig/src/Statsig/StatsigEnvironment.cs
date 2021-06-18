@@ -26,10 +26,7 @@ namespace Statsig
             {
                 foreach (var pair in additionalParams)
                 {
-                    if (!Values.ContainsKey(pair.Key))
-                    {
-                        Values.Add(pair.Key.ToLowerInvariant(), pair.Value);
-                    }
+                    Values[pair.Key.ToLowerInvariant()] = pair.Value;
                 }
             }
         }

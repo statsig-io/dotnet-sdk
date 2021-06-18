@@ -5,6 +5,8 @@ using Statsig;
 using Statsig.Server;
 using System.Threading.Tasks;
 
+using System.Collections.Generic;
+
 namespace dotnet_statsig_tests
 {
     public class StatsigServerTest : IAsyncLifetime
