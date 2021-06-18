@@ -17,7 +17,7 @@ namespace Statsig.Server.Evaluation
         SpecStore _store;
         bool _initialized;
 
-        internal Evaluator(string serverSecret, ConnectionOptions options)
+        internal Evaluator(string serverSecret, StatsigOptions options)
         {
             _store = new SpecStore(serverSecret, options);
             _initialized = false;
@@ -167,6 +167,9 @@ namespace Statsig.Server.Evaluation
                     break;
                 case "user_field":
                     value = GetFromUser(user, field);
+                    break;
+                case "environment_field":
+                    value = GetFromEnvironment(user, field);
                     break;
                 case "current_time":
                     value = DateTime.Now;

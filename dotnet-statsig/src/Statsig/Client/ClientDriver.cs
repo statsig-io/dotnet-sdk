@@ -18,7 +18,7 @@ namespace Statsig.Client
         const string gatesStoreKey = "statsig::featureGates";
         const string configsStoreKey = "statsig::configs";
 
-        readonly ConnectionOptions _options;
+        readonly StatsigOptions _options;
         internal readonly string _clientKey;
         bool _disposed;
         RequestDispatcher _requestDispatcher;
@@ -28,7 +28,7 @@ namespace Statsig.Client
         Dictionary<string, DynamicConfig> _configs;
         Dictionary<string, string> _statsigMetadata;
 
-        public ClientDriver(string clientKey, ConnectionOptions options = null)
+        public ClientDriver(string clientKey, StatsigOptions options = null)
         {
             if (string.IsNullOrWhiteSpace(clientKey))
             {
@@ -40,7 +40,7 @@ namespace Statsig.Client
             }
             if (options == null)
             {
-                options = new ConnectionOptions();
+                options = new StatsigOptions();
             }
             _clientKey = clientKey;
             _options = options;
@@ -64,6 +64,7 @@ namespace Statsig.Client
             }
 
             _user = user;
+            _user.statsigEnvironment = _options.StatsigEnvironment.Values;
             var response = await _requestDispatcher.Fetch(
                 "initialize",
                 new Dictionary<string, object>
