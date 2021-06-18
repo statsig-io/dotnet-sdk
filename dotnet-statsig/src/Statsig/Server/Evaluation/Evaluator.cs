@@ -88,15 +88,21 @@ namespace Statsig.Server.Evaluation
             return new ConfigEvaluation(EvaluationResult.Fail, spec.FeatureGateDefault, spec.DynamicConfigDefault);
         }
 
-        private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, string salt)
+        private BigInteger ComputeUserHashBucket(string userHash)
         {
             using (var sha = SHA256.Create())
             {
-                var bytes = sha.ComputeHash(Encoding.ASCII.GetBytes(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID ?? "")));
+                var bytes = sha.ComputeHash(Encoding.ASCII.GetBytes(userHash));
                 var result = new BigInteger(bytes);
                 var mod = new BigInteger(10000);
-                return (result % mod) < new BigInteger(rule.PassPercentage * 100);
+                return result % mod;
             }
+        }
+
+        private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, string salt)
+        {
+            var bucket = ComputeUserHashBucket(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID ?? ""));
+            return bucket < new BigInteger(rule.PassPercentage * 100);
         }
 
         private EvaluationResult EvaluateRule(StatsigUser user, ConfigRule rule)
@@ -164,6 +170,17 @@ namespace Statsig.Server.Evaluation
                     break;
                 case "current_time":
                     value = DateTime.Now;
+                    break;
+                case "user_bucket":
+                    object salt;
+                    if (condition.AdditionalValues.TryGetValue("salt", out salt))
+                    {
+                        value = ComputeUserHashBucket(salt.ToString() + "." + user.UserID ?? "");
+                    }
+                    else
+                    {
+                        return EvaluationResult.Fail;
+                    }
                     break;
                 default:
                     return EvaluationResult.FetchFromServer;

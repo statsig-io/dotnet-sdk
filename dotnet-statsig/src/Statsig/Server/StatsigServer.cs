@@ -44,6 +44,12 @@ namespace Statsig.Server
             return await _singleDriver.GetConfig(user, configName);
         }
 
+        public static async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
+        {
+            EnsureInitialized();
+            return await _singleDriver.GetConfig(user, experimentName);
+        }
+
         public static void LogEvent(
             StatsigUser user,
             string eventName,
