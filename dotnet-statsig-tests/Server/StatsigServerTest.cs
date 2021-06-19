@@ -5,8 +5,6 @@ using Statsig;
 using Statsig.Server;
 using System.Threading.Tasks;
 
-using System.Collections.Generic;
-
 namespace dotnet_statsig_tests
 {
     public class StatsigServerTest : IAsyncLifetime
@@ -42,6 +40,6 @@ namespace dotnet_statsig_tests
         {
             var passGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123", Email = "jkw@statsig.com" }, "test_environment_tier");
             Assert.True(passGate);
-        }     
+        }
     }
 }
