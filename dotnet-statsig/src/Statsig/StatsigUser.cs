@@ -94,11 +94,14 @@ namespace Statsig
         }
         [JsonProperty("custom")]
         public IReadOnlyDictionary<string, object> CustomProperties => customProperties;
+        [JsonProperty("statsigEnvironment")]
+        internal IReadOnlyDictionary<string, string> statsigEnvironment;
 
         public StatsigUser()
         {
             properties = new Dictionary<string, string>();
             customProperties = new Dictionary<string, object>();
+            statsigEnvironment = new Dictionary<string, string>();
         }
 
         public void AddCustomProperty(string key, object value)

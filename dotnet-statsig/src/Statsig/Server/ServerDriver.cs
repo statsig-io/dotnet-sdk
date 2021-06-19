@@ -9,7 +9,7 @@ namespace Statsig.Server
 {
     public class ServerDriver : IDisposable
     {
-        readonly ConnectionOptions _options;
+        readonly StatsigOptions _options;
         internal readonly string _serverSecret;
         bool _initialized;
         bool _disposed;
@@ -17,7 +17,7 @@ namespace Statsig.Server
         EventLogger _eventLogger;
         Evaluator _evaluator;
 
-        public ServerDriver(string serverSecret, ConnectionOptions options = null)
+        public ServerDriver(string serverSecret, StatsigOptions options = null)
         {
             if (string.IsNullOrWhiteSpace(serverSecret))
             {
@@ -29,7 +29,7 @@ namespace Statsig.Server
             }
             if (options == null)
             {
-                options = new ConnectionOptions();
+                options = new StatsigOptions();
             }
             _serverSecret = serverSecret;
             _options = options;
@@ -60,6 +60,7 @@ namespace Statsig.Server
         {
             EnsureInitialized();
             ValidateUser(user);
+            NormalizeUser(user);
             ValidateNonEmptyArgument(gateName, "gateName");
 
             bool result = false;
@@ -100,6 +101,7 @@ namespace Statsig.Server
         {
             EnsureInitialized();
             ValidateUser(user);
+            NormalizeUser(user);
             ValidateNonEmptyArgument(configName, "configName");
 
             
@@ -193,6 +195,14 @@ namespace Statsig.Server
             }
         }
 
+        void NormalizeUser(StatsigUser user)
+        {
+            if (user != null && _options.StatsigEnvironment != null)
+            {
+                user.statsigEnvironment = _options.StatsigEnvironment.Values;
+            }
+        }
+
         void EnsureInitialized()
         {
             if (_disposed)
@@ -222,7 +232,8 @@ namespace Statsig.Server
             // User can be null for logEvent
             EnsureInitialized();
             ValidateNonEmptyArgument(eventName, "eventName");
-            
+            NormalizeUser(user);
+
             if (eventName.Length > Constants.MAX_SCALAR_LENGTH)
             {
                 eventName = eventName.Substring(0, Constants.MAX_SCALAR_LENGTH);

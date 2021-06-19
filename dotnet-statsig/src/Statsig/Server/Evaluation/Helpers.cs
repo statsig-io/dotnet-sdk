@@ -66,6 +66,15 @@ namespace Statsig.Server.Evaluation
             return null;
         }
 
+        internal static string GetFromEnvironment(StatsigUser user, string field)
+        {
+            if (user == null || user.statsigEnvironment == null)
+            {
+                return null;
+            }
+            return user.statsigEnvironment.TryGetValue(field.ToLowerInvariant(), out string strVal) ? strVal : null;
+        }
+
         internal static bool CompareNumbers(object val1, object val2, Func<double, double, bool> func)
         {
             if (double.TryParse(val1.ToString(), out double double1) && double.TryParse(val2.ToString(), out double double2))

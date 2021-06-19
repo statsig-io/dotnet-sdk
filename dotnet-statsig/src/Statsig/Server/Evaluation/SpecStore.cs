@@ -16,7 +16,7 @@ namespace Statsig.Server
         internal Dictionary<string, ConfigSpec> FeatureGates { get; set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; set; }
 
-        internal SpecStore(string serverSecret, ConnectionOptions options)
+        internal SpecStore(string serverSecret, StatsigOptions options)
         {
             _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase);
             _lastSyncTime = 0;
