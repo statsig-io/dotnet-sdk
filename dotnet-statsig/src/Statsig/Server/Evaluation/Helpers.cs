@@ -86,8 +86,8 @@ namespace Statsig.Server.Evaluation
 
         internal static bool CompareVersions(object val1, object val2, Func<Version, Version, bool> func)
         {
-            var version1 = RemoveVersionExtension(val1.ToString());
-            var version2 = RemoveVersionExtension(val2.ToString());
+            NormalizeVersionString(val1.ToString(), out string version1);
+            NormalizeVersionString(val2.ToString(), out string version2);
             if (Version.TryParse(version1, out Version v1) &&
                 Version.TryParse(version2, out Version v2))
             {
@@ -96,14 +96,19 @@ namespace Statsig.Server.Evaluation
             return false;
         }
 
-        private static string RemoveVersionExtension(string version)
+        private static void NormalizeVersionString(string version, out string normalized)
         {
             int hyphenIndex = version.IndexOf('-');
+            normalized = version;
+            
             if (hyphenIndex >= 0)
             {
-                return version.Substring(0, hyphenIndex);
+                normalized = version.Substring(0, hyphenIndex);
             }
-            return version;
+            if (int.TryParse(normalized, out _))
+            {
+                normalized += ".0"; // normalize versions represented by a single number, e.g. 2 => 2.0
+            }
         }
 
         // Return true if the array contains the value, using case-insensitive comparison for strings
