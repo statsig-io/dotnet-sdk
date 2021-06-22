@@ -38,6 +38,8 @@ namespace Statsig.Network
                 request.Method = "POST";
                 request.ContentType = "application/json";
                 request.Headers.Add("STATSIG-API-KEY", Key);
+                request.Headers.Add("STATSIG-CLIENT-TIME",
+                    (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds.ToString());
 
                 var jsonSettings = new JsonSerializerSettings
                 {

@@ -66,7 +66,7 @@ namespace Statsig.Server
             bool result = false;
             string ruleID = "";
             var evaluation = _evaluator.CheckGate(user, gateName);
-            if (evaluation.Result == EvaluationResult.FetchFromServer)
+            if (evaluation?.Result == EvaluationResult.FetchFromServer)
             {
                 var response = await _requestDispatcher.Fetch("check_gate", new Dictionary<string, object>
                 {
@@ -89,8 +89,8 @@ namespace Statsig.Server
             }
             else
             {
-                result = evaluation.GateValue?.Value ?? false;
-                ruleID = evaluation.GateValue?.RuleID ?? "";
+                result = evaluation?.GateValue?.Value ?? false;
+                ruleID = evaluation?.GateValue?.RuleID ?? "";
             }
 
             _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID));
@@ -106,8 +106,8 @@ namespace Statsig.Server
 
             
             var evaluation = _evaluator.GetConfig(user, configName);
-            var result = evaluation.ConfigValue;
-            if (evaluation.Result == EvaluationResult.FetchFromServer)
+            var result = evaluation?.ConfigValue;
+            if (evaluation?.Result == EvaluationResult.FetchFromServer)
             {
                 var response = await _requestDispatcher.Fetch("get_config", new Dictionary<string, object>
                 {
@@ -128,6 +128,10 @@ namespace Statsig.Server
                         result = new DynamicConfig(configName, configVal, ruleID.Value<string>());
                     }
                 }
+            }
+            else if (evaluation == null)
+            {
+                result = new DynamicConfig(configName);
             }
             
             _eventLogger.Enqueue(
