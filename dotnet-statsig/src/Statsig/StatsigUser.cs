@@ -80,16 +80,16 @@ namespace Statsig
                 properties["locale"] = value;
             }
         }
-        [JsonProperty("clientVersion")]
-        public string ClientVersion
+        [JsonProperty("appVersion")]
+        public string AppVersion
         {
             get
             {
-                return properties.TryGetValue("clientVersion", out string value) ? value : null;
+                return properties.TryGetValue("appVersion", out string value) ? value : null;
             }
             set
             {
-                properties["clientVersion"] = value;
+                properties["appVersion"] = value;
             }
         }
         [JsonProperty("custom")]
