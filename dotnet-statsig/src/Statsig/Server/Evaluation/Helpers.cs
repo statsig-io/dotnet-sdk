@@ -84,6 +84,25 @@ namespace Statsig.Server.Evaluation
             return false;
         }
 
+        internal static bool CompareTimes(object val1, object val2, Func<DateTimeOffset, DateTimeOffset, bool> func)
+        {
+            Console.WriteLine(val1);
+            Console.WriteLine(val2);
+            try
+            {
+                var t1 = ParseDateTimeOffset(val1);
+                var t2 = ParseDateTimeOffset(val2);
+                Console.WriteLine(t1);
+                Console.WriteLine(t2);
+                return func(t1, t2);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return false;
+            }
+        }
+
         internal static bool CompareVersions(object val1, object val2, Func<Version, Version, bool> func)
         {
             NormalizeVersionString(val1.ToString(), out string version1);
@@ -94,21 +113,6 @@ namespace Statsig.Server.Evaluation
                 return func(v1, v2);
             }
             return false;
-        }
-
-        private static void NormalizeVersionString(string version, out string normalized)
-        {
-            int hyphenIndex = version.IndexOf('-');
-            normalized = version;
-            
-            if (hyphenIndex >= 0)
-            {
-                normalized = version.Substring(0, hyphenIndex);
-            }
-            if (int.TryParse(normalized, out _))
-            {
-                normalized += ".0"; // normalize versions represented by a single number, e.g. 2 => 2.0
-            }
         }
 
         // Return true if the array contains the value, using case-insensitive comparison for strings
@@ -140,6 +144,38 @@ namespace Statsig.Server.Evaluation
             }
 
             return false;
+        }
+
+        private static void NormalizeVersionString(string version, out string normalized)
+        {
+            int hyphenIndex = version.IndexOf('-');
+            normalized = version;
+            
+            if (hyphenIndex >= 0)
+            {
+                normalized = version.Substring(0, hyphenIndex);
+            }
+            if (int.TryParse(normalized, out _))
+            {
+                normalized += ".0"; // normalize versions represented by a single number, e.g. 2 => 2.0
+            }
+        }
+
+        private static DateTimeOffset ParseDateTimeOffset(object val)
+        {
+            if (long.TryParse(val.ToString(), out long epochTime))
+            {
+                try
+                {
+                    // Throws if epochTime is out of range, usually means unit is in milliseconds instead
+                    return DateTimeOffset.FromUnixTimeSeconds(epochTime);
+                }
+                catch
+                {
+                    return DateTimeOffset.FromUnixTimeMilliseconds(epochTime);
+                }
+            }
+            return DateTimeOffset.Parse(val.ToString());
         }
     }
 }

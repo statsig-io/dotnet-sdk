@@ -9,10 +9,13 @@ namespace dotnet_statsig_tests
 {
     public class StatsigServerTest : IAsyncLifetime
     {
+        StatsigUser basicUser;
+
         public async Task InitializeAsync()
         {
             await StatsigServer.Initialize("secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW",
                 new StatsigOptions("https://latest.api.statsig.com/v1", new StatsigEnvironment(EnvironmentTier.Development)));
+            basicUser = new StatsigUser { UserID = "123" };
         }
 
         public async Task DisposeAsync()
@@ -22,7 +25,7 @@ namespace dotnet_statsig_tests
         [Fact]
         public async void TestPublicGate()
         {
-            var publicGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123" }, "test_public");
+            var publicGate = await StatsigServer.CheckGate(basicUser, "test_public");
             Assert.True(publicGate);
         }
 
@@ -40,6 +43,16 @@ namespace dotnet_statsig_tests
         {
             var passGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123", Email = "jkw@statsig.com" }, "test_environment_tier");
             Assert.True(passGate);
+        }
+
+        [Fact]
+        public async void TestTimeGate()
+        {
+            var passGate = await StatsigServer.CheckGate(basicUser, "test_time_before");
+            Assert.True(passGate);
+
+            var passGate2 = await StatsigServer.CheckGate(basicUser, "test_time_after");
+            Assert.True(passGate2);
         }
 
         [Fact]

@@ -277,11 +277,14 @@ namespace Statsig.Server.Evaluation
 
                 // dates
                 case "before":
-                    // TODO:
+                    result = CompareTimes(value, target, (DateTimeOffset t1, DateTimeOffset t2) => (t1 < t2));
+                    break;
                 case "after":
-                    // TODO:
+                    result = CompareTimes(value, target, (DateTimeOffset t1, DateTimeOffset t2) => (t1 > t2));
+                    break;
                 case "on":
-                    // TODO:
+                    result = CompareTimes(value, target, (DateTimeOffset t1, DateTimeOffset t2) => (t1.Date == t2.Date));
+                    break;
                 default:
                     return EvaluationResult.FetchFromServer;
             }
