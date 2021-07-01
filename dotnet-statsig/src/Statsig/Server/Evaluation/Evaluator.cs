@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -88,21 +87,36 @@ namespace Statsig.Server.Evaluation
             return new ConfigEvaluation(EvaluationResult.Fail, spec.FeatureGateDefault, spec.DynamicConfigDefault);
         }
 
-        private BigInteger ComputeUserHashBucket(string userHash)
+        private ulong ComputeUserHash(string userHash)
         {
             using (var sha = SHA256.Create())
             {
-                var bytes = sha.ComputeHash(Encoding.ASCII.GetBytes(userHash));
-                var result = new BigInteger(bytes);
-                var mod = new BigInteger(10000);
-                return result % mod;
+                var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(userHash));
+                ulong result = BitConverter.ToUInt64(bytes, 0);
+                if (BitConverter.IsLittleEndian) {
+                    // we use big endian in the backend so need to be consistent here.
+                    result = SwapBytes(result);
+                }
+                return result;
             }
+        }
+
+        // Swap bytes to change from little endian to big endian
+        // https://stackoverflow.com/a/19560621/1524355
+        private ulong SwapBytes(ulong x)
+        {
+            // swap adjacent 32-bit blocks
+            x = (x >> 32) | (x << 32);
+            // swap adjacent 16-bit blocks
+            x = ((x & 0xFFFF0000FFFF0000) >> 16) | ((x & 0x0000FFFF0000FFFF) << 16);
+            // swap adjacent 8-bit blocks
+            return ((x & 0xFF00FF00FF00FF00) >> 8) | ((x & 0x00FF00FF00FF00FF) << 8);
         }
 
         private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, string salt)
         {
-            var bucket = ComputeUserHashBucket(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID ?? ""));
-            return bucket < new BigInteger(rule.PassPercentage * 100);
+            var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID ?? ""));
+            return (hash % 10000) < (rule.PassPercentage * 100);
         }
 
         private EvaluationResult EvaluateRule(StatsigUser user, ConfigRule rule)
@@ -178,7 +192,8 @@ namespace Statsig.Server.Evaluation
                     object salt;
                     if (condition.AdditionalValues.TryGetValue("salt", out salt))
                     {
-                        value = ComputeUserHashBucket(salt.ToString() + "." + user.UserID ?? "");
+                        var hash = ComputeUserHash(salt.ToString() + "." + user.UserID ?? "");
+                        value = hash % 1000; // user bucket condition only has 1k segments as opposed to 10k for condition pass %
                     }
                     else
                     {

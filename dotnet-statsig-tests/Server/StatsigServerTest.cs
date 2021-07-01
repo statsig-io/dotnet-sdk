@@ -30,6 +30,19 @@ namespace dotnet_statsig_tests
         }
 
         [Fact]
+        public async void TestPartialGate()
+        {
+            var passGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "17" }, "test_small_pass_gate");
+            Assert.True(passGate);
+            var passGate2 = await StatsigServer.CheckGate(new StatsigUser { UserID = "30" }, "test_small_pass_gate");
+            Assert.True(passGate2);
+            var passGate3 = await StatsigServer.CheckGate(new StatsigUser { UserID = "60" }, "test_small_pass_gate");
+            Assert.True(passGate3);
+            var failGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "16" }, "test_small_pass_gate");
+            Assert.False(failGate);
+        }
+
+        [Fact]
         public async void TestEmailGate()
         {
             var passEmailGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123", Email = "jkw@statsig.com" }, "test_email");
