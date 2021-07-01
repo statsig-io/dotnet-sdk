@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -117,7 +116,7 @@ namespace Statsig.Server.Evaluation
         private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, string salt)
         {
             var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", salt, rule.Name, user.UserID ?? ""));
-            return (hash % 10000) < new BigInteger(rule.PassPercentage * 100);
+            return (hash % 10000) < (rule.PassPercentage * 100);
         }
 
         private EvaluationResult EvaluateRule(StatsigUser user, ConfigRule rule)
