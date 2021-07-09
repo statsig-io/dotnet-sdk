@@ -1,13 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Statsig
 {
     public class DynamicConfig
     {
+        [JsonProperty("name")]
         public string ConfigName { get; }
+
+        [JsonProperty("value")]
         public IReadOnlyDictionary<string, JToken> Value { get; }
+
+        [JsonProperty("rule_id")]
         public string RuleID { get; }
 
         static DynamicConfig _defaultConfig;

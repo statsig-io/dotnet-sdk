@@ -86,19 +86,14 @@ namespace Statsig.Server.Evaluation
 
         internal static bool CompareTimes(object val1, object val2, Func<DateTimeOffset, DateTimeOffset, bool> func)
         {
-            Console.WriteLine(val1);
-            Console.WriteLine(val2);
             try
             {
                 var t1 = ParseDateTimeOffset(val1);
                 var t2 = ParseDateTimeOffset(val2);
-                Console.WriteLine(t1);
-                Console.WriteLine(t2);
                 return func(t1, t2);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
                 return false;
             }
         }

@@ -14,7 +14,7 @@ namespace dotnet_statsig_tests
         public async Task InitializeAsync()
         {
             await StatsigServer.Initialize("secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW",
-                new StatsigOptions("https://latest.api.statsig.com/v1", new StatsigEnvironment(EnvironmentTier.Development)));
+                new StatsigOptions("https://api.statsig.com/v1"));
             basicUser = new StatsigUser { UserID = "123" };
         }
 
@@ -49,13 +49,6 @@ namespace dotnet_statsig_tests
             var failEmailGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123", Email = "jkw@gmail.com" }, "test_email");
             Assert.True(passEmailGate);
             Assert.False(failEmailGate);
-        }
-
-        [Fact]
-        public async void TestEnvTierGate_Pass()
-        {
-            var passGate = await StatsigServer.CheckGate(new StatsigUser { UserID = "123", Email = "jkw@statsig.com" }, "test_environment_tier");
-            Assert.True(passGate);
         }
 
         [Fact]
