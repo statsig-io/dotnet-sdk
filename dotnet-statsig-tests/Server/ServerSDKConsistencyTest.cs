@@ -11,7 +11,7 @@ using Statsig.Server;
 using System.Threading.Tasks;
 
 
-namespace dotnet_statsig_tests.Server
+namespace dotnet_statsig_tests
 {
     public class ServerSDKConsistencyTest : IAsyncLifetime
     {
@@ -89,7 +89,7 @@ namespace dotnet_statsig_tests.Server
                 foreach (var gate in data.feature_gates)
                 {
                     var sdkValue = await StatsigServer.CheckGate(data.user, gate.Key);
-                    Assert.True(sdkValue == gate.Value, gate.Key + "  expected " + sdkValue + " got " + gate.Value);
+                    Assert.True(sdkValue == gate.Value, gate.Key + "  expected " + gate.Value + " got " + sdkValue + "for " + gate.Key);
                 }
                 foreach (var config in data.dynamic_configs)
                 {
