@@ -50,7 +50,7 @@ namespace Statsig.Server.Evaluation
             {
                 ["os_name"] = c.OS.Family,
                 ["os_version"] = string.Join(".", new string[] {
-                    c.OS.Major, c.OS.Minor, c.OS.Patch, c.OS.PatchMinor
+                    c.OS.Major, c.OS.Minor, c.OS.Patch
                 }.Where(v => !string.IsNullOrEmpty(v)).ToArray()),
                 ["browser_name"] = c.UA.Family,
                 ["browser_version"] = string.Join(".", new string[] {
@@ -92,7 +92,7 @@ namespace Statsig.Server.Evaluation
                 var t2 = ParseDateTimeOffset(val2);
                 return func(t1, t2);
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }
