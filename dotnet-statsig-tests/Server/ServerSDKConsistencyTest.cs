@@ -23,8 +23,6 @@ namespace dotnet_statsig_tests
         }
 
         string secret;
-        TestData[] prodTestData;
-        TestData[] stagingTestData;
 
         public async Task InitializeAsync()
         {
@@ -35,10 +33,6 @@ namespace dotnet_statsig_tests
                 {
                     secret = File.ReadAllText("../../../../../ops/secrets/prod_keys/statsig-rulesets-eval-consistency-test-secret.key");   
                 }
-                prodTestData = await FetchTestData("https://api.statsig.com/v1/rulesets_e2e_test");
-                stagingTestData = await FetchTestData("https://latest.api.statsig.com/v1/rulesets_e2e_test");
-
-                await StatsigServer.Initialize(secret);
             }
             catch
             {
@@ -49,25 +43,43 @@ namespace dotnet_statsig_tests
         public async Task DisposeAsync() {}
 
         [Fact]
-        public async void TestProdConsistency()
+        public async void TestProd()
         {
-            await TestConsistency(prodTestData);
+            await TestConsistency("https://api.statsig.com/v1");
         }
 
         [Fact]
-        public async void TestStagingConsistency()
+        public async void TestStaging()
         {
-            await TestConsistency(stagingTestData);
+            await TestConsistency("https://latest.api.statsig.com/v1");
         }
 
-        private async Task<TestData[]> FetchTestData(string url)
+        [Fact]
+        public async void TestAPSouth()
+        {
+            await TestConsistency("https://ap-south-1.api.statsig.com/v1");
+        }
+
+        [Fact]
+        public async void TestUSWest()
+        {
+            await TestConsistency("https://us-west-2.api.statsig.com/v1");
+        }
+
+        [Fact]
+        public async void TestUSEast()
+        {
+            await TestConsistency("https://us-east-2.api.statsig.com/v1");
+        }
+
+        private async Task<TestData[]> FetchTestData(string apiURLBase)
         {
             using (HttpClient client = new HttpClient())
             {
                 var httpRequestMessage = new HttpRequestMessage
                 {
                     Method = HttpMethod.Post,
-                    RequestUri = new Uri(url),
+                    RequestUri = new Uri(apiURLBase + "/rulesets_e2e_test"),
                     Headers = {
                         { "STATSIG-API-KEY", secret },
                         { "STATSIG-CLIENT-TIME", (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds.ToString() }
@@ -82,24 +94,28 @@ namespace dotnet_statsig_tests
             }
         }
 
-        private async Task TestConsistency(TestData[] testData)
+        private async Task TestConsistency(string apiURLBase)
         {
+            var driver = new ServerDriver(secret, new StatsigOptions(apiURLBase));
+            await driver.Initialize();
+            var testData = await FetchTestData(apiURLBase);
             foreach (var data in testData)
             {
                 foreach (var gate in data.feature_gates)
                 {
-                    var sdkValue = await StatsigServer.CheckGate(data.user, gate.Key);
+                    var sdkValue = await driver.CheckGate(data.user, gate.Key);
                     Assert.True(sdkValue == gate.Value, gate.Key + "  expected " + gate.Value + " got " + sdkValue + "for " + gate.Key);
                 }
                 foreach (var config in data.dynamic_configs)
                 {
-                    var sdkValue = await StatsigServer.GetConfig(data.user, config.Key);
+                    var sdkValue = await driver.GetConfig(data.user, config.Key);
                     foreach (var entry in sdkValue.Value)
                     {
                         Assert.True(JToken.DeepEquals(entry.Value, config.Value.Value[entry.Key]));
                     }
                 }
             }
+            driver.Shutdown();
         }
     }
 }
