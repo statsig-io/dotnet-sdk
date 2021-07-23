@@ -249,23 +249,29 @@ namespace Statsig.Server.Evaluation
 
                 // array
                 case "any":
-                    result = ArrayContains(targetArray, value);
+                    result = ArrayContains(targetArray, value, true);
                     break;
                 case "none":
-                    result = !ArrayContains(targetArray, value);
+                    result = !ArrayContains(targetArray, value, true);
+                    break;
+                case "any_case_sensitive":
+                    result = ArrayContains(targetArray, value, false);
+                    break;
+                case "none_case_sensitive":
+                    result = !ArrayContains(targetArray, value, false);
                     break;
 
                 // string
                 case "str_starts_with_any":
-                    result = MatchStringCaseInsensitiveInArray(targetArray, value.ToString(),
+                    result = MatchStringInArray(targetArray, value, true,
                         (string s1, string s2) => (s1.StartsWith(s2)));
                     break;
                 case "str_ends_with_any":
-                    result = MatchStringCaseInsensitiveInArray(targetArray, value.ToString(),
+                    result = MatchStringInArray(targetArray, value, true,
                         (string s1, string s2) => (s1.EndsWith(s2)));
                     break;
                 case "str_contains_any":
-                    result = MatchStringCaseInsensitiveInArray(targetArray, value.ToString(),
+                    result = MatchStringInArray(targetArray, value, true,
                         (string s1, string s2) => (s1.Contains(s2)));
                     break;
                 case "str_matches":
