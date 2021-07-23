@@ -111,7 +111,7 @@ namespace Statsig.Server.Evaluation
         }
 
         // Return true if the array contains the value, using case-insensitive comparison for strings
-        internal static bool ArrayContains(object[] array, object value)
+        internal static bool ArrayContains(object[] array, object value, bool ignoreCase)
         {
             if (array == null || value == null)
             {
@@ -120,7 +120,7 @@ namespace Statsig.Server.Evaluation
 
             if (value is string)
             {
-                return MatchStringCaseInsensitiveInArray(array, (string)value, (string s1, string s2) => (s1.Equals(s2)));
+                return MatchStringInArray(array, value, ignoreCase, (string s1, string s2) => (s1.Equals(s2)));
             }
             else
             {
@@ -128,11 +128,24 @@ namespace Statsig.Server.Evaluation
             }
         }
 
-        internal static bool MatchStringCaseInsensitiveInArray(object[] array, string value, Func<string, string, bool> func)
+        internal static bool MatchStringInArray(object[] array, object value, bool ignoreCase, Func<string, string, bool> func)
         {
+            if (!(value is string))
+            {
+                return false;
+            }
+
             foreach (var t in array)
             {
-                if (func(value.ToLowerInvariant(), t.ToString().ToLowerInvariant()))
+                if (!(t is string))
+                {
+                    continue;
+                }
+                if (ignoreCase && func(((string)value).ToLowerInvariant(), ((string)t).ToLowerInvariant()))
+                {
+                    return true;
+                }
+                if (func((string)value, (string)t))
                 {
                     return true;
                 }
