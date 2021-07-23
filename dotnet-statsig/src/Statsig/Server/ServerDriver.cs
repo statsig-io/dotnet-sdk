@@ -201,7 +201,7 @@ namespace Statsig.Server
 
         void NormalizeUser(StatsigUser user)
         {
-            if (user != null && _options.StatsigEnvironment != null)
+            if (user != null && _options.StatsigEnvironment != null && _options.StatsigEnvironment.Values.Count > 0)
             {
                 user.statsigEnvironment = _options.StatsigEnvironment.Values;
             }

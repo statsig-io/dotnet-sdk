@@ -193,7 +193,7 @@ namespace Statsig.Server.Evaluation
                     if (condition.AdditionalValues.TryGetValue("salt", out salt))
                     {
                         var hash = ComputeUserHash(salt.ToString() + "." + user.UserID ?? "");
-                        value = hash % 1000; // user bucket condition only has 1k segments as opposed to 10k for condition pass %
+                        value = Convert.ToInt64(hash % 1000); // user bucket condition only has 1k segments as opposed to 10k for condition pass %
                     }
                     else
                     {
@@ -209,7 +209,7 @@ namespace Statsig.Server.Evaluation
             }
 
             bool result = false;
-            object[] targetArray = (condition.TargetValue as JArray)?.Cast<object>().ToArray();
+            object[] targetArray = (condition.TargetValue as JArray)?.ToObject<object[]> ();
 
             switch (op)
             {
