@@ -1,5 +1,7 @@
 # dotnet-sdk
 
+[![build-and-test](https://github.com/statsig-io/private-dotnet-sdk/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/statsig-io/private-dotnet-sdk/actions/workflows/build-and-test.yml)
+
 This is the .NET SDK for both single-user client side and multi-user server side usage. Use `Statsig.Client` for client side and `Statsig.Server` for server side.
 
 ## The Basics
