@@ -66,7 +66,7 @@ namespace Statsig.Server.Evaluation
                             return new ConfigEvaluation(EvaluationResult.FetchFromServer);
                         case EvaluationResult.Pass:
                             // return the value of the first rule that the user passes.
-                            var passPercentage = EvaluatePassPercentage(user, rule, spec.Salt);
+                            var passPercentage = EvaluatePassPercentage(user, rule, spec);
                             if (passPercentage)
                             {
                                 return new ConfigEvaluation(EvaluationResult.Pass, rule.FeatureGateValue, rule.DynamicConfigValue);
@@ -113,9 +113,9 @@ namespace Statsig.Server.Evaluation
             return ((x & 0xFF00FF00FF00FF00) >> 8) | ((x & 0x00FF00FF00FF00FF) << 8);
         }
 
-        private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, string salt)
+        private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, ConfigSpec spec)
         {
-            var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", salt, rule.ID, user.UserID ?? ""));
+            var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", spec.Salt, rule.Salt ?? rule.ID, user.UserID ?? ""));
             return (hash % 10000) < (rule.PassPercentage * 100);
         }
 
