@@ -20,6 +20,7 @@ namespace Statsig.Server
             PassPercentage = passPercentage;
             Conditions = conditions;
             ID = id;
+            Salt = salt;
 
             FeatureGateValue = new FeatureGate(name, true, id);
             try
@@ -39,8 +40,7 @@ namespace Statsig.Server
                 !jobj.TryGetValue("passPercentage", out passPercentage) ||
                 !jobj.TryGetValue("returnValue", out returnValue) ||
                 !jobj.TryGetValue("conditions", out conditions) ||
-                !jobj.TryGetValue("id", out id) ||
-                !jobj.TryGetValue("salt", out salt))
+                !jobj.TryGetValue("id", out id))
             {
                 return null;
             }
@@ -56,7 +56,7 @@ namespace Statsig.Server
                 passPercentage.Value<double>(),
                 returnValue,
                 id.Value<string>(),
-                salt.Value<string>(),
+                jobj.TryGetValue("salt", out salt) ? salt.Value<string>() : null,
                 conditionsList);
         }
     }
