@@ -203,10 +203,6 @@ namespace Statsig.Server.Evaluation
                 default:
                     return EvaluationResult.FetchFromServer;
             }
-            if (value == null)
-            {
-                return EvaluationResult.Fail;
-            }
 
             bool result = false;
             object[] targetArray = (condition.TargetValue as JArray)?.ToObject<object[]> ();

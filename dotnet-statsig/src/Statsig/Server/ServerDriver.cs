@@ -53,6 +53,7 @@ namespace Statsig.Server
 
         public void Shutdown()
         {
+            _evaluator.Shutdown();
             ((IDisposable)this).Dispose();
         }
 
