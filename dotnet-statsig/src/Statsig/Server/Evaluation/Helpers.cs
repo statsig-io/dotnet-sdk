@@ -77,6 +77,10 @@ namespace Statsig.Server.Evaluation
 
         internal static bool CompareNumbers(object val1, object val2, Func<double, double, bool> func)
         {
+            if (val1 == null || val2 == null)
+            {
+                return false;
+            }
             if (double.TryParse(val1.ToString(), out double double1) && double.TryParse(val2.ToString(), out double double2))
             {
                 return func(double1, double2);
@@ -86,6 +90,10 @@ namespace Statsig.Server.Evaluation
 
         internal static bool CompareTimes(object val1, object val2, Func<DateTimeOffset, DateTimeOffset, bool> func)
         {
+            if (val1 == null || val2 == null)
+            {
+                return false;
+            }
             try
             {
                 var t1 = ParseDateTimeOffset(val1);
@@ -100,6 +108,10 @@ namespace Statsig.Server.Evaluation
 
         internal static bool CompareVersions(object val1, object val2, Func<Version, Version, bool> func)
         {
+            if (val1 == null || val2 == null)
+            {
+                return false;
+            }
             NormalizeVersionString(val1.ToString(), out string version1);
             NormalizeVersionString(val2.ToString(), out string version2);
             if (Version.TryParse(version1, out Version v1) &&
