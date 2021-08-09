@@ -7,7 +7,7 @@ namespace Statsig
         public static int MAX_SCALAR_LENGTH = 64;
         public static int MAX_METADATA_LENGTH = 1024;
 
-        public static int SERVER_MAX_LOGGER_QUEUE_LENGTH = 1000;
+        public static int SERVER_MAX_LOGGER_QUEUE_LENGTH = 500;
         public static int SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC = 60;
         public static int SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC = 10;
         public static string DYNAMIC_CONFIG_SPEC_TYPE = "dynamic_config";

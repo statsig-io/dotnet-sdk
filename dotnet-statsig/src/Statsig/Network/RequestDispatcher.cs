@@ -10,6 +10,8 @@ namespace Statsig.Network
 {
     public class RequestDispatcher
     {
+        const int backoffMultiplier = 10;
+        private static readonly HashSet<int> retryCodes = new HashSet<int> { 408, 500, 502, 503, 504, 522, 524, 599 };
         public string Key { get; }
         public string ApiBaseUrl { get; }
         public RequestDispatcher(string key, string apiBaseUrl = null)
@@ -29,7 +31,9 @@ namespace Statsig.Network
 
         public async Task<IReadOnlyDictionary<string, JToken>> Fetch(
             string endpoint,
-            IReadOnlyDictionary<string, object> body)
+            IReadOnlyDictionary<string, object> body,
+            int retries = 0,
+            int backoff = 1)
         {
             try
             {
@@ -51,7 +55,7 @@ namespace Statsig.Network
                     writer.Write(bodyJson);
                 }
 
-                var json = await FetchInternal(request);
+                var json = await FetchInternal(request, retries, backoff);
                 return JsonConvert.DeserializeObject<Dictionary<string, JToken>>(json);
             }
             catch (Exception)
@@ -60,7 +64,7 @@ namespace Statsig.Network
             }
         }
 
-        async Task<string> FetchInternal(HttpWebRequest request)
+        async Task<string> FetchInternal(HttpWebRequest request, int retries, int backoff)
         {
             var response = (HttpWebResponse)await request.GetResponseAsync();
             if (response.StatusCode == HttpStatusCode.Accepted ||
@@ -70,6 +74,10 @@ namespace Statsig.Network
                 {
                     return reader.ReadToEnd();
                 }
+            } else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))
+            {
+                System.Threading.Thread.Sleep(backoff * 1000);
+                return await FetchInternal(request, retries - 1, backoff * backoffMultiplier)
             }
 
             return null;

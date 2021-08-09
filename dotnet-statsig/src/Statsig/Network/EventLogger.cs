@@ -25,6 +25,7 @@ namespace Statsig.Network
             _errorsLogged = new HashSet<string>();
 
             _threadTimer = new Timer(TimerCallback);
+            _threadTimer.Change(_maxThresholdSecs * 1000, Timeout.Infinite);
             _dispatcher = dispatcher;
         }
 
@@ -42,14 +43,9 @@ namespace Statsig.Network
             }
 
             _eventLogQueue.Add(entry);
-            if (_eventLogQueue.Count == 1)
+            if (_eventLogQueue.Count >= _maxQueueLength)
             {
-                // Only triggered when the list was empty at start
-                _threadTimer.Change(_maxThresholdSecs * 1000, Timeout.Infinite);
-            }
-            else if (_eventLogQueue.Count >= _maxQueueLength)
-            {
-                _threadTimer.Change(0, Timeout.Infinite);
+                ForceFlush();
             }
         }
 
@@ -61,6 +57,10 @@ namespace Statsig.Network
 
         async Task FlushEvents()
         {
+            if (_eventLogQueue.Count == 0)
+            {
+                return;
+            }
             var snapshot = _eventLogQueue;
             _eventLogQueue = new List<EventLog>();
             _errorsLogged.Clear();
@@ -71,7 +71,7 @@ namespace Statsig.Network
                 ["events"] = snapshot
             };
 
-            await _dispatcher.Fetch("log_event", body);
+            await _dispatcher.Fetch("log_event", body, 5, 1);
         }
 
         IReadOnlyDictionary<string, string> GetStatsigMetadata()
