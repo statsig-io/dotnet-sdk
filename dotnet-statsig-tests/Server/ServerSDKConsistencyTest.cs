@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Statsig;
 using Statsig.Server;
 using System.Threading.Tasks;
+using Statsig.Network;
 
 
 namespace dotnet_statsig_tests
@@ -31,7 +32,7 @@ namespace dotnet_statsig_tests
                 secret = Environment.GetEnvironmentVariable("test_api_key");
                 if (string.IsNullOrEmpty(secret))
                 {
-                    secret = File.ReadAllText("../../../../../ops/secrets/prod_keys/statsig-rulesets-eval-consistency-test-secret.key");   
+                    secret = File.ReadAllText("../../../../../ops/secrets/prod_keys/statsig-rulesets-eval-consistency-test-secret.key");
                 }
             }
             catch

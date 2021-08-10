@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Cache;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -55,31 +56,35 @@ namespace Statsig.Network
                     writer.Write(bodyJson);
                 }
 
-                var json = await FetchInternal(request, retries, backoff);
-                return JsonConvert.DeserializeObject<Dictionary<string, JToken>>(json);
+                var response = (HttpWebResponse)await request.GetResponseAsync();
+                if (response == null)
+                {
+                    return null;
+                }
+                if (response.StatusCode == HttpStatusCode.Accepted ||
+                response.StatusCode == HttpStatusCode.OK)
+                {
+                    using (var reader = new StreamReader(response.GetResponseStream()))
+                    {
+                        var json = reader.ReadToEnd();
+                        return JsonConvert.DeserializeObject<Dictionary<string, JToken>>(json);
+                    }
+                }
+                else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))
+                {
+                    System.Threading.Thread.Sleep(backoff * 1000);
+                    return await Fetch(endpoint, body, retries - 1, backoff * backoffMultiplier);
+                }
+
             }
             catch (Exception)
             {
-                return null;
-            }
-        }
-
-        async Task<string> FetchInternal(HttpWebRequest request, int retries, int backoff)
-        {
-            var response = (HttpWebResponse)await request.GetResponseAsync();
-            if (response.StatusCode == HttpStatusCode.Accepted ||
-                response.StatusCode == HttpStatusCode.OK)
-            {
-                using (var reader = new StreamReader(response.GetResponseStream()))
+                if (retries > 0)
                 {
-                    return reader.ReadToEnd();
+                    System.Threading.Thread.Sleep(backoff * 1000);
+                    return await Fetch(endpoint, body, retries - 1, backoff * backoffMultiplier);
                 }
-            } else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))
-            {
-                System.Threading.Thread.Sleep(backoff * 1000);
-                return await FetchInternal(request, retries - 1, backoff * backoffMultiplier);
             }
-
             return null;
         }
     }
