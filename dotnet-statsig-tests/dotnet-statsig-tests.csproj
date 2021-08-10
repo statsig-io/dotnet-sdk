@@ -16,7 +16,6 @@
     <PackageReference Include="coverlet.collector" Version="3.1.0"><IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 <PrivateAssets>all</PrivateAssets>
 </PackageReference>
-    <PackageReference Include="Microsoft.QualityTools.Testing.Fakes" Version="16.11.230815" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.5" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.5" />
   </ItemGroup>
@@ -26,10 +25,5 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\dotnet-statsig\dotnet-statsig.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="Microsoft.QualityTools.Testing.Fakes" />
-    <None Remove="MSTest.TestFramework" />
-    <None Remove="MSTest.TestAdapter" />
   </ItemGroup>
 </Project>

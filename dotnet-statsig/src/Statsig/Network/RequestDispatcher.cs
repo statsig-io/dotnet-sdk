@@ -77,7 +77,7 @@ namespace Statsig.Network
             } else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))
             {
                 System.Threading.Thread.Sleep(backoff * 1000);
-                return await FetchInternal(request, retries - 1, backoff * backoffMultiplier)
+                return await FetchInternal(request, retries - 1, backoff * backoffMultiplier);
             }
 
             return null;
