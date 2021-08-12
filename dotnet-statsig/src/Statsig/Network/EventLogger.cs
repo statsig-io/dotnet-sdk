@@ -1,31 +1,34 @@
-﻿using System;
+﻿using System.Timers;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Statsig.Network
 {
     public class EventLogger
     {
-        int _maxQueueLength, _maxThresholdSecs;
+        int _maxQueueLength;
         SDKDetails _sdkDetails;
-        Timer _threadTimer;
+        Timer _flushTimer;
         List<EventLog> _eventLogQueue;
         RequestDispatcher _dispatcher;
         HashSet<string> _errorsLogged;
-
 
         public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60)
         {
             _sdkDetails = sdkDetails;
             _maxQueueLength = maxQueueLength;
-            _maxThresholdSecs = maxThresholdSecs;
+            _dispatcher = dispatcher;
 
             _eventLogQueue = new List<EventLog>();
             _errorsLogged = new HashSet<string>();
 
-            _threadTimer = new Timer(TimerCallback);
-            _dispatcher = dispatcher;
+            _flushTimer = new Timer
+            {
+                Interval = maxThresholdSecs * 1000,
+                Enabled = true,
+                AutoReset = true,
+            };
+            _flushTimer.Elapsed += async (sender, e) => await FlushEvents();
         }
 
         public void Enqueue(EventLog entry)
@@ -42,14 +45,9 @@ namespace Statsig.Network
             }
 
             _eventLogQueue.Add(entry);
-            if (_eventLogQueue.Count == 1)
+            if (_eventLogQueue.Count >= _maxQueueLength)
             {
-                // Only triggered when the list was empty at start
-                _threadTimer.Change(_maxThresholdSecs * 1000, Timeout.Infinite);
-            }
-            else if (_eventLogQueue.Count >= _maxQueueLength)
-            {
-                _threadTimer.Change(0, Timeout.Infinite);
+                ForceFlush();
             }
         }
 
@@ -61,6 +59,10 @@ namespace Statsig.Network
 
         async Task FlushEvents()
         {
+            if (_eventLogQueue.Count == 0)
+            {
+                return;
+            }
             var snapshot = _eventLogQueue;
             _eventLogQueue = new List<EventLog>();
             _errorsLogged.Clear();
@@ -71,7 +73,7 @@ namespace Statsig.Network
                 ["events"] = snapshot
             };
 
-            await _dispatcher.Fetch("log_event", body);
+            await _dispatcher.Fetch("log_event", body, 5, 1);
         }
 
         IReadOnlyDictionary<string, string> GetStatsigMetadata()
@@ -83,9 +85,11 @@ namespace Statsig.Network
             };
         }
 
-        async void TimerCallback(object state)
+        public void Shutdown()
         {
-            await FlushEvents();
+            _flushTimer.Stop();
+            _flushTimer.Dispose();
+            ForceFlush();
         }
     }
 }
