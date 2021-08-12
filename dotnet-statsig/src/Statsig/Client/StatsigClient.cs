@@ -70,6 +70,16 @@ namespace Statsig.Client
             _singleDriver.LogEvent(eventName, value, metadata);
         }
 
+        public static async Task UpdateUser(StatsigUser user)
+        {
+            if (user == null)
+            {
+                throw new InvalidOperationException("user cannot be null.");
+            }
+            EnsureInitialized();
+            await _singleDriver.UpdateUser(user);
+        }
+
         static void EnsureInitialized()
         {
             if (_singleDriver == null)
