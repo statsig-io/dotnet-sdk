@@ -72,8 +72,7 @@ namespace Statsig.Network
                 }
                 else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))
                 {
-                    System.Threading.Thread.Sleep(backoff * 1000);
-                    return await Fetch(endpoint, body, retries - 1, backoff * backoffMultiplier);
+                    return await retry(endpoint, body, retries, backoff);
                 }
 
             }
@@ -81,11 +80,20 @@ namespace Statsig.Network
             {
                 if (retries > 0)
                 {
-                    System.Threading.Thread.Sleep(backoff * 1000);
-                    return await Fetch(endpoint, body, retries - 1, backoff * backoffMultiplier);
+                    return await retry(endpoint, body, retries, backoff);
                 }
             }
             return null;
+        }
+
+        private async Task<IReadOnlyDictionary<string, JToken>> retry(
+            string endpoint,
+            IReadOnlyDictionary<string, object> body,
+            int retries = 0,
+            int backoff = 1)
+        {
+            System.Threading.Thread.Sleep(backoff * 1000);
+            return await Fetch(endpoint, body, retries - 1, backoff * backoffMultiplier);
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Timers;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Statsig.Network
@@ -9,24 +9,28 @@ namespace Statsig.Network
     {
         int _maxQueueLength, _maxThresholdSecs;
         SDKDetails _sdkDetails;
-        Timer _threadTimer;
+        Timer _flushTimer;
         List<EventLog> _eventLogQueue;
         RequestDispatcher _dispatcher;
         HashSet<string> _errorsLogged;
-
 
         public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60)
         {
             _sdkDetails = sdkDetails;
             _maxQueueLength = maxQueueLength;
             _maxThresholdSecs = maxThresholdSecs;
+            _dispatcher = dispatcher;
 
             _eventLogQueue = new List<EventLog>();
             _errorsLogged = new HashSet<string>();
 
-            _threadTimer = new Timer(TimerCallback);
-            _threadTimer.Change(_maxThresholdSecs * 1000, Timeout.Infinite);
-            _dispatcher = dispatcher;
+            _flushTimer = new Timer
+            {
+                Interval = maxThresholdSecs * 1000,
+                Enabled = true,
+                AutoReset = true,
+            };
+            _flushTimer.Elapsed += async (sender, e) => await FlushEvents();
         }
 
         public void Enqueue(EventLog entry)
