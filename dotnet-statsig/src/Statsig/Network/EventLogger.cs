@@ -1,5 +1,4 @@
-﻿using System;
-using System.Timers;
+﻿using System.Timers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -7,7 +6,7 @@ namespace Statsig.Network
 {
     public class EventLogger
     {
-        int _maxQueueLength, _maxThresholdSecs;
+        int _maxQueueLength;
         SDKDetails _sdkDetails;
         Timer _flushTimer;
         List<EventLog> _eventLogQueue;
@@ -18,7 +17,6 @@ namespace Statsig.Network
         {
             _sdkDetails = sdkDetails;
             _maxQueueLength = maxQueueLength;
-            _maxThresholdSecs = maxThresholdSecs;
             _dispatcher = dispatcher;
 
             _eventLogQueue = new List<EventLog>();
@@ -87,9 +85,11 @@ namespace Statsig.Network
             };
         }
 
-        async void TimerCallback(object state)
+        public void Shutdown()
         {
-            await FlushEvents();
+            _flushTimer.Stop();
+            _flushTimer.Dispose();
+            ForceFlush();
         }
     }
 }

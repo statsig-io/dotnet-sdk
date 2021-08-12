@@ -86,6 +86,7 @@ namespace Statsig.Client
 
         public void Shutdown()
         {
+            _eventLogger.Shutdown();
             ((IDisposable)this).Dispose();
         }
 

@@ -54,6 +54,7 @@ namespace Statsig.Server
         public void Shutdown()
         {
             _evaluator.Shutdown();
+            _eventLogger.Shutdown();
             ((IDisposable)this).Dispose();
         }
 
