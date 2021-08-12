@@ -1,25 +1,10 @@
-# dotnet-sdk
+## Statsig .NET SDK
 
-[![build-and-test](https://github.com/statsig-io/private-dotnet-sdk/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/statsig-io/private-dotnet-sdk/actions/workflows/build-and-test.yml)
+This is the .NET SDK for both single-user client side and multi-user server side usage. If you need a SDK for another language, check out our [other SDKs](https://docs.statsig.com/#sdks).
 
-This is the .NET SDK for both single-user client side and multi-user server side usage. Use `Statsig.Client` for client side and `Statsig.Server` for server side.
+Statsig helps you move faster with Feature Gates (Feature Flags) and Dynamic Configs. It also allows you to run A/B tests to validate your new features and understand their impact on your KPIs. If you're new to Statsig, create an account at [statsig.com](https://www.statsig.com).
 
-## The Basics
+## Getting Started
 
-Get started in a few quick steps.
+Check out our SDK docs for [server side](https://docs.statsig.com/server/dotnetSDK) or [client side](https://docs.statsig.com/client/dotnetSDK) usage to get started.
 
-#### Step 1 - Create a free account on [www.statsig.com](https://console.statsig.com/sign_up)
-
-You could skip this for now, but you will need an SDK Key and some Feature Gates or Dynamic Configs to use with the SDK in just a minute.
-
-#### Step 2 - Install the SDK
-
-The package is hosted on [Nuget](https://www.nuget.org/packages/Statsig/). You can either install it from your Visual Studio's Nuget package manager, or through .NET CLI:
-
-```
-dotnet add package Statsig --version 1.1.0
-```
-
-#### Step 3 - Initialize and use the SDK
-
-Refer to our [client side](https://docs.statsig.com/client/dotnetSDK) or [server side](https://docs.statsig.com/server/dotnetSDK) SDK docs on how to use the SDK.
