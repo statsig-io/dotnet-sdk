@@ -8,9 +8,11 @@ namespace Statsig
     {
         internal Dictionary<string, string> properties;
         internal Dictionary<string, object> customProperties;
+        internal Dictionary<string, object> privateAttributes;
 
         [JsonProperty("userID")]
-        public string UserID {
+        public string UserID
+        {
             get
             {
                 return properties.TryGetValue("userID", out string value) ? value : null;
@@ -94,6 +96,8 @@ namespace Statsig
         }
         [JsonProperty("custom")]
         public IReadOnlyDictionary<string, object> CustomProperties => customProperties;
+        [JsonProperty("privateAttributes")]
+        public IReadOnlyDictionary<string, object> PrivateAttributes => privateAttributes;
         [JsonProperty("statsigEnvironment")]
         internal IReadOnlyDictionary<string, string> statsigEnvironment;
 
@@ -101,6 +105,7 @@ namespace Statsig
         {
             properties = new Dictionary<string, string>();
             customProperties = new Dictionary<string, object>();
+            privateAttributes = new Dictionary<string, object>();
             statsigEnvironment = new Dictionary<string, string>();
         }
 
@@ -111,6 +116,33 @@ namespace Statsig
                 throw new ArgumentException("Key cannot be empty.", "key");
             }
             customProperties[key] = value;
+        }
+
+        public void AddPrivateAttribute(string key, object value)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                throw new ArgumentException("Key cannot be empty.", "key");
+            }
+            privateAttributes[key] = value;
+        }
+
+        internal StatsigUser GetCopyForLogging()
+        {
+            var copy = new StatsigUser
+            {
+                UserID = UserID,
+                Email = Email,
+                IPAddress = IPAddress,
+                UserAgent = UserAgent,
+                Country = Country,
+                Locale = Locale,
+                AppVersion = AppVersion,
+                customProperties = customProperties,
+                statsigEnvironment = statsigEnvironment
+                // Do NOT add private attributes here
+            };
+            return copy;
         }
     }
 }

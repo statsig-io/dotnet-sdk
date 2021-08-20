@@ -33,7 +33,8 @@ namespace Statsig.Network
 
         public void Enqueue(EventLog entry)
         {
-            if (entry.IsErrorLog) { 
+            if (entry.IsErrorLog)
+            {
                 if (_errorsLogged.Contains(entry.ErrorKey))
                 {
                     return;
