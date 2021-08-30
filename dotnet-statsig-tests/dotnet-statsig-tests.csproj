@@ -16,8 +16,12 @@
 
   <ItemGroup>
     <Folder Include="Server\" />
+    <Folder Include="Common\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\dotnet-statsig\dotnet-statsig.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Common\" />
   </ItemGroup>
 </Project>

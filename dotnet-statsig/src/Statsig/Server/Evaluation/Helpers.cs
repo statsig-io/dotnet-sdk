@@ -15,37 +15,43 @@ namespace Statsig.Server.Evaluation
             {
                 return null;
             }
-            return user.properties.TryGetValue(field, out string strVal) ? strVal :
-                user.customProperties.TryGetValue(field, out object objVal) ? objVal : null;
+            string strVal;
+            object objVal;
+            return
+                user.properties.TryGetValue(field, out strVal) ? strVal :
+                user.properties.TryGetValue(field.ToLowerInvariant(), out strVal) ? strVal :
+                user.customProperties.TryGetValue(field, out objVal) ? objVal :
+                user.customProperties.TryGetValue(field.ToLowerInvariant(), out objVal) ? objVal :
+                user.privateAttributes.TryGetValue(field, out objVal) ? objVal :
+                user.privateAttributes.TryGetValue(field.ToLowerInvariant(), out objVal) ? objVal : null;
         }
 
-        internal static string GetFromIP(string ipAddress, string field, out bool fetchFromServer)
+        internal static string GetFromIP(StatsigUser user, string field)
         {
-            fetchFromServer = false;
-            if (string.IsNullOrEmpty(ipAddress) || string.IsNullOrEmpty(field))
+            var ip = GetFromUser(user, "ip");
+            if (!(ip is string))
+            {
+                return null;
+            }
+            string ipStr = (string)ip;
+
+            if (string.IsNullOrEmpty(ipStr) || string.IsNullOrEmpty(field) || field.ToLowerInvariant() != "country")
             {
                 return null;
             }
 
-            if (field.ToLowerInvariant() != "country")
-            {
-                // Currently we only support ip lookup for country
-                fetchFromServer = true;
-                return null;
-            }
-
-            return CountryLookup.LookupIPStr(ipAddress);
+            return CountryLookup.LookupIPStr(ipStr);
         }
 
-        internal static string GetFromUserAgent(string userAgent, string field)
+        internal static string GetFromUserAgent(StatsigUser user, string field)
         {
-            if (string.IsNullOrEmpty(userAgent) || string.IsNullOrEmpty(field))
+            var ua = GetFromUser(user, "userAgent");
+            if (!(ua is string))
             {
                 return null;
             }
-
             var uaParser = Parser.GetDefault();
-            ClientInfo c = uaParser.Parse(userAgent);
+            ClientInfo c = uaParser.Parse((string)ua);
             Dictionary<string, string> uaValues = new Dictionary<string, string>
             {
                 ["os_name"] = c.OS.Family,
@@ -62,7 +68,7 @@ namespace Statsig.Server.Evaluation
             {
                 return value;
             }
-            
+
             return null;
         }
 
@@ -170,7 +176,7 @@ namespace Statsig.Server.Evaluation
         {
             int hyphenIndex = version.IndexOf('-');
             normalized = version;
-            
+
             if (hyphenIndex >= 0)
             {
                 normalized = version.Substring(0, hyphenIndex);

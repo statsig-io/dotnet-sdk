@@ -93,7 +93,8 @@ namespace Statsig.Server.Evaluation
             {
                 var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(userHash));
                 ulong result = BitConverter.ToUInt64(bytes, 0);
-                if (BitConverter.IsLittleEndian) {
+                if (BitConverter.IsLittleEndian)
+                {
                     // we use big endian in the backend so need to be consistent here.
                     result = SwapBytes(result);
                 }
@@ -144,7 +145,6 @@ namespace Statsig.Server.Evaluation
             var op = condition.Operator?.ToLowerInvariant();
             var target = condition.TargetValue.Value<object>();
             var field = condition.Field;
-            bool fetchFromServer = false;
             object value;
             switch (type)
             {
@@ -165,19 +165,10 @@ namespace Statsig.Server.Evaluation
                 case "pass_gate":
                     return CheckGate(user, target.ToString().ToLowerInvariant()).Result;
                 case "ip_based":
-                    value = GetFromUser(user, field) ??
-                        GetFromIP(user.IPAddress, field, out fetchFromServer);
-                    if (fetchFromServer)
-                    {
-                        return EvaluationResult.FetchFromServer;
-                    }
+                    value = GetFromUser(user, field) ?? GetFromIP(user, field);
                     break;
                 case "ua_based":
-                    value = GetFromUser(user, field) ?? GetFromUserAgent(user.UserAgent, field);
-                    if (fetchFromServer)
-                    {
-                        return EvaluationResult.FetchFromServer;
-                    }
+                    value = GetFromUser(user, field) ?? GetFromUserAgent(user, field);
                     break;
                 case "user_field":
                     value = GetFromUser(user, field);
@@ -205,7 +196,7 @@ namespace Statsig.Server.Evaluation
             }
 
             bool result = false;
-            object[] targetArray = (condition.TargetValue as JArray)?.ToObject<object[]> ();
+            object[] targetArray = (condition.TargetValue as JArray)?.ToObject<object[]>();
 
             switch (op)
             {

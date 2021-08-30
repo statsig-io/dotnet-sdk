@@ -8,21 +8,31 @@ namespace Statsig
 {
     public class EventLog
     {
+        private StatsigUser _user;
+
         [JsonProperty("eventName")]
-        public string EventName { get; internal set; }
+        public string EventName { get; set; }
         [JsonProperty("user")]
-        public StatsigUser User { get; internal set; }
+        public StatsigUser User
+        {
+            get => _user;
+            set
+            {
+                // C# pass by reference so we need to make a copy of user that does NOT have private attributes
+                _user = value.GetCopyForLogging();
+            }
+        }
         [JsonProperty("metadata")]
-        public IReadOnlyDictionary<string, string> Metadata { get; internal set; }
+        public IReadOnlyDictionary<string, string> Metadata { get; set; }
         [JsonProperty("value")]
-        public object Value { get; internal set; }
+        public object Value { get; set; }
 
         [JsonIgnore]
         internal bool IsErrorLog { get; set; }
         [JsonIgnore]
         internal string ErrorKey { get; set; }
 
-        internal EventLog()
+        public EventLog()
         {
         }
 
