@@ -93,9 +93,10 @@ namespace Statsig.Server
             {
                 result = evaluation?.GateValue?.Value ?? false;
                 ruleID = evaluation?.GateValue?.RuleID ?? "";
+                // Only log exposures for gates evaluated by the SDK itself
+                _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID));
             }
-
-            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID));
+            
             return result;
         }
 
@@ -109,6 +110,11 @@ namespace Statsig.Server
             
             var evaluation = _evaluator.GetConfig(user, configName);
             var result = evaluation?.ConfigValue;
+            if (evaluation == null)
+            {
+                result = new DynamicConfig(configName);
+            }
+            
             if (evaluation?.Result == EvaluationResult.FetchFromServer)
             {
                 var response = await _requestDispatcher.Fetch("get_config", new Dictionary<string, object>
@@ -130,15 +136,15 @@ namespace Statsig.Server
                         result = new DynamicConfig(configName, configVal, ruleID.Value<string>());
                     }
                 }
-            }
-            else if (evaluation == null)
+            } else
             {
-                result = new DynamicConfig(configName);
+                // Only log exposures for configs evaluated by the SDK itself
+                _eventLogger.Enqueue(
+                    EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID)
+                );
             }
             
-            _eventLogger.Enqueue(
-                EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID)
-            );
+            
             return result;
         }
 
