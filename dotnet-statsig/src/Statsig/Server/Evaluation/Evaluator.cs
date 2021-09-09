@@ -261,6 +261,10 @@ namespace Statsig.Server.Evaluation
                     result = MatchStringInArray(targetArray, value, true,
                         (string s1, string s2) => (s1.Contains(s2)));
                     break;
+                case "str_contains_none":
+                    result = !MatchStringInArray(targetArray, value, true,
+                        (string s1, string s2) => (s1.Contains(s2)));
+                    break;
                 case "str_matches":
                     try
                     {
