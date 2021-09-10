@@ -236,16 +236,16 @@ namespace Statsig.Server.Evaluation
 
                 // array
                 case "any":
-                    result = ArrayContains(targetArray, value, true);
+                    result = MatchStringInArray(targetArray, value, true, (string s1, string s2) => (s1.Equals(s2)));
                     break;
                 case "none":
-                    result = !ArrayContains(targetArray, value, true);
+                    result = !MatchStringInArray(targetArray, value, true, (string s1, string s2) => (s1.Equals(s2)));
                     break;
                 case "any_case_sensitive":
-                    result = ArrayContains(targetArray, value, false);
+                    result = MatchStringInArray(targetArray, value, false, (string s1, string s2) => (s1.Equals(s2)));
                     break;
                 case "none_case_sensitive":
-                    result = !ArrayContains(targetArray, value, false);
+                    result = !MatchStringInArray(targetArray, value, false, (string s1, string s2) => (s1.Equals(s2)));
                     break;
 
                 // string

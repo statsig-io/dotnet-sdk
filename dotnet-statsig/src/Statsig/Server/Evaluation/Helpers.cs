@@ -129,46 +129,36 @@ namespace Statsig.Server.Evaluation
         }
 
         // Return true if the array contains the value, using case-insensitive comparison for strings
-        internal static bool ArrayContains(object[] array, object value, bool ignoreCase)
-        {
-            if (array == null || value == null)
-            {
-                return false;
-            }
-
-            if (value is string)
-            {
-                return MatchStringInArray(array, value, ignoreCase, (string s1, string s2) => (s1.Equals(s2)));
-            }
-            else
-            {
-                return array.Contains(value);
-            }
-        }
 
         internal static bool MatchStringInArray(object[] array, object value, bool ignoreCase, Func<string, string, bool> func)
         {
-            if (!(value is string))
+            if (value == null)
             {
                 return false;
             }
-
-            foreach (var t in array)
+            try
             {
-                if (!(t is string))
+                foreach (var t in array)
                 {
-                    continue;
-                }
-                if (ignoreCase && func(((string)value).ToLowerInvariant(), ((string)t).ToLowerInvariant()))
-                {
-                    return true;
-                }
-                if (func((string)value, (string)t))
-                {
-                    return true;
+                    if (t == null)
+                    {
+                        continue;
+                    }
+
+                    if (ignoreCase && func(value.ToString().ToLowerInvariant(), t.ToString().ToLowerInvariant()))
+                    {
+                        return true;
+                    }
+                    if (func(value.ToString(), t.ToString()))
+                    {
+                        return true;
+                    }
                 }
             }
-
+            catch
+            {
+                // User error, return false if we cannot toString() the values for this string operators.
+            }
             return false;
         }
 
