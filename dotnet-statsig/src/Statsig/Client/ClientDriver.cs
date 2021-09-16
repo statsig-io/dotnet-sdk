@@ -101,8 +101,8 @@ namespace Statsig.Client
                     gate = new FeatureGate(gateName, false, "");
                 }
             }
-
-            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value.ToString(), gate.RuleID));
+            // TODO: fix in the next diff for the client SDK
+            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value.ToString(), gate.RuleID, new List<IReadOnlyDictionary<string, string>>()));
             return gate.Value;
         }
 
@@ -117,8 +117,8 @@ namespace Statsig.Client
                     value = new DynamicConfig(configName);
                 }
             }
-
-            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(_user, configName, value.RuleID));
+            // TODO: fix in the next diff for the client SDK
+            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(_user, configName, value.RuleID, new List<IReadOnlyDictionary<string, string>>()));
             return value;
         }
 
@@ -206,7 +206,7 @@ namespace Statsig.Client
         }
 
         void ParseInitResponse(IReadOnlyDictionary<string, JToken> response)
-        { 
+        {
             try
             {
                 JToken objVal;
@@ -246,13 +246,15 @@ namespace Statsig.Client
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
                     systemName = "Mac OS";
-                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     systemName = "Windows";
-                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
                     systemName = "Linux";
-                } 
+                }
                 _statsigMetadata = new Dictionary<string, string>
                 {
                     ["sessionID"] = Guid.NewGuid().ToString(),

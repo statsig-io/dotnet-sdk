@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -55,11 +56,13 @@ namespace Statsig.Server.Evaluation
 
         private ConfigEvaluation Evaluate(StatsigUser user, ConfigSpec spec)
         {
+            var secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
             if (spec.Enabled)
             {
                 foreach (ConfigRule rule in spec.Rules)
                 {
-                    var result = EvaluateRule(user, rule);
+                    var result = EvaluateRule(user, rule, out List<IReadOnlyDictionary<string, string>> ruleExposures);
+                    secondaryExposures.AddRange(ruleExposures);
                     switch (result)
                     {
                         case EvaluationResult.FetchFromServer:
@@ -69,14 +72,14 @@ namespace Statsig.Server.Evaluation
                             var passPercentage = EvaluatePassPercentage(user, rule, spec);
                             if (passPercentage)
                             {
-                                return new ConfigEvaluation(EvaluationResult.Pass, rule.FeatureGateValue, rule.DynamicConfigValue);
+                                return new ConfigEvaluation(EvaluationResult.Pass, rule.FeatureGateValue, rule.DynamicConfigValue, secondaryExposures);
                             }
                             else
                             {
                                 // when the user passes conditions but fail due to pass percentage, we return the default value with the current rule ID.
                                 var gateValue = new FeatureGate(spec.FeatureGateDefault.Name, spec.FeatureGateDefault.Value, rule.ID);
                                 var configValue = new DynamicConfig(spec.DynamicConfigDefault.ConfigName, spec.DynamicConfigDefault.Value, rule.ID);
-                                return new ConfigEvaluation(EvaluationResult.Fail, gateValue, configValue);
+                                return new ConfigEvaluation(EvaluationResult.Fail, gateValue, configValue, secondaryExposures);
                             }
                         case EvaluationResult.Fail:
                         default:
@@ -84,7 +87,7 @@ namespace Statsig.Server.Evaluation
                     }
                 }
             }
-            return new ConfigEvaluation(EvaluationResult.Fail, spec.FeatureGateDefault, spec.DynamicConfigDefault);
+            return new ConfigEvaluation(EvaluationResult.Fail, spec.FeatureGateDefault, spec.DynamicConfigDefault, secondaryExposures);
         }
 
         private ulong ComputeUserHash(string userHash)
@@ -120,27 +123,32 @@ namespace Statsig.Server.Evaluation
             return (hash % 10000) < (rule.PassPercentage * 100);
         }
 
-        private EvaluationResult EvaluateRule(StatsigUser user, ConfigRule rule)
+        private EvaluationResult EvaluateRule(StatsigUser user, ConfigRule rule, out List<IReadOnlyDictionary<string, string>> secondaryExposures)
         {
+            var passResult = EvaluationResult.Pass;
+            secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
             foreach (ConfigCondition condition in rule.Conditions)
             {
-                var result = EvaluateCondition(user, condition);
-                switch (result)
+                var result = EvaluateCondition(user, condition, out List<IReadOnlyDictionary<string, string>> conditionExposures);
+                if (result == EvaluationResult.FetchFromServer)
                 {
-                    case EvaluationResult.FetchFromServer:
-                        return result;
-                    case EvaluationResult.Fail:
-                        return result;
-                    case EvaluationResult.Pass:
-                    default:
-                        break;
+                    return result;
+                }
+
+                secondaryExposures.AddRange(conditionExposures);
+                // If any condition fails, the whole rule fails
+                if (result == EvaluationResult.Fail)
+                {
+                    passResult = EvaluationResult.Fail;
                 }
             }
-            return EvaluationResult.Pass;
+            return passResult;
         }
 
-        private EvaluationResult EvaluateCondition(StatsigUser user, ConfigCondition condition)
+        private EvaluationResult EvaluateCondition(StatsigUser user, ConfigCondition condition, out List<IReadOnlyDictionary<string, string>> secondaryExposures)
         {
+            secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
+
             var type = condition.Type.ToLowerInvariant();
             var op = condition.Operator?.ToLowerInvariant();
             var target = condition.TargetValue.Value<object>();
@@ -151,19 +159,29 @@ namespace Statsig.Server.Evaluation
                 case "public":
                     return EvaluationResult.Pass;
                 case "fail_gate":
-                    var otherGateResult = CheckGate(user, target.ToString().ToLowerInvariant());
-                    switch (otherGateResult.Result)
-                    {
-                        case EvaluationResult.FetchFromServer:
-                            return EvaluationResult.FetchFromServer;
-                        case EvaluationResult.Fail:
-                            return EvaluationResult.Pass;
-                        case EvaluationResult.Pass:
-                        default:
-                            return EvaluationResult.Fail;
-                    }
                 case "pass_gate":
-                    return CheckGate(user, target.ToString().ToLowerInvariant()).Result;
+                    var otherGateResult = CheckGate(user, target.ToString().ToLowerInvariant());
+                    if (otherGateResult.Result == EvaluationResult.FetchFromServer)
+                    {
+                        return EvaluationResult.FetchFromServer;
+                    }
+                    var pass = otherGateResult.Result == EvaluationResult.Pass;
+                    var newExposure = new Dictionary<string, string>
+                    {
+                        ["gate"] = target.ToString(),
+                        ["gateValue"] = pass ? "true" : "false",
+                        ["ruleID"] = otherGateResult.GateValue.RuleID
+                    };
+                    secondaryExposures = new List<IReadOnlyDictionary<string, string>>(otherGateResult.SecondaryExposures);
+                    secondaryExposures.Add(newExposure);
+                    if ((type == "pass_gate" && pass) || (type == "fail_gate" && !pass))
+                    {
+                        return EvaluationResult.Pass;
+                    }
+                    else
+                    {
+                        return EvaluationResult.Fail;
+                    }
                 case "ip_based":
                     value = GetFromUser(user, field) ?? GetFromIP(user, field);
                     break;

@@ -26,6 +26,8 @@ namespace Statsig
         public IReadOnlyDictionary<string, string> Metadata { get; set; }
         [JsonProperty("value")]
         public object Value { get; set; }
+        [JsonProperty("secondaryExposures")]
+        public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; set; }
 
         [JsonIgnore]
         internal bool IsErrorLog { get; set; }
@@ -40,7 +42,8 @@ namespace Statsig
             StatsigUser user,
             string gateName,
             string gateValue,
-            String ruleID)
+            string ruleID,
+            List<IReadOnlyDictionary<string, string>> secondaryExposures)
         {
             return new EventLog
             {
@@ -51,14 +54,16 @@ namespace Statsig
                     ["gate"] = gateName,
                     ["gateValue"] = gateValue,
                     ["ruleID"] = ruleID
-                }
+                },
+                SecondaryExposures = secondaryExposures,
             };
         }
 
         internal static EventLog CreateConfigExposureLog(
             StatsigUser user,
             string configName,
-            string ruleID)
+            string ruleID,
+            List<IReadOnlyDictionary<string, string>> secondaryExposures)
         {
             return new EventLog
             {
@@ -68,7 +73,8 @@ namespace Statsig
                 {
                     ["config"] = configName,
                     ["ruleID"] = ruleID,
-                }
+                },
+                SecondaryExposures = secondaryExposures,
             };
         }
 

@@ -66,7 +66,6 @@ namespace Statsig.Server
             ValidateNonEmptyArgument(gateName, "gateName");
 
             bool result = false;
-            string ruleID = "";
             var evaluation = _evaluator.CheckGate(user, gateName);
             if (evaluation?.Result == EvaluationResult.FetchFromServer)
             {
@@ -75,7 +74,7 @@ namespace Statsig.Server
                     ["user"] = user,
                     ["gateName"] = gateName
                 });
-                
+
                 if (response != null)
                 {
                     JToken outVal;
@@ -83,20 +82,17 @@ namespace Statsig.Server
                     {
                         result = outVal.Value<bool>();
                     }
-                    if (response.TryGetValue("rule_id", out outVal))
-                    {
-                        ruleID = outVal.Value<string>();
-                    }
                 }
             }
             else
             {
                 result = evaluation?.GateValue?.Value ?? false;
-                ruleID = evaluation?.GateValue?.RuleID ?? "";
+                var ruleID = evaluation?.GateValue?.RuleID ?? "";
+                var exposures = evaluation?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
                 // Only log exposures for gates evaluated by the SDK itself
-                _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID));
+                _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID, exposures));
             }
-            
+
             return result;
         }
 
@@ -107,14 +103,13 @@ namespace Statsig.Server
             NormalizeUser(user);
             ValidateNonEmptyArgument(configName, "configName");
 
-            
             var evaluation = _evaluator.GetConfig(user, configName);
             var result = evaluation?.ConfigValue;
             if (evaluation == null)
             {
                 result = new DynamicConfig(configName);
             }
-            
+
             if (evaluation?.Result == EvaluationResult.FetchFromServer)
             {
                 var response = await _requestDispatcher.Fetch("get_config", new Dictionary<string, object>
@@ -136,15 +131,16 @@ namespace Statsig.Server
                         result = new DynamicConfig(configName, configVal, ruleID.Value<string>());
                     }
                 }
-            } else
+            }
+            else
             {
+                var exposures = evaluation?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
                 // Only log exposures for configs evaluated by the SDK itself
                 _eventLogger.Enqueue(
-                    EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID)
+                    EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID, exposures)
                 );
             }
-            
-            
+
             return result;
         }
 
