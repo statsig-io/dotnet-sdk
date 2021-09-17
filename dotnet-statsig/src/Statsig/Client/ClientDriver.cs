@@ -73,15 +73,12 @@ namespace Statsig.Client
                     ["statsigMetadata"] = GetStatsigMetadata(),
                 }
             );
-
             if (response == null)
             {
                 return;
             }
 
-            ParseInitResponse(response);
-            PersistentStore.SetValue(gatesStoreKey, _gates);
-            PersistentStore.SetValue(configsStoreKey, _configs);
+            ParseAndSaveInitResponse(response);
         }
 
         public void Shutdown()
@@ -101,8 +98,7 @@ namespace Statsig.Client
                     gate = new FeatureGate(gateName, false, "");
                 }
             }
-            // TODO: fix in the next diff for the client SDK
-            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value.ToString(), gate.RuleID, new List<IReadOnlyDictionary<string, string>>()));
+            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value.ToString(), gate.RuleID, gate.SecondaryExposures));
             return gate.Value;
         }
 
@@ -117,8 +113,7 @@ namespace Statsig.Client
                     value = new DynamicConfig(configName);
                 }
             }
-            // TODO: fix in the next diff for the client SDK
-            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(_user, configName, value.RuleID, new List<IReadOnlyDictionary<string, string>>()));
+            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(_user, configName, value.RuleID, value.SecondaryExposures));
             return value;
         }
 
@@ -205,14 +200,19 @@ namespace Statsig.Client
             }
         }
 
-        void ParseInitResponse(IReadOnlyDictionary<string, JToken> response)
+        void ParseAndSaveInitResponse(IReadOnlyDictionary<string, JToken> response)
         {
             try
             {
                 JToken objVal;
                 if (response.TryGetValue("feature_gates", out objVal))
                 {
-                    _gates = objVal.ToObject<Dictionary<string, FeatureGate>>();
+                    var gateMap = objVal.ToObject<Dictionary<string, object>>();
+                    foreach (var kv in gateMap)
+                    {
+                        _gates[kv.Key] = FeatureGate.FromJObject(kv.Key, kv.Value as JObject);
+                    }
+                    PersistentStore.SetValue(gatesStoreKey, _gates);
                 }
             }
             catch
@@ -230,6 +230,7 @@ namespace Statsig.Client
                     {
                         _configs[kv.Key] = DynamicConfig.FromJObject(kv.Key, kv.Value as JObject);
                     }
+                    PersistentStore.SetValue(configsStoreKey, _configs);
                 }
             }
             catch

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -70,24 +69,33 @@ namespace Statsig.Server.Evaluation
                         case EvaluationResult.Pass:
                             // return the value of the first rule that the user passes.
                             var passPercentage = EvaluatePassPercentage(user, rule, spec);
-                            if (passPercentage)
-                            {
-                                return new ConfigEvaluation(EvaluationResult.Pass, rule.FeatureGateValue, rule.DynamicConfigValue, secondaryExposures);
-                            }
-                            else
-                            {
-                                // when the user passes conditions but fail due to pass percentage, we return the default value with the current rule ID.
-                                var gateValue = new FeatureGate(spec.FeatureGateDefault.Name, spec.FeatureGateDefault.Value, rule.ID);
-                                var configValue = new DynamicConfig(spec.DynamicConfigDefault.ConfigName, spec.DynamicConfigDefault.Value, rule.ID);
-                                return new ConfigEvaluation(EvaluationResult.Fail, gateValue, configValue, secondaryExposures);
-                            }
+                            var gateV = new FeatureGate
+                            (
+                                spec.Name,
+                                passPercentage ? rule.FeatureGateValue.Value : spec.FeatureGateDefault.Value,
+                                rule.ID,
+                                secondaryExposures
+                            );
+                            var configV = new DynamicConfig
+                            (
+                                spec.Name,
+                                passPercentage ? rule.DynamicConfigValue.Value : spec.DynamicConfigDefault.Value,
+                                rule.ID,
+                                secondaryExposures
+                            );
+                            return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail, gateV, configV);
                         case EvaluationResult.Fail:
                         default:
                             break;
                     }
                 }
             }
-            return new ConfigEvaluation(EvaluationResult.Fail, spec.FeatureGateDefault, spec.DynamicConfigDefault, secondaryExposures);
+            return new ConfigEvaluation
+            (
+                EvaluationResult.Fail,
+                new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, spec.FeatureGateDefault.RuleID, secondaryExposures),
+                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, spec.DynamicConfigDefault.RuleID, secondaryExposures)
+            );
         }
 
         private ulong ComputeUserHash(string userHash)
@@ -172,7 +180,7 @@ namespace Statsig.Server.Evaluation
                         ["gateValue"] = pass ? "true" : "false",
                         ["ruleID"] = otherGateResult.GateValue.RuleID
                     };
-                    secondaryExposures = new List<IReadOnlyDictionary<string, string>>(otherGateResult.SecondaryExposures);
+                    secondaryExposures = new List<IReadOnlyDictionary<string, string>>(otherGateResult.GateValue.SecondaryExposures);
                     secondaryExposures.Add(newExposure);
                     if ((type == "pass_gate" && pass) || (type == "fail_gate" && !pass))
                     {

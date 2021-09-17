@@ -88,7 +88,7 @@ namespace Statsig.Server
             {
                 result = evaluation?.GateValue?.Value ?? false;
                 var ruleID = evaluation?.GateValue?.RuleID ?? "";
-                var exposures = evaluation?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
+                var exposures = evaluation?.GateValue?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
                 // Only log exposures for gates evaluated by the SDK itself
                 _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID, exposures));
             }
@@ -134,7 +134,7 @@ namespace Statsig.Server
             }
             else
             {
-                var exposures = evaluation?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
+                var exposures = evaluation?.ConfigValue?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
                 // Only log exposures for configs evaluated by the SDK itself
                 _eventLogger.Enqueue(
                     EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID, exposures)
