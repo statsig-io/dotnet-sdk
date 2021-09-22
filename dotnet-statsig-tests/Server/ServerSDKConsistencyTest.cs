@@ -119,11 +119,16 @@ namespace dotnet_statsig_tests
                 }
                 foreach (var config in data.dynamic_configs)
                 {
-                    var sdkValue = await driver.GetConfig(data.user, config.Key);
-                    foreach (var entry in sdkValue.Value)
+                    var sdkResult = driver.evaluator.GetConfig(data.user, config.Key).ConfigValue;
+                    var serverResult = config.Value;
+                    foreach (var entry in sdkResult.Value)
                     {
-                        Assert.True(JToken.DeepEquals(entry.Value, config.Value.Value[entry.Key]));
+                        Assert.True(JToken.DeepEquals(entry.Value, serverResult.Value[entry.Key]),
+                            string.Format("Values are different for config {0}.", config.Key));
                     }
+                    Assert.True(sdkResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for config {0}. Expected {1} but got {2}", config.Key, serverResult.RuleID, sdkResult.RuleID));
+                    Assert.True(compareSecondaryExposures(sdkResult.SecondaryExposures, serverResult.SecondaryExposures),
+                        string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", config.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkResult.SecondaryExposures)));
                 }
             }
             driver.Shutdown();
