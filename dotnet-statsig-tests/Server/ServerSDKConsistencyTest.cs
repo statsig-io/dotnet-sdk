@@ -19,7 +19,7 @@ namespace dotnet_statsig_tests
         private class TestData
         {
             public StatsigUser user { get; set; }
-            public Dictionary<string, bool> feature_gates { get; set; }
+            public Dictionary<string, FeatureGate> feature_gates_v2 { get; set; }
             public Dictionary<string, DynamicConfig> dynamic_configs { get; set; }
         }
 
@@ -41,7 +41,7 @@ namespace dotnet_statsig_tests
             }
         }
 
-        public async Task DisposeAsync() {}
+        public async Task DisposeAsync() { }
 
         [Fact]
         public async void TestProd()
@@ -73,6 +73,12 @@ namespace dotnet_statsig_tests
             await TestConsistency("https://us-east-2.api.statsig.com/v1");
         }
 
+        [Fact]
+        public async void TestEU()
+        {
+            await TestConsistency("https://az-northeurope.api.statsig.com/v1");
+        }
+
         private async Task<TestData[]> FetchTestData(string apiURLBase)
         {
             using (HttpClient client = new HttpClient())
@@ -102,10 +108,14 @@ namespace dotnet_statsig_tests
             var testData = await FetchTestData(apiURLBase);
             foreach (var data in testData)
             {
-                foreach (var gate in data.feature_gates)
+                foreach (var gate in data.feature_gates_v2)
                 {
-                    var sdkValue = await driver.CheckGate(data.user, gate.Key);
-                    Assert.True(sdkValue == gate.Value, gate.Key + "  expected " + gate.Value + " got " + sdkValue + "for " + gate.Key);
+                    var sdkResult = driver.evaluator.CheckGate(data.user, gate.Key).GateValue;
+                    var serverResult = gate.Value;
+                    Assert.True(sdkResult.Value == serverResult.Value, string.Format("Values are different for gate {0}. Expected {1} but got {2}", gate.Key, serverResult.Value, sdkResult.Value));
+                    Assert.True(sdkResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for gate {0}. Expected {1} but got {2}", gate.Key, serverResult.RuleID, sdkResult.RuleID));
+                    Assert.True(compareSecondaryExposures(sdkResult.SecondaryExposures, serverResult.SecondaryExposures),
+                        string.Format("Secondary exposures are different for gate {0}. Expected {1} but got {2}", gate.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkResult.SecondaryExposures)));
                 }
                 foreach (var config in data.dynamic_configs)
                 {
@@ -117,6 +127,56 @@ namespace dotnet_statsig_tests
                 }
             }
             driver.Shutdown();
+        }
+
+        private bool compareSecondaryExposures(List<IReadOnlyDictionary<string, string>> exposures1, List<IReadOnlyDictionary<string, string>> exposures2)
+        {
+            if (exposures1 == null)
+            {
+                exposures1 = new List<IReadOnlyDictionary<string, string>>();
+            }
+            if (exposures2 == null)
+            {
+                exposures2 = new List<IReadOnlyDictionary<string, string>>();
+            }
+
+            if (exposures1.Count != exposures2.Count)
+            {
+                return false;
+            }
+
+            var exposures2Lookup = new Dictionary<string, IReadOnlyDictionary<string, string>>();
+            foreach (var expo in exposures2)
+            {
+                exposures2Lookup.Add(expo["gate"], expo);
+            }
+
+            foreach (var expo in exposures1)
+            {
+                if (exposures2Lookup.TryGetValue(expo["gate"], out IReadOnlyDictionary<string, string> expo2))
+                {
+                    if (expo["gateValue"] != expo2["gateValue"] || expo["ruleID"] != expo2["ruleID"])
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private string stringifyExposures(List<IReadOnlyDictionary<string, string>> exposures)
+        {
+            var res = "[ \n";
+            foreach (var expo in exposures)
+            {
+                res += string.Format("Name: %s \n Value: %t \n Rule ID: %s", expo["gate"], expo["gateValue"], expo["ruleID"]);
+            }
+            res += "\n ] \n";
+            return res;
         }
     }
 }
