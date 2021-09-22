@@ -56,6 +56,7 @@ namespace Statsig.Server.Evaluation
         private ConfigEvaluation Evaluate(StatsigUser user, ConfigSpec spec)
         {
             var secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
+            var defaultRuleID = "default";
             if (spec.Enabled)
             {
                 foreach (ConfigRule rule in spec.Rules)
@@ -90,11 +91,15 @@ namespace Statsig.Server.Evaluation
                     }
                 }
             }
+            else
+            {
+                defaultRuleID = "disabled";
+            }
             return new ConfigEvaluation
             (
                 EvaluationResult.Fail,
-                new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, spec.FeatureGateDefault.RuleID, secondaryExposures),
-                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, spec.DynamicConfigDefault.RuleID, secondaryExposures)
+                new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, defaultRuleID, secondaryExposures),
+                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, defaultRuleID, secondaryExposures)
             );
         }
 

@@ -15,7 +15,7 @@ namespace Statsig.Server
         bool _disposed;
         RequestDispatcher _requestDispatcher;
         EventLogger _eventLogger;
-        Evaluator _evaluator;
+        internal Evaluator evaluator;
 
         public ServerDriver(string serverSecret, StatsigOptions options = null)
         {
@@ -41,19 +41,19 @@ namespace Statsig.Server
                 Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
                 Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC
             );
-            _evaluator = new Evaluator(serverSecret, options);
+            evaluator = new Evaluator(serverSecret, options);
         }
 
         public async Task Initialize()
         {
             // No op for now
-            await _evaluator.Initialize();
+            await evaluator.Initialize();
             _initialized = true;
         }
 
         public void Shutdown()
         {
-            _evaluator.Shutdown();
+            evaluator.Shutdown();
             _eventLogger.Shutdown();
             ((IDisposable)this).Dispose();
         }
@@ -66,7 +66,7 @@ namespace Statsig.Server
             ValidateNonEmptyArgument(gateName, "gateName");
 
             bool result = false;
-            var evaluation = _evaluator.CheckGate(user, gateName);
+            var evaluation = evaluator.CheckGate(user, gateName);
             if (evaluation?.Result == EvaluationResult.FetchFromServer)
             {
                 var response = await _requestDispatcher.Fetch("check_gate", new Dictionary<string, object>
@@ -103,7 +103,7 @@ namespace Statsig.Server
             NormalizeUser(user);
             ValidateNonEmptyArgument(configName, "configName");
 
-            var evaluation = _evaluator.GetConfig(user, configName);
+            var evaluation = evaluator.GetConfig(user, configName);
             var result = evaluation?.ConfigValue;
             if (evaluation == null)
             {
