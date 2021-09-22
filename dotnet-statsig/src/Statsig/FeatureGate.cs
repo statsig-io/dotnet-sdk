@@ -1,14 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Statsig
 {
     public class FeatureGate
     {
+        [JsonProperty("name")]
         public string Name { get; }
+        [JsonProperty("value")]
         public bool Value { get; }
+        [JsonProperty("rule_id")]
         public string RuleID { get; }
+        [JsonProperty("secondary_exposures")]
+        public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; }
 
         static FeatureGate _defaultConfig;
 
@@ -24,20 +30,12 @@ namespace Statsig
             }
         }
 
-        public FeatureGate(string name = null, bool value = false, string ruleID = null)
+        public FeatureGate(string name = null, bool value = false, string ruleID = null, List<IReadOnlyDictionary<string, string>> secondaryExposures = null)
         {
-            if (name == null)
-            {
-                name = "";
-            }
-            if (ruleID == null)
-            {
-                ruleID = "";
-            }
-
-            Name = name;
+            Name = name ?? "";
             Value = value;
-            RuleID = ruleID;
+            RuleID = ruleID ?? "";
+            SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
         }
 
         internal static FeatureGate FromJObject(string name, JObject jobj)
@@ -67,8 +65,15 @@ namespace Statsig
 
             try
             {
-                var value = valueToken.ToObject<Dictionary<string, JToken>>();
-                return new FeatureGate(nameToken.Value<string>(), valueToken.Value<bool>(), ruleToken.Value<string>());
+                return new FeatureGate
+                (
+                    nameToken.Value<string>(),
+                    valueToken.Value<bool>(),
+                    ruleToken.Value<string>(),
+                    jobj.TryGetValue("secondary_exposures", out JToken exposures)
+                        ? exposures.ToObject<List<IReadOnlyDictionary<string, string>>>()
+                        : new List<IReadOnlyDictionary<string, string>>()
+                );
             }
             catch
             {

@@ -16,6 +16,9 @@ namespace Statsig
         [JsonProperty("rule_id")]
         public string RuleID { get; }
 
+        [JsonProperty("secondary_exposures")]
+        public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; }
+
         static DynamicConfig _defaultConfig;
 
         public static DynamicConfig Default
@@ -30,26 +33,13 @@ namespace Statsig
             }
         }
 
-        public DynamicConfig(string configName = null, IReadOnlyDictionary<string, JToken> value = null, string ruleID = null)
+        public DynamicConfig(string configName = null, IReadOnlyDictionary<string, JToken> value = null, string ruleID = null, List<IReadOnlyDictionary<string, string>> secondaryExposures = null)
         {
-            if (configName == null)
-            {
-                configName = "";
-            }
-            if (value == null)
-            {
-                value = new Dictionary<string, JToken>();
-            }
-            if (ruleID == null)
-            {
-                ruleID = "";
-            }
-
-            ConfigName = configName;
-            Value = value;
-            RuleID = ruleID;
+            ConfigName = configName ?? "";
+            Value = value ?? new Dictionary<string, JToken>();
+            RuleID = ruleID ?? "";
+            SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
         }
-
 
         public T Get<T>(string key, T defaultValue = default(T))
         {
@@ -60,7 +50,7 @@ namespace Statsig
             }
 
             try
-            { 
+            {
                 return outVal.Value<T>();
             }
             catch
@@ -81,17 +71,22 @@ namespace Statsig
 
             JToken ruleToken;
             jobj.TryGetValue("rule_id", out ruleToken);
-            
+
             JToken valueToken;
             jobj.TryGetValue("value", out valueToken);
-            
+
             try
             {
-                var value = valueToken == null ? null: valueToken.ToObject<Dictionary<string, JToken>>();
-                return new DynamicConfig(
+                var value = valueToken == null ? null : valueToken.ToObject<Dictionary<string, JToken>>();
+                return new DynamicConfig
+                (
                     configName,
                     value,
-                    ruleToken == null ? null : ruleToken.Value<string>());
+                    ruleToken == null ? null : ruleToken.Value<string>(),
+                    jobj.TryGetValue("secondary_exposures", out JToken exposures)
+                        ? exposures.ToObject<List<IReadOnlyDictionary<string, string>>>()
+                        : new List<IReadOnlyDictionary<string, string>>()
+                );
             }
             catch
             {

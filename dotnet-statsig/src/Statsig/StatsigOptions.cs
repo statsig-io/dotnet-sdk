@@ -10,7 +10,7 @@ namespace Statsig
         public StatsigOptions()
         {
             ApiUrlBase = Constants.DEFAULT_API_URL_BASE;
-            StatsigEnvironment = null;
+            StatsigEnvironment = new StatsigEnvironment();
         }
 
         public StatsigOptions(StatsigEnvironment environment = null)

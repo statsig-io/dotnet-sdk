@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+
 namespace Statsig.Server.Evaluation
 {
     enum EvaluationResult
@@ -14,7 +16,10 @@ namespace Statsig.Server.Evaluation
         internal FeatureGate GateValue { get; set; }
         internal DynamicConfig ConfigValue { get; set; }
 
-        internal ConfigEvaluation(EvaluationResult result, FeatureGate gate = null, DynamicConfig config = null)
+        internal ConfigEvaluation(
+            EvaluationResult result,
+            FeatureGate gate = null,
+            DynamicConfig config = null)
         {
             Result = result;
             GateValue = gate;

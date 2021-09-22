@@ -23,6 +23,7 @@ namespace Statsig.Server
             Salt = salt;
 
             FeatureGateValue = new FeatureGate(name, true, id);
+            DynamicConfigValue = new DynamicConfig(name, null, id);
             try
             {
                 DynamicConfigValue =
