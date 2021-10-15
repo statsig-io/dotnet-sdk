@@ -90,7 +90,7 @@ namespace Statsig.Server
                 var ruleID = evaluation?.GateValue?.RuleID ?? "";
                 var exposures = evaluation?.GateValue?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
                 // Only log exposures for gates evaluated by the SDK itself
-                _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result.ToString(), ruleID, exposures));
+                _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName, result, ruleID, exposures));
             }
 
             return result;

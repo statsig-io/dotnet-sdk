@@ -12,6 +12,8 @@
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />
+    <PackageReference Include="Moq" Version="4.16.1" />
+    <PackageReference Include="WireMock.Net" Version="1.4.23" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,5 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Remove="Common\" />
+    <None Remove="Moq" />
+    <None Remove="WireMock.Net" />
   </ItemGroup>
 </Project>
