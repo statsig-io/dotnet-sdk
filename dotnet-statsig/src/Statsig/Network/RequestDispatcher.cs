@@ -11,7 +11,7 @@ namespace Statsig.Network
 {
     public class RequestDispatcher
     {
-        const int backoffMultiplier = 10;
+        const int backoffMultiplier = 2;
         private static readonly HashSet<int> retryCodes = new HashSet<int> { 408, 500, 502, 503, 504, 522, 524, 599 };
         public string Key { get; }
         public string ApiBaseUrl { get; }

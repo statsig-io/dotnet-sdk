@@ -16,14 +16,14 @@ namespace Statsig
         public StatsigOptions(StatsigEnvironment environment = null)
         {
             ApiUrlBase = Constants.DEFAULT_API_URL_BASE;
-            StatsigEnvironment = environment;
+            StatsigEnvironment = environment ?? new StatsigEnvironment();
         }
 
         public StatsigOptions(string apiUrlBase = null, StatsigEnvironment environment = null)
         {
-            ApiUrlBase = String.IsNullOrWhiteSpace(apiUrlBase) ?
+            ApiUrlBase = string.IsNullOrWhiteSpace(apiUrlBase) ?
                 Constants.DEFAULT_API_URL_BASE : apiUrlBase;
-            StatsigEnvironment = environment;
+            StatsigEnvironment = environment ?? new StatsigEnvironment();
         }
     }
 }

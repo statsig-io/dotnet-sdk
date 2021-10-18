@@ -41,7 +41,7 @@ namespace Statsig
         internal static EventLog CreateGateExposureLog(
             StatsigUser user,
             string gateName,
-            string gateValue,
+            bool gateValue,
             string ruleID,
             List<IReadOnlyDictionary<string, string>> secondaryExposures)
         {
@@ -52,7 +52,7 @@ namespace Statsig
                 Metadata = new Dictionary<string, string>
                 {
                     ["gate"] = gateName,
-                    ["gateValue"] = gateValue,
+                    ["gateValue"] = gateValue ? "true" : "false",
                     ["ruleID"] = ruleID
                 },
                 SecondaryExposures = secondaryExposures,

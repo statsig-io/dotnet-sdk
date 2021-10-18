@@ -98,7 +98,7 @@ namespace Statsig.Client
                     gate = new FeatureGate(gateName, false, "");
                 }
             }
-            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value.ToString(), gate.RuleID, gate.SecondaryExposures));
+            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value, gate.RuleID, gate.SecondaryExposures));
             return gate.Value;
         }
 
