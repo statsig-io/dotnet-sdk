@@ -26,7 +26,7 @@ namespace Statsig.Server
 
         internal async Task Initialize()
         {
-            await SyncValues();
+            await SyncValues(true);
         }
 
         internal void Shutdown()
@@ -35,7 +35,7 @@ namespace Statsig.Server
             _syncTimer.Dispose();
         }
 
-        private async Task SyncValues()
+        private async Task SyncValues(bool initialRequest)
         {
             var response = await _requestDispatcher.Fetch(
                 "download_config_specs",
@@ -48,7 +48,7 @@ namespace Statsig.Server
 
             if (response != null)
             {
-                ParseResponse(response);
+                ParseResponse(response, initialRequest);
             }
 
             _syncTimer = new Timer
@@ -57,17 +57,20 @@ namespace Statsig.Server
                 Enabled = true,
                 AutoReset = false
             };
-            _syncTimer.Elapsed += async (sender, e) => await SyncValues();
+            _syncTimer.Elapsed += async (sender, e) => await SyncValues(false);
         }
 
-        private void ParseResponse(IReadOnlyDictionary<string, JToken> response)
+        private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
         {
             JToken time;
             _lastSyncTime = response.TryGetValue("time", out time) ? time.Value<double>() : _lastSyncTime;
 
-            if (!response.TryGetValue("has_updates", out var hasUpdates) || !hasUpdates.Value<bool>())
+            if (!initialRequest)
             {
-                return;
+                if (!response.TryGetValue("has_updates", out var hasUpdates) || !hasUpdates.Value<bool>())
+                {
+                    return;
+                }
             }
 
             var newGates = new Dictionary<string, ConfigSpec>();

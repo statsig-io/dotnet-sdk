@@ -20,7 +20,7 @@ namespace dotnet_statsig_tests.Client
         [Fact]
         public async void TestInitialize()
         {
-            var server = WireMockServer.Start(9999);
+            var server = WireMockServer.Start(8888);
             server.Given(
                 Request.Create().WithPath("/v1/initialize").UsingPost()
             ).RespondWith(
@@ -95,7 +95,7 @@ namespace dotnet_statsig_tests.Client
             (
                 "client-fake-key",
                 user,
-                new StatsigOptions("http://localhost:9999/v1")
+                new StatsigOptions("http://localhost:8888/v1")
             );
 
             Assert.Single(server.LogEntries);
@@ -117,7 +117,6 @@ namespace dotnet_statsig_tests.Client
             Assert.True(requestUser.PrivateAttributes["value"].Equals("secret"));
             Assert.Single(requestUser.PrivateAttributes);
 
-            Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
 
             Assert.True(metadata["sdkType"].Equals("dotnet-client"));
@@ -223,7 +222,7 @@ namespace dotnet_statsig_tests.Client
             var stableID = metadata["stableID"];
             var sessionID = metadata["sessionID"];
 
-            var newClient = new ClientDriver("client-fake-key-2", new Statsig.StatsigOptions("http://localhost:9999/v1"));
+            var newClient = new ClientDriver("client-fake-key-2", new Statsig.StatsigOptions("http://localhost:8888/v1"));
 
             await newClient.Initialize(null);
             requestBody = server.LogEntries.ElementAt(2).RequestMessage.Body;
@@ -232,6 +231,8 @@ namespace dotnet_statsig_tests.Client
             metadata = m.ToObject<Dictionary<string, string>>();
             Assert.True(metadata["stableID"].Equals(stableID));
             Assert.False(metadata["sessionID"].Equals(sessionID));
+
+            server.Stop();
         }
     }
 }
