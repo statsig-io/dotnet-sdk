@@ -9,8 +9,6 @@ using Newtonsoft.Json.Linq;
 using Statsig;
 using Statsig.Server;
 using System.Threading.Tasks;
-using Statsig.Network;
-
 
 namespace dotnet_statsig_tests
 {

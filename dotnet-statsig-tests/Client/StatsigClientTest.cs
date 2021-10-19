@@ -1,16 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 using Statsig.Client;
 using WireMock.Server;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 using Xunit;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Collections.ObjectModel;
 using Statsig;
 
 namespace dotnet_statsig_tests.Client
