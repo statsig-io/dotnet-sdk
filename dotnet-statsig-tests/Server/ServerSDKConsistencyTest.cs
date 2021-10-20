@@ -9,8 +9,6 @@ using Newtonsoft.Json.Linq;
 using Statsig;
 using Statsig.Server;
 using System.Threading.Tasks;
-using Statsig.Network;
-
 
 namespace dotnet_statsig_tests
 {
@@ -175,10 +173,14 @@ namespace dotnet_statsig_tests
 
         private string stringifyExposures(List<IReadOnlyDictionary<string, string>> exposures)
         {
+            if (exposures.Count == 0)
+            {
+                return "";
+            }
             var res = "[ \n";
             foreach (var expo in exposures)
             {
-                res += string.Format("Name: %s \n Value: %t \n Rule ID: %s", expo["gate"], expo["gateValue"], expo["ruleID"]);
+                res += string.Format("Name: {0} \n Value: {1} \n Rule ID: {2}", expo["gate"], expo["gateValue"], expo["ruleID"]);
             }
             res += "\n ] \n";
             return res;
