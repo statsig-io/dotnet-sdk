@@ -9,16 +9,29 @@ using WireMock.ResponseBuilders;
 using Xunit;
 using Newtonsoft.Json.Linq;
 using Statsig;
+using System.Threading.Tasks;
 
 namespace dotnet_statsig_tests.Server
 {
-    public class StatsigServerTest
+    public class StatsigServerTest : IAsyncLifetime
     {
+        WireMockServer _server;
+        Task IAsyncLifetime.InitializeAsync()
+        {
+            _server = WireMockServer.Start();
+            return Task.CompletedTask;
+        }
+
+        Task IAsyncLifetime.DisposeAsync()
+        {
+            _server.Stop();
+            return Task.CompletedTask;
+        }
+
         [Fact]
         public async void TestServerInitialize()
         {
-            var server = WireMockServer.Start();
-            server.Given(
+            _server.Given(
                 Request.Create().WithPath("/v1/download_config_specs").UsingPost()
             ).RespondWith(
                 Response.Create().WithStatusCode(200).WithBodyAsJson(
@@ -98,7 +111,7 @@ namespace dotnet_statsig_tests.Server
                     }
                 )
             );
-            server.Given(
+            _server.Given(
                 Request.Create().WithPath("/v1/log_event").UsingPost()
             ).RespondWith(
                 Response.Create().WithStatusCode(200)
@@ -112,13 +125,13 @@ namespace dotnet_statsig_tests.Server
             await StatsigServer.Initialize
             (
                 "secret-fake-key",
-                new Statsig.StatsigOptions(server.Urls[0] + "/v1")
+                new Statsig.StatsigOptions(_server.Urls[0] + "/v1")
             );
 
-            Assert.Single(server.LogEntries);
+            Assert.Single(_server.LogEntries);
 
-            var requestBody = server.LogEntries.ElementAt(0).RequestMessage.Body;
-            var requestHeaders = server.LogEntries.ElementAt(0).RequestMessage.Headers;
+            var requestBody = _server.LogEntries.ElementAt(0).RequestMessage.Body;
+            var requestHeaders = _server.LogEntries.ElementAt(0).RequestMessage.Headers;
             var requestDict = JObject.Parse(requestBody);
 
             JToken m;
@@ -153,8 +166,8 @@ namespace dotnet_statsig_tests.Server
             StatsigServer.Shutdown();
 
             // Verify log event requets for exposures and custom logs
-            requestBody = server.LogEntries.ElementAt(1).RequestMessage.Body;
-            requestHeaders = server.LogEntries.ElementAt(1).RequestMessage.Headers;
+            requestBody = _server.LogEntries.ElementAt(1).RequestMessage.Body;
+            requestHeaders = _server.LogEntries.ElementAt(1).RequestMessage.Headers;
             requestDict = JObject.Parse(requestBody);
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
@@ -222,8 +235,6 @@ namespace dotnet_statsig_tests.Server
             Assert.True(evt.Metadata.GetValueOrDefault("key", "fail").Equals("value"));
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
-
-            server.Stop();
         }
     }
 }

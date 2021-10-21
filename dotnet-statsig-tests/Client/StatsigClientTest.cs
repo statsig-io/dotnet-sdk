@@ -9,16 +9,29 @@ using WireMock.ResponseBuilders;
 using Xunit;
 using Newtonsoft.Json.Linq;
 using Statsig;
+using System.Threading.Tasks;
 
 namespace dotnet_statsig_tests.Client
 {
-    public class StatsigClientTest
+    public class StatsigClientTest : IAsyncLifetime
     {
+        WireMockServer _server;
+        Task IAsyncLifetime.InitializeAsync()
+        {
+            _server = WireMockServer.Start();
+            return Task.CompletedTask;
+        }
+
+        Task IAsyncLifetime.DisposeAsync()
+        {
+            _server.Stop();
+            return Task.CompletedTask;
+        }
+
         [Fact]
         public async void TestClientInitialize()
         {
-            var server = WireMockServer.Start();
-            server.Given(
+            _server.Given(
                 Request.Create().WithPath("/v1/initialize").UsingPost()
             ).RespondWith(
                 Response.Create().WithStatusCode(200).WithBodyAsJson(
@@ -77,7 +90,7 @@ namespace dotnet_statsig_tests.Client
                     }
                 )
             );
-            server.Given(
+            _server.Given(
                 Request.Create().WithPath("/v1/log_event").UsingPost()
             ).RespondWith(
                 Response.Create().WithStatusCode(200)
@@ -92,13 +105,13 @@ namespace dotnet_statsig_tests.Client
             (
                 "client-fake-key",
                 user,
-                new StatsigOptions(server.Urls[0] + "/v1")
+                new StatsigOptions(_server.Urls[0] + "/v1")
             );
 
-            Assert.Single(server.LogEntries);
+            Assert.Single(_server.LogEntries);
 
-            var requestBody = server.LogEntries.ElementAt(0).RequestMessage.Body;
-            var requestHeaders = server.LogEntries.ElementAt(0).RequestMessage.Headers;
+            var requestBody = _server.LogEntries.ElementAt(0).RequestMessage.Body;
+            var requestHeaders = _server.LogEntries.ElementAt(0).RequestMessage.Headers;
             var requestDict = JObject.Parse(requestBody);
 
             JToken u, m;
@@ -141,8 +154,8 @@ namespace dotnet_statsig_tests.Client
             StatsigClient.Shutdown();
 
             // Verify log event requets for exposures and custom logs
-            requestBody = server.LogEntries.ElementAt(1).RequestMessage.Body;
-            requestHeaders = server.LogEntries.ElementAt(1).RequestMessage.Headers;
+            requestBody = _server.LogEntries.ElementAt(1).RequestMessage.Body;
+            requestHeaders = _server.LogEntries.ElementAt(1).RequestMessage.Headers;
             requestDict = JObject.Parse(requestBody);
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
@@ -219,17 +232,15 @@ namespace dotnet_statsig_tests.Client
             var stableID = metadata["stableID"];
             var sessionID = metadata["sessionID"];
 
-            var newClient = new ClientDriver("client-fake-key-2", new Statsig.StatsigOptions(server.Urls[0] + "/v1"));
+            var newClient = new ClientDriver("client-fake-key-2", new Statsig.StatsigOptions(_server.Urls[0] + "/v1"));
 
             await newClient.Initialize(null);
-            requestBody = server.LogEntries.ElementAt(2).RequestMessage.Body;
+            requestBody = _server.LogEntries.ElementAt(2).RequestMessage.Body;
             requestDict = JObject.Parse(requestBody);
             requestDict.TryGetValue("statsigMetadata", out m);
             metadata = m.ToObject<Dictionary<string, string>>();
             Assert.True(metadata["stableID"].Equals(stableID));
             Assert.False(metadata["sessionID"].Equals(sessionID));
-
-            server.Stop();
         }
     }
 }
