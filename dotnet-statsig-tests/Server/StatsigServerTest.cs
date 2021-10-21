@@ -17,7 +17,7 @@ namespace dotnet_statsig_tests.Server
         [Fact]
         public async void TestInitialize()
         {
-            var server = WireMockServer.Start(9999);
+            var server = WireMockServer.Start();
             server.Given(
                 Request.Create().WithPath("/v1/download_config_specs").UsingPost()
             ).RespondWith(
@@ -112,7 +112,7 @@ namespace dotnet_statsig_tests.Server
             await StatsigServer.Initialize
             (
                 "secret-fake-key",
-                new StatsigOptions("http://localhost:9999/v1")
+                new Statsig.StatsigOptions(server.Urls[0] + "/v1")
             );
 
             Assert.Single(server.LogEntries);
