@@ -17,7 +17,7 @@ namespace dotnet_statsig_tests.Client
         [Fact]
         public async void TestInitialize()
         {
-            var server = WireMockServer.Start(9998);
+            var server = WireMockServer.Start();
             server.Given(
                 Request.Create().WithPath("/v1/initialize").UsingPost()
             ).RespondWith(
@@ -92,7 +92,7 @@ namespace dotnet_statsig_tests.Client
             (
                 "client-fake-key",
                 user,
-                new StatsigOptions("http://localhost:9998/v1")
+                new StatsigOptions(server.Urls[0] + "/v1")
             );
 
             Assert.Single(server.LogEntries);
@@ -219,7 +219,7 @@ namespace dotnet_statsig_tests.Client
             var stableID = metadata["stableID"];
             var sessionID = metadata["sessionID"];
 
-            var newClient = new ClientDriver("client-fake-key-2", new Statsig.StatsigOptions("http://localhost:9998/v1"));
+            var newClient = new ClientDriver("client-fake-key-2", new Statsig.StatsigOptions(server.Urls[0] + "/v1"));
 
             await newClient.Initialize(null);
             requestBody = server.LogEntries.ElementAt(2).RequestMessage.Body;
