@@ -15,7 +15,7 @@ namespace dotnet_statsig_tests.Server
     public class StatsigServerTest
     {
         [Fact]
-        public async void TestInitialize()
+        public async void TestServerInitialize()
         {
             var server = WireMockServer.Start();
             server.Given(
