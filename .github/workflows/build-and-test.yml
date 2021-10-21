@@ -23,9 +23,9 @@ jobs:
         run: dotnet restore
       - name: Build
         run: dotnet build --configuration Release --no-restore
-        timeout-minutes: 5
+        timeout-minutes: 2
       - name: Test
         run: dotnet test --no-restore --verbosity normal
-        timeout-minutes: 10
+        timeout-minutes: 5
         env:
           test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
