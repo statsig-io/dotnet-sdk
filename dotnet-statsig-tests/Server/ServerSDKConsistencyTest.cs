@@ -68,7 +68,7 @@ namespace dotnet_statsig_tests
         [Fact]
         public async void TestUSEast()
         {
-            await TestConsistency("https://us-east-2.api.statsig.com/v1");
+            await TestConsistency("https://az-eastus-2.api.statsig.com/v1");
         }
 
         [Fact]
