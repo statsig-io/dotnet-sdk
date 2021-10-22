@@ -12,9 +12,9 @@ using Newtonsoft.Json.Linq;
 using Statsig;
 using System.Threading.Tasks;
 
-namespace dotnet_statsig_tests.Client
+namespace dotnet_statsig_tests
 {
-    public class StatsigClientTest : IAsyncLifetime
+    public class StatsigTest : IAsyncLifetime
     {
         WireMockServer _server;
         Task IAsyncLifetime.InitializeAsync()
