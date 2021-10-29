@@ -53,30 +53,6 @@ namespace dotnet_statsig_tests
             await TestConsistency("https://latest.api.statsig.com/v1");
         }
 
-        [Fact]
-        public async void TestAPSouth()
-        {
-            await TestConsistency("https://ap-south-1.api.statsig.com/v1");
-        }
-
-        [Fact]
-        public async void TestUSWest()
-        {
-            await TestConsistency("https://us-west-2.api.statsig.com/v1");
-        }
-
-        [Fact]
-        public async void TestUSEast()
-        {
-            await TestConsistency("https://az-eastus-2.api.statsig.com/v1");
-        }
-
-        [Fact]
-        public async void TestEU()
-        {
-            await TestConsistency("https://az-northeurope.api.statsig.com/v1");
-        }
-
         private async Task<TestData[]> FetchTestData(string apiURLBase)
         {
             using (HttpClient client = new HttpClient())
