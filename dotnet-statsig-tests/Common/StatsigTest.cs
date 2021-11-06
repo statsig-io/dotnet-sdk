@@ -100,6 +100,7 @@ namespace dotnet_statsig_tests
             var user = new StatsigUser
             {
                 UserID = "123",
+                CustomIDs = new Dictionary<string, string> { { "random_id", "id123" } },
             };
             user.AddPrivateAttribute("value", "secret");
             user.AddCustomProperty("value", "public");
@@ -125,6 +126,7 @@ namespace dotnet_statsig_tests
             Assert.True(requestUser.UserID == "123");
             Assert.True(requestUser.CustomProperties["value"].Equals("public"));
             Assert.Single(requestUser.CustomProperties);
+            Assert.True(requestUser.CustomIDs["random_id"] == "id123");
             // Client SDK needs to send private attributes to server to evaluate gates and experiments
             Assert.True(requestUser.PrivateAttributes["value"].Equals("secret"));
             Assert.Single(requestUser.PrivateAttributes);
@@ -143,7 +145,7 @@ namespace dotnet_statsig_tests
             Assert.True(exp.Get("boolValue", false));
             Assert.False(exp.Get("boolValue1", false));
 
-            var config = StatsigClient.GetExperiment("test_config");
+            var config = StatsigClient.GetConfig("test_config");
             Assert.True(config.Get("stringValue", "wrong").Equals("1"));
             Assert.True(config.Get("numberValue", 0).Equals(1));
             Assert.True(config.Get("boolValue", false));
@@ -178,6 +180,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("gateValue", "fail").Equals("true"));
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_1"));
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.True(evt.User.CustomIDs["random_id"] == "id123");
 
             evt = events.ElementAt(1);
             Assert.True(evt.EventName == "statsig::config_exposure");
@@ -189,6 +192,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("gateValue", "fail").Equals("true"));
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_1"));
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.True(evt.User.CustomIDs["random_id"] == "id123");
 
             evt = events.ElementAt(2);
             Assert.True(evt.EventName == "statsig::config_exposure");
@@ -200,6 +204,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("gateValue", "fail").Equals("true"));
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_1"));
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.True(evt.User.CustomIDs["random_id"] == "id123");
 
             evt = events.ElementAt(3);
             Assert.True(evt.EventName == "event_1");
@@ -207,6 +212,7 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.Metadata);
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.True(evt.User.CustomIDs["random_id"] == "id123");
 
             evt = events.ElementAt(4);
             Assert.True(evt.EventName == "event_2");
@@ -337,6 +343,7 @@ namespace dotnet_statsig_tests
             var user = new StatsigUser
             {
                 UserID = "123",
+                CustomIDs = new Dictionary<string, string> { { "random_id", "id123" }, { "another_random_id", "id456" } },
             };
             user.AddPrivateAttribute("value", "secret");
             user.AddCustomProperty("value", "public");
@@ -403,6 +410,8 @@ namespace dotnet_statsig_tests
             Assert.True(evt.Metadata.GetValueOrDefault("ruleID", "fail").Equals("rule_id_1"));
             Assert.True(evt.SecondaryExposures.Count() == 0);
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.True(evt.User.CustomIDs["random_id"] == "id123");
+            Assert.True(evt.User.CustomIDs["another_random_id"] == "id456");
 
             evt = events.ElementAt(1);
             Assert.True(evt.EventName == "statsig::config_exposure");
@@ -414,6 +423,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("gateValue", "fail").Equals("true"));
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_id_1"));
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.True(evt.User.CustomIDs["another_random_id"] == "id456");
 
             evt = events.ElementAt(2);
             Assert.True(evt.EventName == "statsig::config_exposure");
@@ -425,6 +435,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("gateValue", "fail").Equals("true"));
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_id_1"));
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.True(evt.User.CustomIDs["another_random_id"] == "id456");
 
             evt = events.ElementAt(3);
             Assert.True(evt.EventName == "event_1");
@@ -432,6 +443,7 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.Metadata);
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.True(evt.User.CustomIDs["another_random_id"] == "id456");
 
             evt = events.ElementAt(4);
             Assert.True(evt.EventName == "event_2");

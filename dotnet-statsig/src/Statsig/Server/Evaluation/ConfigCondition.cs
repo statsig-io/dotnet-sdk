@@ -17,6 +17,7 @@ namespace Statsig.Server
         internal string Field { get; }
         // Additional values used only for certain conditions, typed as a dictionary
         internal Dictionary<string, object> AdditionalValues { get; }
+        internal string IDType { get; }
 
         internal ConfigCondition(string type, JToken targetValue, string op, string field, Dictionary<string, object> additionalValues)
         {

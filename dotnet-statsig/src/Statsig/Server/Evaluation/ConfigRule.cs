@@ -10,6 +10,7 @@ namespace Statsig.Server
         internal double PassPercentage { get; }
         internal string ID { get; }
         internal string Salt { get; }
+        internal string IDType { get; }
         internal List<ConfigCondition> Conditions { get; }
         internal DynamicConfig DynamicConfigValue { get; }
         internal FeatureGate FeatureGateValue { get; }
@@ -29,7 +30,7 @@ namespace Statsig.Server
                 DynamicConfigValue =
                     new DynamicConfig(name, returnValue.ToObject<Dictionary<string, JToken>>(), id);
             }
-            catch {}
+            catch { }
         }
 
         internal static ConfigRule FromJObject(JObject jobj)
