@@ -15,13 +15,14 @@ namespace Statsig.Server
         internal DynamicConfig DynamicConfigDefault { get; }
         internal FeatureGate FeatureGateDefault { get; }
 
-        internal ConfigSpec(string name, string type, string salt, JToken defaultValue, bool enabled, List<ConfigRule> rules)
+        internal ConfigSpec(string name, string type, string salt, JToken defaultValue, bool enabled, List<ConfigRule> rules, string idType)
         {
             Name = name;
             Type = type;
             Salt = salt;
             Enabled = enabled;
             Rules = rules;
+            IDType = idType;
             DynamicConfigDefault = new DynamicConfig(name);
             FeatureGateDefault = new FeatureGate(name);
 
@@ -38,7 +39,7 @@ namespace Statsig.Server
 
         internal static ConfigSpec FromJObject(JObject jobj)
         {
-            JToken name, type, salt, defaultValue, rules, enabled;
+            JToken name, type, salt, defaultValue, rules, enabled, idType;
 
             if (jobj == null ||
                 !jobj.TryGetValue("name", out name) ||
@@ -64,7 +65,8 @@ namespace Statsig.Server
                 salt.Value<string>(),
                 jobj.TryGetValue("defaultValue", out defaultValue) ? defaultValue : null,
                 enabled.Value<bool>(),
-                rulesList);
+                rulesList,
+                jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null);
         }
     }
 }

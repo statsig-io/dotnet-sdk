@@ -178,6 +178,7 @@ namespace Statsig.Server.Evaluation
             var op = condition.Operator?.ToLowerInvariant();
             var target = condition.TargetValue?.Value<object>();
             var field = condition.Field;
+            var idType = condition.IDType;
             object value;
             switch (type)
             {
@@ -226,7 +227,7 @@ namespace Statsig.Server.Evaluation
                     object salt;
                     if (condition.AdditionalValues.TryGetValue("salt", out salt))
                     {
-                        var hash = ComputeUserHash(salt.ToString() + "." + GetUnitID(user, condition.IDType));
+                        var hash = ComputeUserHash(salt.ToString() + "." + GetUnitID(user, idType));
                         value = Convert.ToInt64(hash % 1000); // user bucket condition only has 1k segments as opposed to 10k for condition pass %
                     }
                     else
@@ -235,7 +236,7 @@ namespace Statsig.Server.Evaluation
                     }
                     break;
                 case "unit_id":
-                    value = GetUnitID(user, condition.Field);
+                    value = GetUnitID(user, idType);
                     break;
                 default:
                     return EvaluationResult.FetchFromServer;
