@@ -100,6 +100,8 @@ namespace Statsig
         public IReadOnlyDictionary<string, object> PrivateAttributes => privateAttributes;
         [JsonProperty("statsigEnvironment")]
         internal IReadOnlyDictionary<string, string> statsigEnvironment;
+        [JsonProperty("customIDs")]
+        internal IReadOnlyDictionary<string, string> CustomIDs;
 
         public StatsigUser()
         {
@@ -138,8 +140,9 @@ namespace Statsig
                 Country = Country,
                 Locale = Locale,
                 AppVersion = AppVersion,
+                CustomIDs = CustomIDs,
                 customProperties = customProperties,
-                statsigEnvironment = statsigEnvironment
+                statsigEnvironment = statsigEnvironment,
                 // Do NOT add private attributes here
             };
             return copy;

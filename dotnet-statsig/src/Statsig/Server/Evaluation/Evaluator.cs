@@ -132,8 +132,20 @@ namespace Statsig.Server.Evaluation
 
         private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, ConfigSpec spec)
         {
-            var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", spec.Salt, rule.Salt ?? rule.ID, user.UserID ?? ""));
+            var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", spec.Salt, rule.Salt ?? rule.ID, GetUnitID(user, rule.IDType)));
             return (hash % 10000) < (rule.PassPercentage * 100);
+        }
+
+        private string GetUnitID(StatsigUser user, string idType)
+        {
+            if (idType is string && idType.ToLowerInvariant() != "userid")
+            {
+                string idVal;
+                return user.CustomIDs != null ?
+                (user.CustomIDs.TryGetValue(idType, out idVal) ? idVal : user.CustomIDs.TryGetValue(idType.ToLowerInvariant(), out idVal) ? idVal : "")
+                : "";
+            }
+            return user.UserID ?? "";
         }
 
         private EvaluationResult EvaluateRule(StatsigUser user, ConfigRule rule, out List<IReadOnlyDictionary<string, string>> secondaryExposures)
@@ -166,6 +178,7 @@ namespace Statsig.Server.Evaluation
             var op = condition.Operator?.ToLowerInvariant();
             var target = condition.TargetValue?.Value<object>();
             var field = condition.Field;
+            var idType = condition.IDType;
             object value;
             switch (type)
             {
@@ -214,13 +227,16 @@ namespace Statsig.Server.Evaluation
                     object salt;
                     if (condition.AdditionalValues.TryGetValue("salt", out salt))
                     {
-                        var hash = ComputeUserHash(salt.ToString() + "." + user.UserID ?? "");
+                        var hash = ComputeUserHash(salt.ToString() + "." + GetUnitID(user, idType));
                         value = Convert.ToInt64(hash % 1000); // user bucket condition only has 1k segments as opposed to 10k for condition pass %
                     }
                     else
                     {
                         return EvaluationResult.Fail;
                     }
+                    break;
+                case "unit_id":
+                    value = GetUnitID(user, idType);
                     break;
                 default:
                     return EvaluationResult.FetchFromServer;

@@ -17,19 +17,21 @@ namespace Statsig.Server
         internal string Field { get; }
         // Additional values used only for certain conditions, typed as a dictionary
         internal Dictionary<string, object> AdditionalValues { get; }
+        internal string IDType { get; }
 
-        internal ConfigCondition(string type, JToken targetValue, string op, string field, Dictionary<string, object> additionalValues)
+        internal ConfigCondition(string type, JToken targetValue, string op, string field, Dictionary<string, object> additionalValues, string idType)
         {
             Type = type;
             TargetValue = targetValue;
             Operator = op;
             Field = field;
             AdditionalValues = additionalValues;
+            IDType = idType;
         }
 
         internal static ConfigCondition FromJObject(JObject jobj)
         {
-            JToken type, targetValue, op, field, additionalValues;
+            JToken type, targetValue, op, field, additionalValues, idType;
             if (jobj == null || !jobj.TryGetValue("type", out type))
             {
                 return null;
@@ -39,7 +41,8 @@ namespace Statsig.Server
                 jobj.TryGetValue("targetValue", out targetValue) ? targetValue : null,
                 jobj.TryGetValue("operator", out op) ? op.Value<string>() : null,
                 jobj.TryGetValue("field", out field) ? field.Value<string>() : null,
-                jobj.TryGetValue("additionalValues", out additionalValues) ? additionalValues.ToObject<Dictionary<string, object>>() : new Dictionary<string, object>()
+                jobj.TryGetValue("additionalValues", out additionalValues) ? additionalValues.ToObject<Dictionary<string, object>>() : new Dictionary<string, object>(),
+                jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null
             );
         }
     }
