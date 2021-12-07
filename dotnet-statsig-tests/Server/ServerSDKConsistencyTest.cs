@@ -84,25 +84,35 @@ namespace dotnet_statsig_tests
             {
                 foreach (var gate in data.feature_gates_v2)
                 {
-                    var sdkResult = driver.evaluator.CheckGate(data.user, gate.Key).GateValue;
+                    var sdkResult = driver.evaluator.CheckGate(data.user, gate.Key);
+                    if (sdkResult.Result == Statsig.Server.Evaluation.EvaluationResult.FetchFromServer)
+                    {
+                        continue;
+                    }
+                    var sdkGateResult = sdkResult.GateValue;
                     var serverResult = gate.Value;
-                    Assert.True(sdkResult.Value == serverResult.Value, string.Format("Values are different for gate {0}. Expected {1} but got {2}", gate.Key, serverResult.Value, sdkResult.Value));
-                    Assert.True(sdkResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for gate {0}. Expected {1} but got {2}", gate.Key, serverResult.RuleID, sdkResult.RuleID));
-                    Assert.True(compareSecondaryExposures(sdkResult.SecondaryExposures, serverResult.SecondaryExposures),
-                        string.Format("Secondary exposures are different for gate {0}. Expected {1} but got {2}", gate.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkResult.SecondaryExposures)));
+                    Assert.True(sdkGateResult.Value == serverResult.Value, string.Format("Values are different for gate {0}. Expected {1} but got {2}", gate.Key, serverResult.Value, sdkGateResult.Value));
+                    Assert.True(sdkGateResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for gate {0}. Expected {1} but got {2}", gate.Key, serverResult.RuleID, sdkGateResult.RuleID));
+                    Assert.True(compareSecondaryExposures(sdkGateResult.SecondaryExposures, serverResult.SecondaryExposures),
+                        string.Format("Secondary exposures are different for gate {0}. Expected {1} but got {2}", gate.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkGateResult.SecondaryExposures)));
                 }
                 foreach (var config in data.dynamic_configs)
                 {
-                    var sdkResult = driver.evaluator.GetConfig(data.user, config.Key).ConfigValue;
+                    var sdkResult = driver.evaluator.GetConfig(data.user, config.Key);
+                    if (sdkResult.Result == Statsig.Server.Evaluation.EvaluationResult.FetchFromServer)
+                    {
+                        continue;
+                    }
+                    var sdkConfigResult = sdkResult.ConfigValue;
                     var serverResult = config.Value;
-                    foreach (var entry in sdkResult.Value)
+                    foreach (var entry in sdkConfigResult.Value)
                     {
                         Assert.True(JToken.DeepEquals(entry.Value, serverResult.Value[entry.Key]),
                             string.Format("Values are different for config {0}.", config.Key));
                     }
-                    Assert.True(sdkResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for config {0}. Expected {1} but got {2}", config.Key, serverResult.RuleID, sdkResult.RuleID));
-                    Assert.True(compareSecondaryExposures(sdkResult.SecondaryExposures, serverResult.SecondaryExposures),
-                        string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", config.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkResult.SecondaryExposures)));
+                    Assert.True(sdkConfigResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for config {0}. Expected {1} but got {2}", config.Key, serverResult.RuleID, sdkConfigResult.RuleID));
+                    Assert.True(compareSecondaryExposures(sdkConfigResult.SecondaryExposures, serverResult.SecondaryExposures),
+                        string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", config.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkConfigResult.SecondaryExposures)));
                 }
             }
             driver.Shutdown();
