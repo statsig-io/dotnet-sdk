@@ -344,6 +344,20 @@ namespace Statsig.Server.Evaluation
                 case "on":
                     result = CompareTimes(value, target, (DateTimeOffset t1, DateTimeOffset t2) => (t1.Date == t2.Date));
                     break;
+                case "in_segment_list":
+                case "not_in_segment_list":
+                    using (var sha = SHA256.Create())
+                    {
+                        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(value.ToString()));
+                        var str = Convert.ToBase64String(bytes);
+                        var substr = str.Substring(0, 8);
+                        var ids = _store.IDLists[target.ToString()]?.IDs;
+                        if (ids != null)
+                        {
+                            result = ids.Contains(substr);
+                        }
+                    }
+                    break;
                 default:
                     return EvaluationResult.FetchFromServer;
             }
