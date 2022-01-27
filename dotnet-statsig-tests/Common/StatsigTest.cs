@@ -460,6 +460,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.User.UserID.Equals("123"));
 
 
+
             evt = events.ElementAt(6);
             Assert.True(evt.EventName == "event_4");
             Assert.Null(evt.Value);
