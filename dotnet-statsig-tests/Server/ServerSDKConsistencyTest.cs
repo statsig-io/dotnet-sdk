@@ -85,10 +85,6 @@ namespace dotnet_statsig_tests
                 foreach (var gate in data.feature_gates_v2)
                 {
                     var sdkResult = driver.evaluator.CheckGate(data.user, gate.Key);
-                    if (sdkResult.Result == Statsig.Server.Evaluation.EvaluationResult.FetchFromServer)
-                    {
-                        continue;
-                    }
                     var sdkGateResult = sdkResult.GateValue;
                     var serverResult = gate.Value;
                     Assert.True(sdkGateResult.Value == serverResult.Value, string.Format("Values are different for gate {0}. Expected {1} but got {2}", gate.Key, serverResult.Value, sdkGateResult.Value));
@@ -99,10 +95,6 @@ namespace dotnet_statsig_tests
                 foreach (var config in data.dynamic_configs)
                 {
                     var sdkResult = driver.evaluator.GetConfig(data.user, config.Key);
-                    if (sdkResult.Result == Statsig.Server.Evaluation.EvaluationResult.FetchFromServer)
-                    {
-                        continue;
-                    }
                     var sdkConfigResult = sdkResult.ConfigValue;
                     var serverResult = config.Value;
                     foreach (var entry in sdkConfigResult.Value)
