@@ -176,7 +176,7 @@ namespace Statsig.Server.Evaluation
 
             var type = condition.Type.ToLowerInvariant();
             var op = condition.Operator?.ToLowerInvariant();
-            var target = condition.TargetValue?.Value<object>();
+            var target = (condition.TargetValue == null || condition.TargetValue.Type == JTokenType.Null) ? null : condition.TargetValue?.Value<object>();
             var field = condition.Field;
             var idType = condition.IDType;
             object value;
