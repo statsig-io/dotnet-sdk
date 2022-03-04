@@ -52,6 +52,11 @@ namespace Statsig.Client
                 Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC
             );
 
+            if (options.PersistentStorageFolder != null)
+            {
+                PersistentStore.SetStorageFolder(options.PersistentStorageFolder);
+            }
+            PersistentStore.Deserialize();
             _gates = PersistentStore.GetValue(gatesStoreKey, new Dictionary<string, FeatureGate>());
             _configs = PersistentStore.GetValue(configsStoreKey, new Dictionary<string, DynamicConfig>());
         }

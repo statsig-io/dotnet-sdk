@@ -12,12 +12,12 @@ namespace Statsig.Client.Storage
     {
         const string stableIDKey = "statsig::stableID";
         const string storeFileName = "statsig_store.json";
+        static string storageFolder = null;
         static Dictionary<string, object> _properties = new Dictionary<string, object>();
         static Timer _timer;
         
         static PersistentStore()
         {
-            Deserialize();
         }
 
         public static string StableID
@@ -79,48 +79,89 @@ namespace Statsig.Client.Storage
             QueueFlush();
         }
 
+        public static void SetStorageFolder(string folder)
+        {
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                throw new ArgumentException("folder");
+            }
+
+            storageFolder = folder;
+        }
+
+        static StreamWriter GetWriter()
+        {
+            if (storageFolder != null)
+            {
+                return new StreamWriter(Path.Combine(storageFolder, storeFileName));
+            }
+
+            using (var store = IsolatedStorageFile.GetUserStoreForAssembly())
+            {
+                var file = store.OpenFile(storeFileName, System.IO.FileMode.Create);
+                return new StreamWriter(file);
+            }
+        }
+
+        static StreamReader GetReader()
+        {
+            if (storageFolder != null)
+            {
+                var filePath = Path.Combine(storageFolder, storeFileName);
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return null;
+                }
+                return new StreamReader(filePath);
+            }
+
+            using (var store = IsolatedStorageFile.GetUserStoreForAssembly())
+            {
+                if (!store.FileExists(storeFileName))
+                {
+                    return null;
+                }
+
+                var file = store.OpenFile(storeFileName, System.IO.FileMode.Open);
+                return new StreamReader(file);
+            }
+        }
+
         static void FlushNow(object _)
         {
             try
             {
-                using (var store = IsolatedStorageFile.GetUserStoreForAssembly())
+                using (var writer = GetWriter())
                 {
-                    var file = store.OpenFile(storeFileName, System.IO.FileMode.Create);
-                    using (var writer = new StreamWriter(file))
-                    {
-                        var serializer = new JsonSerializer();
-                        serializer.Serialize(writer, _properties);
-                    }
+                    var serializer = new JsonSerializer();
+                    serializer.Serialize(writer, _properties);
                 }
             }
-            catch (IsolatedStorageException)
+            catch (Exception e)
             {
-                // Not sure if there's anything to do here
-            }
+                // Not sure if there's anything else to do here
+                System.Diagnostics.Debug.WriteLine(e.Message);
+            }            
         }
 
-        static void Deserialize()
+        public static void Deserialize()
         {
             try
             {
-                using (var store = IsolatedStorageFile.GetUserStoreForAssembly())
+                using (var reader = GetReader())
                 {
-                    if (!store.FileExists(storeFileName))
+                    if (reader == null)
                     {
                         return;
                     }
 
-                    var file = store.OpenFile(storeFileName, System.IO.FileMode.Open);
-                    using (var reader = new StreamReader(file))
+                    var serializer = new JsonSerializer();
+                    _properties = serializer.Deserialize<Dictionary<string, object>>(
+                        new JsonTextReader(reader)
+                    );
+                    if (_properties == null)
                     {
-                        var serializer = new JsonSerializer();
-                        _properties = serializer.Deserialize<Dictionary<string, object>>(
-                            new JsonTextReader(reader)
-                        );
-                        if (_properties == null)
-                        {
-                            _properties = new Dictionary<string, object>();
-                        }
+                        _properties = new Dictionary<string, object>();
                     }
                 }
             }

@@ -6,6 +6,7 @@ namespace Statsig
     {
         public string ApiUrlBase { get; }
         public StatsigEnvironment StatsigEnvironment { get; }
+        public string PersistentStorageFolder { get; set; }
 
         public StatsigOptions()
         {
