@@ -36,7 +36,7 @@ namespace Statsig.Client.Storage
             }
         }
         
-        public static ConfigureCacheDirectory(string cacheDirectory)
+        public static void ConfigureCacheDirectory(string cacheDirectory)
         {
             cacheDirectory = cacheDirectory;
         }

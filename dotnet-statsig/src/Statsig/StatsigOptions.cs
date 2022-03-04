@@ -22,14 +22,6 @@ namespace Statsig
             CacheDirectory = Constants.DEFAULT_CACHE_DIRECTORY;
         }
 
-        public StatsigOptions(string apiUrlBase = null, StatsigEnvironment environment = null)
-        {
-            ApiUrlBase = string.IsNullOrWhiteSpace(apiUrlBase) ?
-                Constants.DEFAULT_API_URL_BASE : apiUrlBase;
-            StatsigEnvironment = environment ?? new StatsigEnvironment();
-            CacheDirectory = Constants.DEFAULT_CACHE_DIRECTORY;
-        }
-
         public StatsigOptions(string apiUrlBase = null, StatsigEnvironment environment = null, string cacheDirectory = null)
         {
             ApiUrlBase = string.IsNullOrWhiteSpace(apiUrlBase) ?
