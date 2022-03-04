@@ -19,5 +19,7 @@ namespace Statsig
 
         public static string GATE_EXPOSURE_EVENT = "statsig::gate_exposure";
         public static string CONFIG_EXPOSURE_EVENT = "statsig::config_exposure";
+
+        public static string DEFAULT_CACHE_DIRECTORY = "";
     }
 }

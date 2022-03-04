@@ -12,6 +12,7 @@ namespace Statsig.Client.Storage
     {
         const string stableIDKey = "statsig::stableID";
         const string storeFileName = "statsig_store.json";
+        static string cacheDirectory = Constants.DEFAULT_CACHE_DIRECTORY;
         static Dictionary<string, object> _properties = new Dictionary<string, object>();
         static Timer _timer;
         
@@ -33,6 +34,11 @@ namespace Statsig.Client.Storage
 
                 return stableID;
             }
+        }
+        
+        public static ConfigureCacheDirectory(string cacheDirectory)
+        {
+            cacheDirectory = cacheDirectory;
         }
 
         public static T GetValue<T>(string scope, string key, T defaultValue)
@@ -79,13 +85,19 @@ namespace Statsig.Client.Storage
             QueueFlush();
         }
 
+        static string FilePath {
+            get {
+                return string.IsNullOrWhiteSpace(cacheDirectory) ? storeFileName : $"{cacheDirectory}/${storeFileName}";
+            }
+        }
+
         static void FlushNow(object _)
         {
             try
             {
                 using (var store = IsolatedStorageFile.GetUserStoreForAssembly())
                 {
-                    var file = store.OpenFile(storeFileName, System.IO.FileMode.Create);
+                    var file = store.OpenFile(FilePath, System.IO.FileMode.Create);
                     using (var writer = new StreamWriter(file))
                     {
                         var serializer = new JsonSerializer();
@@ -105,12 +117,12 @@ namespace Statsig.Client.Storage
             {
                 using (var store = IsolatedStorageFile.GetUserStoreForAssembly())
                 {
-                    if (!store.FileExists(storeFileName))
+                    if (!store.FileExists(FilePath))
                     {
                         return;
                     }
 
-                    var file = store.OpenFile(storeFileName, System.IO.FileMode.Open);
+                    var file = store.OpenFile(FilePath, System.IO.FileMode.Open);
                     using (var reader = new StreamReader(file))
                     {
                         var serializer = new JsonSerializer();
