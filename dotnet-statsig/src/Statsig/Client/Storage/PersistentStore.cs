@@ -165,9 +165,10 @@ namespace Statsig.Client.Storage
                     }
                 }
             }
-            catch (IsolatedStorageException)
+            catch (Exception e)
             {
-                // Not sure if there's anything to do here
+                // Not sure if there's anything else to do here
+                System.Diagnostics.Debug.WriteLine(e.Message);
             }
         }
 
