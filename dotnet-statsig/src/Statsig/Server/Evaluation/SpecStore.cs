@@ -73,24 +73,35 @@ namespace Statsig.Server
             await Task.WhenAll(tasks);
             foreach (Task<IReadOnlyDictionary<string, JToken>> task in tasks)
             {
-                var response = task.Result;
-                JToken name, time, addIDsToken, removeIDsToken;
-                var listName = response.TryGetValue("list_name", out name) ? name.Value<string>() : "";
-                if (IDLists.ContainsKey(listName))
+                try
                 {
-                    var list = IDLists[listName];
-                    var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : new string[] { };
-                    var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : new string[] { };
-                    foreach (string id in addIDs)
+                    if (task == null || task.Result == null)
                     {
-                        list.IDs.Add(id);
+                        continue;
                     }
-                    foreach (string id in removeIDs)
+                    var response = task.Result;
+                    JToken name, time, addIDsToken, removeIDsToken;
+                    var listName = response.TryGetValue("list_name", out name) ? name.Value<string>() : "";
+                    if (IDLists.ContainsKey(listName))
                     {
-                        list.IDs.Remove(id);
+                        var list = IDLists[listName];
+                        var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : new string[] { };
+                        var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : new string[] { };
+                        foreach (string id in addIDs)
+                        {
+                            list.IDs.Add(id);
+                        }
+                        foreach (string id in removeIDs)
+                        {
+                            list.IDs.Remove(id);
+                        }
+                        var newTime = response.TryGetValue("time", out time) ? time.Value<double>() : 0;
+                        list.Time = Math.Max(list.Time, newTime);
                     }
-                    var newTime = response.TryGetValue("time", out time) ? time.Value<double>() : 0;
-                    list.Time = Math.Max(list.Time, newTime);
+                }
+                catch
+                {
+                    // TODO: log this
                 }
             }
 
@@ -100,7 +111,17 @@ namespace Statsig.Server
                 Enabled = true,
                 AutoReset = false
             };
-            _idListSyncTimer.Elapsed += async (sender, e) => await SyncIDLists();
+            _idListSyncTimer.Elapsed += async (sender, e) =>
+            {
+                try
+                {
+                    await SyncIDLists();
+                }
+                catch
+                {
+                    // TODO: log this
+                }
+            };
         }
 
         private async Task SyncValues(bool initialRequest)
@@ -125,7 +146,17 @@ namespace Statsig.Server
                 Enabled = true,
                 AutoReset = false
             };
-            _syncTimer.Elapsed += async (sender, e) => await SyncValues(false);
+            _syncTimer.Elapsed += async (sender, e) =>
+            {
+                try
+                {
+                    await SyncValues(false);
+                }
+                catch
+                {
+                    // TODO: log this
+                }
+            };
         }
 
         private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
