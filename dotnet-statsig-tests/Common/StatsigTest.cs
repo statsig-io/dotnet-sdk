@@ -110,6 +110,7 @@ namespace dotnet_statsig_tests
                 user,
                 new StatsigOptions(_server.Urls[0] + "/v1")
             );
+            var nowSeconds = Convert.ToInt32(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
 
             Assert.Single(_server.LogEntries);
 
@@ -134,7 +135,7 @@ namespace dotnet_statsig_tests
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
 
             Assert.True(metadata["sdkType"].Equals("dotnet-client"));
-            Assert.True(metadata["sdkVersion"].Equals("1.6.0.0"));
+            Assert.True(metadata["sdkVersion"].Equals("1.6.1.0"));
 
             Assert.True(StatsigClient.CheckGate("test_gate"));
             var exp = StatsigClient.GetExperiment("test_config");
@@ -181,6 +182,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_1"));
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.True(evt.User.CustomIDs["random_id"] == "id123");
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(1);
             Assert.True(evt.EventName == "statsig::config_exposure");
@@ -193,6 +195,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_1"));
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.True(evt.User.CustomIDs["random_id"] == "id123");
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(2);
             Assert.True(evt.EventName == "statsig::config_exposure");
@@ -205,6 +208,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_1"));
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.True(evt.User.CustomIDs["random_id"] == "id123");
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(3);
             Assert.True(evt.EventName == "event_1");
@@ -213,6 +217,7 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.True(evt.User.CustomIDs["random_id"] == "id123");
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(4);
             Assert.True(evt.EventName == "event_2");
@@ -220,6 +225,7 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.Metadata);
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(5);
             Assert.True(evt.EventName == "event_3");
@@ -227,6 +233,7 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.Metadata);
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(6);
             Assert.True(evt.EventName == "event_4");
@@ -234,6 +241,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.Metadata.GetValueOrDefault("key", "fail").Equals("value"));
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
 
             // Start a new client and verify stableID is the same but sessionID changed
@@ -352,6 +360,7 @@ namespace dotnet_statsig_tests
                 "secret-fake-key",
                 new Statsig.StatsigOptions(_server.Urls[0] + "/v1")
             );
+            var nowSeconds = Convert.ToInt32(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
 
             Assert.Single(_server.LogEntries);
 
@@ -366,7 +375,7 @@ namespace dotnet_statsig_tests
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
 
             Assert.True(metadata["sdkType"].Equals("dotnet-server"));
-            Assert.True(metadata["sdkVersion"].Equals("1.6.0.0"));
+            Assert.True(metadata["sdkVersion"].Equals("1.6.1.0"));
 
             var gate = await StatsigServer.CheckGate(user, "test_gate");
             Assert.True(gate);
@@ -412,6 +421,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.True(evt.User.CustomIDs["random_id"] == "id123");
             Assert.True(evt.User.CustomIDs["another_random_id"] == "id456");
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(1);
             Assert.True(evt.EventName == "statsig::config_exposure");
@@ -424,6 +434,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_id_1"));
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.True(evt.User.CustomIDs["another_random_id"] == "id456");
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(2);
             Assert.True(evt.EventName == "statsig::config_exposure");
@@ -436,6 +447,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.SecondaryExposures.ElementAt(0).GetValueOrDefault("ruleID", "fail").Equals("rule_id_1"));
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.True(evt.User.CustomIDs["another_random_id"] == "id456");
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(3);
             Assert.True(evt.EventName == "event_1");
@@ -444,6 +456,7 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.True(evt.User.CustomIDs["another_random_id"] == "id456");
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(4);
             Assert.True(evt.EventName == "event_2");
@@ -451,6 +464,7 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.Metadata);
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(5);
             Assert.True(evt.EventName == "event_3");
@@ -458,8 +472,7 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.Metadata);
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
-
-
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
 
             evt = events.ElementAt(6);
             Assert.True(evt.EventName == "event_4");
@@ -467,6 +480,7 @@ namespace dotnet_statsig_tests
             Assert.True(evt.Metadata.GetValueOrDefault("key", "fail").Equals("value"));
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
+            Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
         }
     }
 }

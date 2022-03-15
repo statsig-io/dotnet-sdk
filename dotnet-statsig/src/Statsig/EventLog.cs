@@ -26,6 +26,8 @@ namespace Statsig
         public IReadOnlyDictionary<string, string> Metadata { get; set; }
         [JsonProperty("value")]
         public object Value { get; set; }
+        [JsonProperty("time")]
+        public double Time { get; } = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
         [JsonProperty("secondaryExposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; set; }
 

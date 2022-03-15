@@ -44,13 +44,14 @@ namespace dotnet_statsig_tests
         [Fact]
         public async void TestProd()
         {
-            await TestConsistency("https://api.statsig.com/v1");
+            //await TestConsistency("https://api.statsig.com/v1");
+            await TestConsistency("http://localhost:3006/v1");
         }
 
         [Fact]
         public async void TestStaging()
         {
-            await TestConsistency("https://latest.api.statsig.com/v1");
+            //await TestConsistency("https://latest.api.statsig.com/v1");
         }
 
         private async Task<TestData[]> FetchTestData(string apiURLBase)
@@ -107,6 +108,8 @@ namespace dotnet_statsig_tests
                         string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", config.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkConfigResult.SecondaryExposures)));
                 }
             }
+            driver.LogEvent(new StatsigUser { UserID = "123" }, "test");
+            driver.CheckGate(new StatsigUser { UserID = "123"}, "some gate");
             driver.Shutdown();
         }
 
