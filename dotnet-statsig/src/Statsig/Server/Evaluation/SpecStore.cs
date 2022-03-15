@@ -75,6 +75,10 @@ namespace Statsig.Server
             {
                 try
                 {
+                    if (task == null || task.Result == null)
+                    {
+                        continue;
+                    }
                     var response = task.Result;
                     JToken name, time, addIDsToken, removeIDsToken;
                     var listName = response.TryGetValue("list_name", out name) ? name.Value<string>() : "";
