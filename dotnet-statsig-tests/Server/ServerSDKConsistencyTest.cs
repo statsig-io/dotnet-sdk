@@ -44,14 +44,13 @@ namespace dotnet_statsig_tests
         [Fact]
         public async void TestProd()
         {
-            //await TestConsistency("https://api.statsig.com/v1");
-            await TestConsistency("http://localhost:3006/v1");
+            await TestConsistency("https://api.statsig.com/v1");
         }
 
         [Fact]
         public async void TestStaging()
         {
-            //await TestConsistency("https://latest.api.statsig.com/v1");
+            await TestConsistency("https://latest.api.statsig.com/v1");
         }
 
         private async Task<TestData[]> FetchTestData(string apiURLBase)
