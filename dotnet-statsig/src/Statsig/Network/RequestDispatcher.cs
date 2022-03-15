@@ -92,7 +92,7 @@ namespace Statsig.Network
             int retries = 0,
             int backoff = 1)
         {
-            System.Threading.Thread.Sleep(backoff * 1000);
+            await Task.Delay(backoff * 1000);
             return await Fetch(endpoint, body, retries - 1, backoff * backoffMultiplier);
         }
     }
