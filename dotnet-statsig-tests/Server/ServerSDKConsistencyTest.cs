@@ -107,8 +107,6 @@ namespace dotnet_statsig_tests
                         string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", config.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkConfigResult.SecondaryExposures)));
                 }
             }
-            driver.LogEvent(new StatsigUser { UserID = "123" }, "test");
-            driver.CheckGate(new StatsigUser { UserID = "123"}, "some gate");
             driver.Shutdown();
         }
 
