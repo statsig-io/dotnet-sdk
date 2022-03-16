@@ -28,9 +28,9 @@ namespace Statsig.Server.Evaluation
             _initialized = true;
         }
 
-        internal void Shutdown()
+        internal async Task Shutdown()
         {
-            _store.Shutdown();
+            await _store.Shutdown();
         }
 
         internal ConfigEvaluation CheckGate(StatsigUser user, string gateName)

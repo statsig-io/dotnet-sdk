@@ -60,8 +60,10 @@ namespace Statsig.Server
 
         public async Task Shutdown()
         {
-            evaluator.Shutdown();
-            await _eventLogger.Shutdown();
+            await Task.WhenAll(
+                evaluator.Shutdown(),
+                _eventLogger.Shutdown());
+
 #if SUPPORTS_ASYNC_DISPOSAL
             await ((IAsyncDisposable)this).DisposeAsync();
 #else

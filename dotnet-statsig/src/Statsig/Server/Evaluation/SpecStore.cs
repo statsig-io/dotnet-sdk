@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Timers;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Statsig.Network;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Statsig.Server
 {
@@ -24,14 +24,16 @@ namespace Statsig.Server
 
     class SpecStore
     {
-        double _lastSyncTime;
-        RequestDispatcher _requestDispatcher;
-        Timer _syncTimer;
-        Timer _idListSyncTimer;
+        private double _lastSyncTime;
+        private readonly RequestDispatcher _requestDispatcher;
 
-        internal Dictionary<string, ConfigSpec> FeatureGates { get; set; }
-        internal Dictionary<string, ConfigSpec> DynamicConfigs { get; set; }
-        internal Dictionary<string, IDList> IDLists { get; set; }
+        private Task _syncIDListsTask;
+        private Task _syncValuesTask;
+        private readonly CancellationTokenSource _cts;
+
+        internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
+        internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
+        internal Dictionary<string, IDList> IDLists { get; private set; }
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
@@ -40,20 +42,83 @@ namespace Statsig.Server
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             IDLists = new Dictionary<string, IDList>();
+
+            _syncIDListsTask = null;
+            _syncValuesTask = null;
+            _cts = new CancellationTokenSource();
         }
 
         internal async Task Initialize()
         {
+            // Execute and wait for the initial syncs
             await SyncValues(true);
             await SyncIDLists();
+
+            // Start background tasks to periodically refresh the store
+            _syncValuesTask = BackgroundPeriodicSyncValuesTask(_cts.Token);
+            _syncIDListsTask = BackgroundPeriodicSyncIDListsTask(_cts.Token);
         }
 
-        internal void Shutdown()
+        internal async Task Shutdown()
         {
-            _syncTimer.Stop();
-            _syncTimer.Dispose();
-            _idListSyncTimer.Stop();
-            _idListSyncTimer.Dispose();
+            // Signal that the periodic task should exit, and then wait for them to finish
+            _cts.Cancel();
+            if (_syncIDListsTask != null)
+            {
+                await _syncIDListsTask;
+            }
+            if (_syncValuesTask != null)
+            {
+                await _syncValuesTask;
+            }
+        }
+
+        private async Task BackgroundPeriodicSyncIDListsTask(CancellationToken cancellationToken)
+        {
+            var delayInterval = TimeSpan.FromSeconds(Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(delayInterval, cancellationToken);
+
+                    await SyncIDLists();
+                }
+                catch (TaskCanceledException)
+                {
+                    // This is expected to occur when the cancellationToken is signaled during the Task.Delay()
+                    break;
+                }
+                catch
+                {
+                    // TODO: log this
+                }
+            }
+        }
+
+        private async Task BackgroundPeriodicSyncValuesTask(CancellationToken cancellationToken)
+        {
+            var delayInterval = TimeSpan.FromSeconds(Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(delayInterval, cancellationToken);
+
+                    await SyncValues(initialRequest: false);
+                }
+                catch (TaskCanceledException)
+                {
+                    // This is expected to occur when the cancellationToken is signaled during the Task.Delay()
+                    break;
+                }
+                catch
+                {
+                    // TODO: log this
+                }
+            }
         }
 
         private async Task SyncIDLists()
@@ -104,24 +169,6 @@ namespace Statsig.Server
                     // TODO: log this
                 }
             }
-
-            _idListSyncTimer = new Timer
-            {
-                Interval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC * 1000,
-                Enabled = true,
-                AutoReset = false
-            };
-            _idListSyncTimer.Elapsed += async (sender, e) =>
-            {
-                try
-                {
-                    await SyncIDLists();
-                }
-                catch
-                {
-                    // TODO: log this
-                }
-            };
         }
 
         private async Task SyncValues(bool initialRequest)
@@ -139,24 +186,6 @@ namespace Statsig.Server
             {
                 ParseResponse(response, initialRequest);
             }
-
-            _syncTimer = new Timer
-            {
-                Interval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC * 1000,
-                Enabled = true,
-                AutoReset = false
-            };
-            _syncTimer.Elapsed += async (sender, e) =>
-            {
-                try
-                {
-                    await SyncValues(false);
-                }
-                catch
-                {
-                    // TODO: log this
-                }
-            };
         }
 
         private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
