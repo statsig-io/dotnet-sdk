@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Statsig.Client.Storage;
 using Statsig.Network;
@@ -44,7 +45,7 @@ namespace Statsig.Client
             }
             _clientKey = clientKey;
             _options = options;
-            _requestDispatcher = new RequestDispatcher(_clientKey, _options.ApiUrlBase);
+            _requestDispatcher = new RequestDispatcher(_clientKey, _options);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
                 SDKDetails.GetClientSDKDetails(),
@@ -209,38 +210,31 @@ namespace Statsig.Client
         {
             try
             {
-                JToken objVal;
-                if (response.TryGetValue("feature_gates", out objVal))
+                JToken gateObjVal;
+                if (response.TryGetValue("feature_gates", out gateObjVal))
                 {
-                    var gateMap = objVal.ToObject<Dictionary<string, object>>();
+                    var gateMap = gateObjVal.ToObject<Dictionary<string, object>>();
                     foreach (var kv in gateMap)
                     {
-                        _gates[kv.Key] = FeatureGate.FromJObject(kv.Key, kv.Value as JObject);
+                        _gates[kv.Key] = FeatureGate.FromJObject(kv.Key, kv.Value as JObject, _options);
                     }
                     PersistentStore.SetValue(gatesStoreKey, _gates);
                 }
-            }
-            catch
-            {
-                // Gates parsing failed.  TODO: Log this
-            }
 
-            try
-            {
-                JToken objVal;
-                if (response.TryGetValue("dynamic_configs", out objVal))
+                JToken configObjVal;
+                if (response.TryGetValue("dynamic_configs", out configObjVal))
                 {
-                    var configMap = objVal.ToObject<Dictionary<string, object>>();
+                    var configMap = configObjVal.ToObject<Dictionary<string, object>>();
                     foreach (var kv in configMap)
                     {
-                        _configs[kv.Key] = DynamicConfig.FromJObject(kv.Key, kv.Value as JObject);
+                        _configs[kv.Key] = DynamicConfig.FromJObject(kv.Key, kv.Value as JObject, _options);
                     }
                     PersistentStore.SetValue(configsStoreKey, _configs);
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // Configs parsing failed.  TODO: Log this
+                _options.logger.LogError(e, "Failed to parse response from /initialize endpoint.");
             }
         }
 

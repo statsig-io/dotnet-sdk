@@ -38,7 +38,7 @@ namespace Statsig
             SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
         }
 
-        internal static FeatureGate FromJObject(string name, JObject jobj)
+        internal static FeatureGate FromJObject(string name, JObject jobj, StatsigOptions options)
         {
             if (jobj == null)
             {
@@ -75,9 +75,9 @@ namespace Statsig
                         : new List<IReadOnlyDictionary<string, string>>()
                 );
             }
-            catch
+            catch (Exception e)
             {
-                // Failed to parse config.  TODO: Log this
+                options.logger.LogError(e, string.Format("Failed to parse response dynamic config for {0}.", name));
                 return null;
             }
         }

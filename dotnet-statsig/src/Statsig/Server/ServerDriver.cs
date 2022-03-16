@@ -34,7 +34,7 @@ namespace Statsig.Server
             _serverSecret = serverSecret;
             _options = options;
 
-            _requestDispatcher = new RequestDispatcher(_serverSecret, _options.ApiUrlBase);
+            _requestDispatcher = new RequestDispatcher(_serverSecret, _options);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
                 SDKDetails.GetServerSDKDetails(),

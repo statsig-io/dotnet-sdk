@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 
 namespace Statsig
 {
@@ -7,6 +8,15 @@ namespace Statsig
         public string ApiUrlBase { get; }
         public StatsigEnvironment StatsigEnvironment { get; }
         public string PersistentStorageFolder { get; set; }
+        internal StatsigCustomLogger logger;
+
+        public ILogger CustomLogger
+        {
+            set
+            {
+                logger = new StatsigCustomLogger(value);
+            }
+        }
 
         public StatsigOptions()
         {

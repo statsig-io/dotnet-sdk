@@ -15,19 +15,25 @@ namespace Statsig.Network
         private static readonly HashSet<int> retryCodes = new HashSet<int> { 408, 500, 502, 503, 504, 522, 524, 599 };
         public string Key { get; }
         public string ApiBaseUrl { get; }
-        public RequestDispatcher(string key, string apiBaseUrl = null)
+        internal StatsigOptions Options;
+
+        public RequestDispatcher(string key, StatsigOptions options)
         {
             if (string.IsNullOrWhiteSpace(key))
             {
                 throw new ArgumentException("Key cannot be empty.", "key");
             }
-            if (string.IsNullOrWhiteSpace(apiBaseUrl))
+            if (string.IsNullOrWhiteSpace(options.ApiUrlBase))
             {
-                apiBaseUrl = Constants.DEFAULT_API_URL_BASE;
+                ApiBaseUrl = Constants.DEFAULT_API_URL_BASE;
+            }
+            else
+            {
+                ApiBaseUrl = options.ApiUrlBase;
             }
 
             Key = key;
-            ApiBaseUrl = apiBaseUrl;
+            Options = options;
         }
 
         public async Task<IReadOnlyDictionary<string, JToken>> Fetch(
@@ -76,11 +82,15 @@ namespace Statsig.Network
                 }
 
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 if (retries > 0)
                 {
                     return await retry(endpoint, body, retries, backoff);
+                }
+                else
+                {
+                    Options.logger.LogError(e, string.Format("Exception caught when making request to {0} endpoint.", endpoint));
                 }
             }
             return null;

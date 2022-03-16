@@ -28,6 +28,7 @@ namespace Statsig.Server
         RequestDispatcher _requestDispatcher;
         Timer _syncTimer;
         Timer _idListSyncTimer;
+        StatsigOptions _options;
 
         internal Dictionary<string, ConfigSpec> FeatureGates { get; set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; set; }
@@ -35,8 +36,9 @@ namespace Statsig.Server
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
-            _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase);
+            _requestDispatcher = new RequestDispatcher(serverSecret, options);
             _lastSyncTime = 0;
+            _options = options;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             IDLists = new Dictionary<string, IDList>();
@@ -73,35 +75,28 @@ namespace Statsig.Server
             await Task.WhenAll(tasks);
             foreach (Task<IReadOnlyDictionary<string, JToken>> task in tasks)
             {
-                try
+                if (task == null || task.Result == null)
                 {
-                    if (task == null || task.Result == null)
-                    {
-                        continue;
-                    }
-                    var response = task.Result;
-                    JToken name, time, addIDsToken, removeIDsToken;
-                    var listName = response.TryGetValue("list_name", out name) ? name.Value<string>() : "";
-                    if (IDLists.ContainsKey(listName))
-                    {
-                        var list = IDLists[listName];
-                        var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : new string[] { };
-                        var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : new string[] { };
-                        foreach (string id in addIDs)
-                        {
-                            list.IDs.Add(id);
-                        }
-                        foreach (string id in removeIDs)
-                        {
-                            list.IDs.Remove(id);
-                        }
-                        var newTime = response.TryGetValue("time", out time) ? time.Value<double>() : 0;
-                        list.Time = Math.Max(list.Time, newTime);
-                    }
+                    continue;
                 }
-                catch
+                var response = task.Result;
+                JToken name, time, addIDsToken, removeIDsToken;
+                var listName = response.TryGetValue("list_name", out name) ? name.Value<string>() : "";
+                if (IDLists.ContainsKey(listName))
                 {
-                    // TODO: log this
+                    var list = IDLists[listName];
+                    var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : new string[] { };
+                    var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : new string[] { };
+                    foreach (string id in addIDs)
+                    {
+                        list.IDs.Add(id);
+                    }
+                    foreach (string id in removeIDs)
+                    {
+                        list.IDs.Remove(id);
+                    }
+                    var newTime = response.TryGetValue("time", out time) ? time.Value<double>() : 0;
+                    list.Time = Math.Max(list.Time, newTime);
                 }
             }
 
@@ -111,17 +106,7 @@ namespace Statsig.Server
                 Enabled = true,
                 AutoReset = false
             };
-            _idListSyncTimer.Elapsed += async (sender, e) =>
-            {
-                try
-                {
-                    await SyncIDLists();
-                }
-                catch
-                {
-                    // TODO: log this
-                }
-            };
+            _idListSyncTimer.Elapsed += async (sender, e) => await SyncIDLists();
         }
 
         private async Task SyncValues(bool initialRequest)
@@ -146,17 +131,7 @@ namespace Statsig.Server
                 Enabled = true,
                 AutoReset = false
             };
-            _syncTimer.Elapsed += async (sender, e) =>
-            {
-                try
-                {
-                    await SyncValues(false);
-                }
-                catch
-                {
-                    // TODO: log this
-                }
-            };
+            _syncTimer.Elapsed += async (sender, e) => await SyncValues(false);
         }
 
         private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
@@ -187,9 +162,9 @@ namespace Statsig.Server
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // TODO: Log this
+                _options.logger.LogError(e, "Failed to parse feature_gates from /initialize endpoint.");
                 return;
             }
 
@@ -206,9 +181,9 @@ namespace Statsig.Server
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // TODO: Log this
+                _options.logger.LogError(e, "Failed to parse dynamic_configs from /initialize endpoint.");
                 return;
             }
 
@@ -237,9 +212,9 @@ namespace Statsig.Server
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // TODO: Log this
+                _options.logger.LogError(e, "Failed to parse id_lists from /initialize endpoint.");
                 return;
             }
         }
