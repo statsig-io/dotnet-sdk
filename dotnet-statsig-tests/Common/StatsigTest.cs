@@ -156,7 +156,7 @@ namespace dotnet_statsig_tests
             StatsigClient.LogEvent("event_3", "string");
             StatsigClient.LogEvent("event_4", null, new Dictionary<string, string> { { "key", "value" } });
 
-            StatsigClient.Shutdown();
+            await StatsigClient.Shutdown();
 
             // Verify log event requets for exposures and custom logs
             requestBody = _server.LogEntries.ElementAt(1).RequestMessage.Body;
@@ -397,7 +397,7 @@ namespace dotnet_statsig_tests
             StatsigServer.LogEvent(user, "event_3", "string");
             StatsigServer.LogEvent(user, "event_4", null, new Dictionary<string, string> { { "key", "value" } });
 
-            StatsigServer.Shutdown();
+            await StatsigServer.Shutdown();
 
             // Verify log event requets for exposures and custom logs
             requestBody = _server.LogEntries.ElementAt(1).RequestMessage.Body;

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netcoreapp2.1;net471</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net6.0;net471</TargetFrameworks>
     <RootNamespace>statsig_dotnet</RootNamespace>
     <PackOnBuild>true</PackOnBuild>
     <PackageId>Statsig</PackageId>

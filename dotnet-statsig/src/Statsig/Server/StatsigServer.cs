@@ -26,10 +26,10 @@ namespace Statsig.Server
             await _singleDriver.Initialize();
         }
 
-        public static void Shutdown()
+        public static async Task Shutdown()
         {
             EnsureInitialized();
-            _singleDriver.Shutdown();
+            await _singleDriver.Shutdown();
         }
 
         public static async Task<bool> CheckGate(StatsigUser user, string gateName)

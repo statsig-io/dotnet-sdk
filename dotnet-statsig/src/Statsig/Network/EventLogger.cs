@@ -48,17 +48,21 @@ namespace Statsig.Network
             _eventLogQueue.Add(entry);
             if (_eventLogQueue.Count >= _maxQueueLength)
             {
-                ForceFlush();
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await FlushEvents();
+                    }
+                    catch
+                    {
+                        // TODO: Log this
+                    }
+                });
             }
         }
 
-        internal void ForceFlush()
-        {
-            var task = FlushEvents();
-            task.Wait();
-        }
-
-        async Task FlushEvents()
+        internal async Task FlushEvents()
         {
             if (_eventLogQueue.Count == 0)
             {
@@ -86,11 +90,11 @@ namespace Statsig.Network
             };
         }
 
-        public void Shutdown()
+        public async Task Shutdown()
         {
             _flushTimer.Stop();
             _flushTimer.Dispose();
-            ForceFlush();
+            await FlushEvents();
         }
     }
 }
