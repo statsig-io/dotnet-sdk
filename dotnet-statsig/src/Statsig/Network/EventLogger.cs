@@ -31,7 +31,7 @@ namespace Statsig.Network
             _flushTimer.Elapsed += async (sender, e) => await FlushEvents();
         }
 
-        public async void Enqueue(EventLog entry)
+        public void Enqueue(EventLog entry)
         {
             if (entry.IsErrorLog)
             {
@@ -48,7 +48,17 @@ namespace Statsig.Network
             _eventLogQueue.Add(entry);
             if (_eventLogQueue.Count >= _maxQueueLength)
             {
-                await FlushEvents();
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await FlushEvents();
+                    }
+                    catch
+                    {
+                        // TODO: Log this
+                    }
+                });
             }
         }
 
