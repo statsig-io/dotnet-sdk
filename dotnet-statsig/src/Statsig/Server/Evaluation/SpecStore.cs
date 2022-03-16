@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Timers;
@@ -31,7 +32,7 @@ namespace Statsig.Server
 
         internal Dictionary<string, ConfigSpec> FeatureGates { get; set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; set; }
-        internal Dictionary<string, IDList> IDLists { get; set; }
+        internal ConcurrentDictionary<string, IDList> IDLists { get; set; }
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
@@ -39,7 +40,7 @@ namespace Statsig.Server
             _lastSyncTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
-            IDLists = new Dictionary<string, IDList>();
+            IDLists = new ConcurrentDictionary<string, IDList>();
         }
 
         internal async Task Initialize()
@@ -225,14 +226,14 @@ namespace Statsig.Server
                     {
                         if (!lists.ContainsKey(listName))
                         {
-                            IDLists.Remove(listName);
+                            IDLists.TryRemove(listName, out IDList list);
                         }
                     }
                     foreach (KeyValuePair<string, bool> entry in lists)
                     {
                         if (!IDLists.ContainsKey(entry.Key))
                         {
-                            IDLists.Add(entry.Key, new IDList(entry.Key));
+                            IDLists.TryAdd(entry.Key, new IDList(entry.Key));
                         }
                     }
                 }
