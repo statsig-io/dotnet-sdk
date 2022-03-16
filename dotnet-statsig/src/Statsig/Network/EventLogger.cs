@@ -35,13 +35,9 @@ namespace Statsig.Network
         {
             if (entry.IsErrorLog)
             {
-                if (_errorsLogged.Contains(entry.ErrorKey))
+                if (!_errorsLogged.Add(entry.ErrorKey))
                 {
                     return;
-                }
-                else
-                {
-                    _errorsLogged.Add(entry.ErrorKey);
                 }
             }
 
