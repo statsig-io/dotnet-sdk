@@ -10,6 +10,7 @@ namespace Statsig.Network
         private readonly int _maxQueueLength;
         private readonly SDKDetails _sdkDetails;
         private readonly RequestDispatcher _dispatcher;
+        private readonly Dictionary<string, string> _statsigMetadata;
 
         private readonly Task _backgroundPeriodicFlushTask;
         private readonly CancellationTokenSource _shutdownCTS;
@@ -24,6 +25,11 @@ namespace Statsig.Network
             _sdkDetails = sdkDetails;
             _maxQueueLength = maxQueueLength;
             _dispatcher = dispatcher;
+            _statsigMetadata = new Dictionary<string, string>
+            {
+                ["sdkType"] = _sdkDetails.SDKType,
+                ["sdkVersion"] = _sdkDetails.SDKVersion,
+            };
 
             _eventLogQueue = new List<EventLog>();
             _errorsLogged = new HashSet<string>();
@@ -130,20 +136,11 @@ namespace Statsig.Network
             // Generate the log event request and dispatch it
             var body = new Dictionary<string, object>
             {
-                ["statsigMetadata"] = GetStatsigMetadata(),
+                ["statsigMetadata"] = _statsigMetadata,
                 ["events"] = snapshot
             };
 
             await _dispatcher.Fetch("log_event", body, 5, 1);
-        }
-
-        IReadOnlyDictionary<string, string> GetStatsigMetadata()
-        {
-            return new Dictionary<string, string>
-            {
-                ["sdkType"] = _sdkDetails.SDKType,
-                ["sdkVersion"] = _sdkDetails.SDKVersion,
-            };
         }
 
         public async Task Shutdown()
