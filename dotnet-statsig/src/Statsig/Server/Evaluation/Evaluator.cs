@@ -351,11 +351,7 @@ namespace Statsig.Server.Evaluation
                         var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(value.ToString()));
                         var str = Convert.ToBase64String(bytes);
                         var substr = str.Substring(0, 8);
-                        var ids = _store.IDLists[target.ToString()]?.IDs;
-                        if (ids != null)
-                        {
-                            result = ids.Contains(substr);
-                        }
+                        result = _store.IDListContainsValue(target.ToString(), substr);
                     }
                     break;
                 default:

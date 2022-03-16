@@ -2,6 +2,7 @@
 using Statsig.Network;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,7 +34,8 @@ namespace Statsig.Server
 
         internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
-        internal Dictionary<string, IDList> IDLists { get; private set; }
+        private readonly Dictionary<string, IDList> _idLists;
+        private readonly ReaderWriterLockSlim _idListLock;
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
@@ -41,7 +43,8 @@ namespace Statsig.Server
             _lastSyncTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
-            IDLists = new Dictionary<string, IDList>();
+            _idLists = new Dictionary<string, IDList>();
+            _idListLock = new ReaderWriterLockSlim();
 
             _syncIDListsTask = null;
             _syncValuesTask = null;
@@ -70,6 +73,19 @@ namespace Statsig.Server
             if (_syncValuesTask != null)
             {
                 await _syncValuesTask;
+            }
+        }
+
+        internal bool IDListContainsValue(string listName, string value)
+        {
+            _idListLock.EnterReadLock();
+            try
+            {
+                return _idLists.TryGetValue(listName, out var list) && list.IDs.Contains(value);
+            }
+            finally
+            {
+                _idListLock.ExitReadLock();
             }
         }
 
@@ -123,23 +139,46 @@ namespace Statsig.Server
 
         private async Task SyncIDLists()
         {
-            var tasks = new List<Task<IReadOnlyDictionary<string, JToken>>>();
-            foreach (KeyValuePair<string, IDList> entry in IDLists)
+            // Build a list of requests from the current state of the _idLists
+            List<Dictionary<string, object>> requests;
+            _idListLock.EnterReadLock();
+            try
             {
-                var list = entry.Value;
-                tasks.Add(
-                    _requestDispatcher.Fetch("download_id_list", new Dictionary<string, object>
+                requests = new List<Dictionary<string, object>>(_idLists.Count);
+                foreach (var entry in _idLists)
+                {
+                    var list = entry.Value;
+                    requests.Add(new Dictionary<string, object>
                     {
                         ["listName"] = entry.Key,
                         ["sinceTime"] = list.Time,
                         ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-                    }));
+                    });
+                }
             }
-            await Task.WhenAll(tasks);
-            foreach (Task<IReadOnlyDictionary<string, JToken>> task in tasks)
+            finally
             {
-                try
+                _idListLock.ExitReadLock();
+            }
+
+            // Dispatch the requests in parallel
+            var tasks = new List<Task<IReadOnlyDictionary<string, JToken>>>(requests.Count);
+            foreach (var request in requests)
+            {
+                tasks.Add(_requestDispatcher.Fetch("download_id_list", request));
+            }
+
+            // Wait for all the requests to complete
+            await Task.WhenAll(tasks);
+
+            // Process the result of each request
+            _idListLock.EnterWriteLock();
+            try
+            {
+                foreach (Task<IReadOnlyDictionary<string, JToken>> task in tasks)
                 {
+                    // RequestDispatcher.Fetch() can return null if it fails to execute the request.
+                    // Gracefully handle that error here.
                     if (task == null || task.Result == null)
                     {
                         continue;
@@ -147,9 +186,9 @@ namespace Statsig.Server
                     var response = task.Result;
                     JToken name, time, addIDsToken, removeIDsToken;
                     var listName = response.TryGetValue("list_name", out name) ? name.Value<string>() : "";
-                    if (IDLists.ContainsKey(listName))
+                    if (_idLists.ContainsKey(listName))
                     {
-                        var list = IDLists[listName];
+                        var list = _idLists[listName];
                         var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : new string[] { };
                         var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : new string[] { };
                         foreach (string id in addIDs)
@@ -164,10 +203,10 @@ namespace Statsig.Server
                         list.Time = Math.Max(list.Time, newTime);
                     }
                 }
-                catch
-                {
-                    // TODO: log this
-                }
+            }
+            finally
+            {
+                _idListLock.ExitWriteLock();
             }
         }
 
@@ -250,19 +289,27 @@ namespace Statsig.Server
                 if (response.TryGetValue("id_lists", out objVal))
                 {
                     var lists = objVal.ToObject<Dictionary<string, bool>>();
-                    foreach (string listName in IDLists.Keys)
+                    _idListLock.EnterWriteLock();
+                    try
                     {
-                        if (!lists.ContainsKey(listName))
+                        foreach (string listName in _idLists.Keys)
                         {
-                            IDLists.Remove(listName);
+                            if (!lists.ContainsKey(listName))
+                            {
+                                _idLists.Remove(listName);
+                            }
+                        }
+                        foreach (KeyValuePair<string, bool> entry in lists)
+                        {
+                            if (!_idLists.ContainsKey(entry.Key))
+                            {
+                                _idLists.Add(entry.Key, new IDList(entry.Key));
+                            }
                         }
                     }
-                    foreach (KeyValuePair<string, bool> entry in lists)
+                    finally
                     {
-                        if (!IDLists.ContainsKey(entry.Key))
-                        {
-                            IDLists.Add(entry.Key, new IDList(entry.Key));
-                        }
+                        _idListLock.ExitWriteLock();
                     }
                 }
             }
