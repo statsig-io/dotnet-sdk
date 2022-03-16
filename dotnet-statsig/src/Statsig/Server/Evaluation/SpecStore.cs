@@ -179,26 +179,36 @@ namespace Statsig.Server
                 {
                     // RequestDispatcher.Fetch() can return null if it fails to execute the request.
                     // Gracefully handle that error here.
-                    if (task == null || task.Result == null)
+                    if (task.Result == null)
                     {
                         continue;
                     }
+
                     var response = task.Result;
                     JToken name, time, addIDsToken, removeIDsToken;
                     var listName = response.TryGetValue("list_name", out name) ? name.Value<string>() : "";
-                    if (_idLists.ContainsKey(listName))
+
+                    if (_idLists.TryGetValue(listName, out var list))
                     {
-                        var list = _idLists[listName];
-                        var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : new string[] { };
-                        var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : new string[] { };
-                        foreach (string id in addIDs)
+                        var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : null;
+                        var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : null;
+
+                        if (addIDs != null)
                         {
-                            list.IDs.Add(id);
+                            foreach (string id in addIDs)
+                            {
+                                list.IDs.Add(id);
+                            }
                         }
-                        foreach (string id in removeIDs)
+
+                        if (removeIDs != null)
                         {
-                            list.IDs.Remove(id);
+                            foreach (string id in removeIDs)
+                            {
+                                list.IDs.Remove(id);
+                            }
                         }
+
                         var newTime = response.TryGetValue("time", out time) ? time.Value<double>() : 0;
                         list.Time = Math.Max(list.Time, newTime);
                     }
@@ -292,13 +302,12 @@ namespace Statsig.Server
                     _idListLock.EnterWriteLock();
                     try
                     {
-                        foreach (string listName in _idLists.Keys)
+                        var toRemove = _idLists.Keys.Except(lists.Keys).ToList();
+                        foreach (string listName in toRemove)
                         {
-                            if (!lists.ContainsKey(listName))
-                            {
-                                _idLists.Remove(listName);
-                            }
+                            _idLists.Remove(listName);
                         }
+
                         foreach (KeyValuePair<string, bool> entry in lists)
                         {
                             if (!_idLists.ContainsKey(entry.Key))
