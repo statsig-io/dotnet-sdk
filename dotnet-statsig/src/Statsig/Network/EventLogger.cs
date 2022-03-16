@@ -1,17 +1,22 @@
-﻿using System.Timers;
+﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Statsig.Network
 {
     public class EventLogger
     {
-        int _maxQueueLength;
-        SDKDetails _sdkDetails;
-        Timer _flushTimer;
-        List<EventLog> _eventLogQueue;
-        RequestDispatcher _dispatcher;
-        HashSet<string> _errorsLogged;
+        private readonly int _maxQueueLength;
+        private readonly SDKDetails _sdkDetails;
+        private readonly RequestDispatcher _dispatcher;
+
+        private readonly Task _backgroundPeriodicFlushTask;
+        private readonly CancellationTokenSource _shutdownCTS;
+        private DateTime _lastFlushTime = DateTime.UtcNow;
+
+        private List<EventLog> _eventLogQueue;
+        private readonly HashSet<string> _errorsLogged;
 
         public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60)
         {
@@ -22,13 +27,8 @@ namespace Statsig.Network
             _eventLogQueue = new List<EventLog>();
             _errorsLogged = new HashSet<string>();
 
-            _flushTimer = new Timer
-            {
-                Interval = maxThresholdSecs * 1000,
-                Enabled = true,
-                AutoReset = true,
-            };
-            _flushTimer.Elapsed += async (sender, e) => await FlushEvents();
+            _shutdownCTS = new CancellationTokenSource();
+            _backgroundPeriodicFlushTask = BackgroundPeriodicFlushTask(maxThresholdSecs, _shutdownCTS.Token);
         }
 
         public void Enqueue(EventLog entry)
@@ -62,8 +62,47 @@ namespace Statsig.Network
             }
         }
 
+        private async Task BackgroundPeriodicFlushTask(int maxThresholdSecs, CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    // Figure out how long we need to wait until the next periodic event flush
+                    // should trigger, and then delay for that long.
+                    var timeUntilNextFlush = _lastFlushTime.AddSeconds(maxThresholdSecs) - DateTime.UtcNow;
+                    if (timeUntilNextFlush > TimeSpan.Zero)
+                    {
+                        await Task.Delay(timeUntilNextFlush, cancellationToken);
+                    }
+
+                    // While waiting, a flush may have been triggered because the queue filled up,
+                    // so check once more to make sure that enough time has elapsed since the last
+                    // event flush, and if so, then trigger a flush.
+                    if (_lastFlushTime.AddSeconds(maxThresholdSecs) <= DateTime.UtcNow)
+                    {
+                        await FlushEvents();
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // This is expected to occur when the cancellationToken is signaled during the Task.Delay()
+                    break;
+                }
+                catch
+                {
+                    // TODO: Log this
+                }
+            }
+
+            // Do one final flush before exiting
+            await FlushEvents();
+        }
+
         internal async Task FlushEvents()
         {
+            _lastFlushTime = DateTime.UtcNow;
+
             if (_eventLogQueue.Count == 0)
             {
                 return;
@@ -92,9 +131,9 @@ namespace Statsig.Network
 
         public async Task Shutdown()
         {
-            _flushTimer.Stop();
-            _flushTimer.Dispose();
-            await FlushEvents();
+            // Signal that the periodic flush task should exit, and then wait for it finish
+            _shutdownCTS.Cancel();
+            await _backgroundPeriodicFlushTask;
         }
     }
 }
