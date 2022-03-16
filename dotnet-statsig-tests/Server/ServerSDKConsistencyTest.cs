@@ -107,7 +107,7 @@ namespace dotnet_statsig_tests
                         string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", config.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkConfigResult.SecondaryExposures)));
                 }
             }
-            driver.Shutdown();
+            await driver.Shutdown();
         }
 
         private bool compareSecondaryExposures(List<IReadOnlyDictionary<string, string>> exposures1, List<IReadOnlyDictionary<string, string>> exposures2)

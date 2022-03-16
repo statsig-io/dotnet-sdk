@@ -1,4 +1,8 @@
-﻿using System;
+﻿#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+#define SUPPORTS_ASYNC_DISPOSAL
+#endif
+
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -8,6 +12,9 @@ using Statsig.Server.Evaluation;
 namespace Statsig.Server
 {
     public class ServerDriver : IDisposable
+#if SUPPORTS_ASYNC_DISPOSAL
+        , IAsyncDisposable
+#endif
     {
         readonly StatsigOptions _options;
         internal readonly string _serverSecret;
@@ -51,11 +58,15 @@ namespace Statsig.Server
             _initialized = true;
         }
 
-        public void Shutdown()
+        public async Task Shutdown()
         {
             evaluator.Shutdown();
-            _eventLogger.Shutdown();
+            await _eventLogger.Shutdown();
+#if SUPPORTS_ASYNC_DISPOSAL
+            await ((IAsyncDisposable)this).DisposeAsync();
+#else
             ((IDisposable)this).Dispose();
+#endif
         }
 
         public async Task<bool> CheckGate(StatsigUser user, string gateName)
@@ -183,9 +194,24 @@ namespace Statsig.Server
                 throw new ObjectDisposedException("ServerDriver");
             }
 
-            _eventLogger.ForceFlush();
+            // Blocking wait is gross, but there isn't much we can do better as this point as we
+            // need to synchronously dispose of this object
+            _eventLogger.FlushEvents().Wait();
             _disposed = true;
         }
+
+#if SUPPORTS_ASYNC_DISPOSAL
+        async ValueTask IAsyncDisposable.DisposeAsync()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException("ClientDriver");
+            }
+
+            await _eventLogger.FlushEvents();
+            _disposed = true;
+        }
+#endif
 
         #region Private helpers
 
@@ -258,6 +284,6 @@ namespace Statsig.Server
             _eventLogger.Enqueue(eventLog);
         }
 
-        #endregion
+#endregion
     }
 }

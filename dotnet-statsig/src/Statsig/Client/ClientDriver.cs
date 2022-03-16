@@ -1,4 +1,8 @@
-﻿using System;
+﻿#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+#define SUPPORTS_ASYNC_DISPOSAL
+# endif
+
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO.IsolatedStorage;
@@ -14,6 +18,9 @@ using Statsig.Network;
 namespace Statsig.Client
 {
     public class ClientDriver : IDisposable
+#if SUPPORTS_ASYNC_DISPOSAL
+        , IAsyncDisposable
+#endif
     {
         const string gatesStoreKey = "statsig::featureGates";
         const string configsStoreKey = "statsig::configs";
@@ -86,10 +93,14 @@ namespace Statsig.Client
             ParseAndSaveInitResponse(response);
         }
 
-        public void Shutdown()
+        public async Task Shutdown()
         {
-            _eventLogger.Shutdown();
+            await _eventLogger.Shutdown();
+#if SUPPORTS_ASYNC_DISPOSAL
+            await ((IAsyncDisposable)this).DisposeAsync();
+#else
             ((IDisposable)this).Dispose();
+#endif
         }
 
         public bool CheckGate(string gateName)
@@ -164,11 +175,26 @@ namespace Statsig.Client
                 throw new ObjectDisposedException("ClientDriver");
             }
 
-            _eventLogger.ForceFlush();
+            // Blocking wait is gross, but there isn't much we can do better as this point as we
+            // need to synchronously dispose of this object
+            _eventLogger.FlushEvents().Wait();
             _disposed = true;
         }
 
-        #region Private helpers
+#if SUPPORTS_ASYNC_DISPOSAL
+        async ValueTask IAsyncDisposable.DisposeAsync()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException("ClientDriver");
+            }
+
+            await _eventLogger.FlushEvents();
+            _disposed = true;
+        }
+#endif
+
+#region Private helpers
 
         void LogEventHelper(
             string eventName,
@@ -276,6 +302,6 @@ namespace Statsig.Client
             return _statsigMetadata;
         }
 
-        #endregion
+#endregion
     }
 }
