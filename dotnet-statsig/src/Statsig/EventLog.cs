@@ -31,11 +31,6 @@ namespace Statsig
         [JsonProperty("secondaryExposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; set; }
 
-        [JsonIgnore]
-        internal bool IsErrorLog { get; set; }
-        [JsonIgnore]
-        internal string ErrorKey { get; set; }
-
         public EventLog()
         {
         }
@@ -77,25 +72,6 @@ namespace Statsig
                     ["ruleID"] = ruleID,
                 },
                 SecondaryExposures = secondaryExposures,
-            };
-        }
-
-        internal static EventLog CreateErrorLog(string eventName, string errorMessage = null)
-        {
-            if (errorMessage == null)
-            {
-                errorMessage = eventName;
-            }
-
-            return new EventLog
-            {
-                EventName = eventName,
-                Metadata = new Dictionary<string, string>
-                {
-                    ["error"] = errorMessage
-                },
-                IsErrorLog = true,
-                ErrorKey = errorMessage,
             };
         }
 

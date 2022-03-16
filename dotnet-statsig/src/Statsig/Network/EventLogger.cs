@@ -1,6 +1,7 @@
 ﻿using System.Timers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace Statsig.Network
 {
@@ -9,9 +10,8 @@ namespace Statsig.Network
         int _maxQueueLength;
         SDKDetails _sdkDetails;
         Timer _flushTimer;
-        List<EventLog> _eventLogQueue;
+        ConcurrentBag<EventLog> _eventLogQueue;
         RequestDispatcher _dispatcher;
-        HashSet<string> _errorsLogged;
 
         public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60)
         {
@@ -19,8 +19,7 @@ namespace Statsig.Network
             _maxQueueLength = maxQueueLength;
             _dispatcher = dispatcher;
 
-            _eventLogQueue = new List<EventLog>();
-            _errorsLogged = new HashSet<string>();
+            _eventLogQueue = new ConcurrentBag<EventLog>();
 
             _flushTimer = new Timer
             {
@@ -33,18 +32,6 @@ namespace Statsig.Network
 
         public void Enqueue(EventLog entry)
         {
-            if (entry.IsErrorLog)
-            {
-                if (_errorsLogged.Contains(entry.ErrorKey))
-                {
-                    return;
-                }
-                else
-                {
-                    _errorsLogged.Add(entry.ErrorKey);
-                }
-            }
-
             _eventLogQueue.Add(entry);
             if (_eventLogQueue.Count >= _maxQueueLength)
             {
@@ -65,8 +52,7 @@ namespace Statsig.Network
                 return;
             }
             var snapshot = _eventLogQueue;
-            _eventLogQueue = new List<EventLog>();
-            _errorsLogged.Clear();
+            _eventLogQueue = new ConcurrentBag<EventLog>();
 
             var body = new Dictionary<string, object>
             {
