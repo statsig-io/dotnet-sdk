@@ -17,6 +17,7 @@ namespace Statsig.Network
 
         private List<EventLog> _eventLogQueue;
         private readonly HashSet<string> _errorsLogged;
+        private readonly object _queueLock;
 
         public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60)
         {
@@ -26,6 +27,7 @@ namespace Statsig.Network
 
             _eventLogQueue = new List<EventLog>();
             _errorsLogged = new HashSet<string>();
+            _queueLock = new object();
 
             _shutdownCTS = new CancellationTokenSource();
             _backgroundPeriodicFlushTask = BackgroundPeriodicFlushTask(maxThresholdSecs, _shutdownCTS.Token);
@@ -33,16 +35,28 @@ namespace Statsig.Network
 
         public void Enqueue(EventLog entry)
         {
-            if (entry.IsErrorLog)
+            bool flushNeeded;
+
+            lock (_queueLock)
             {
-                if (!_errorsLogged.Add(entry.ErrorKey))
+                // If this is an error event, check to see if we already have a queued event for this
+                // error, and if so then don't bother adding the event to the queue.
+                if (entry.IsErrorLog)
                 {
-                    return;
+                    if (!_errorsLogged.Add(entry.ErrorKey))
+                    {
+                        return;
+                    }
                 }
+
+                _eventLogQueue.Add(entry);
+
+                // Determine if a flush is needed
+                flushNeeded = _eventLogQueue.Count >= _maxQueueLength;
             }
 
-            _eventLogQueue.Add(entry);
-            if (_eventLogQueue.Count >= _maxQueueLength)
+            // If a flush is needed, then fire-and-forget a call to FlushEvents()
+            if (flushNeeded)
             {
                 Task.Run(async () =>
                 {
@@ -99,14 +113,21 @@ namespace Statsig.Network
         {
             _lastFlushTime = DateTime.UtcNow;
 
-            if (_eventLogQueue.Count == 0)
+            // Grab a snapshot of the events that are currently queued and then clear the queue
+            List<EventLog> snapshot;
+            lock (_queueLock)
             {
-                return;
-            }
-            var snapshot = _eventLogQueue;
-            _eventLogQueue = new List<EventLog>();
-            _errorsLogged.Clear();
+                if (_eventLogQueue.Count == 0)
+                {
+                    return;
+                }
 
+                snapshot = _eventLogQueue;
+                _eventLogQueue = new List<EventLog>();
+                _errorsLogged.Clear();
+            }
+
+            // Generate the log event request and dispatch it
             var body = new Dictionary<string, object>
             {
                 ["statsigMetadata"] = GetStatsigMetadata(),
