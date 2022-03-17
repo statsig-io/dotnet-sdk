@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Timers;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Statsig.Network;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Statsig.Server
 {
@@ -24,14 +25,17 @@ namespace Statsig.Server
 
     class SpecStore
     {
-        double _lastSyncTime;
-        RequestDispatcher _requestDispatcher;
-        Timer _syncTimer;
-        Timer _idListSyncTimer;
+        private double _lastSyncTime;
+        private readonly RequestDispatcher _requestDispatcher;
 
-        internal Dictionary<string, ConfigSpec> FeatureGates { get; set; }
-        internal Dictionary<string, ConfigSpec> DynamicConfigs { get; set; }
-        internal Dictionary<string, IDList> IDLists { get; set; }
+        private Task _syncIDListsTask;
+        private Task _syncValuesTask;
+        private readonly CancellationTokenSource _cts;
+
+        internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
+        internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
+        private readonly Dictionary<string, IDList> _idLists;
+        private readonly ReaderWriterLockSlim _idListLock;
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
@@ -39,89 +43,181 @@ namespace Statsig.Server
             _lastSyncTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
-            IDLists = new Dictionary<string, IDList>();
+            _idLists = new Dictionary<string, IDList>();
+            _idListLock = new ReaderWriterLockSlim();
+
+            _syncIDListsTask = null;
+            _syncValuesTask = null;
+            _cts = new CancellationTokenSource();
         }
 
         internal async Task Initialize()
         {
+            // Execute and wait for the initial syncs
             await SyncValues(true);
             await SyncIDLists();
+
+            // Start background tasks to periodically refresh the store
+            _syncValuesTask = BackgroundPeriodicSyncValuesTask(_cts.Token);
+            _syncIDListsTask = BackgroundPeriodicSyncIDListsTask(_cts.Token);
         }
 
-        internal void Shutdown()
+        internal async Task Shutdown()
         {
-            _syncTimer.Stop();
-            _syncTimer.Dispose();
-            _idListSyncTimer.Stop();
-            _idListSyncTimer.Dispose();
+            // Signal that the periodic task should exit, and then wait for them to finish
+            _cts.Cancel();
+            if (_syncIDListsTask != null)
+            {
+                await _syncIDListsTask;
+            }
+            if (_syncValuesTask != null)
+            {
+                await _syncValuesTask;
+            }
+        }
+
+        internal bool IDListContainsValue(string listName, string value)
+        {
+            _idListLock.EnterReadLock();
+            try
+            {
+                return _idLists.TryGetValue(listName, out var list) && list.IDs.Contains(value);
+            }
+            finally
+            {
+                _idListLock.ExitReadLock();
+            }
+        }
+
+        private async Task BackgroundPeriodicSyncIDListsTask(CancellationToken cancellationToken)
+        {
+            var delayInterval = TimeSpan.FromSeconds(Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(delayInterval, cancellationToken);
+
+                    await SyncIDLists();
+                }
+                catch (TaskCanceledException)
+                {
+                    // This is expected to occur when the cancellationToken is signaled during the Task.Delay()
+                    break;
+                }
+                catch
+                {
+                    // TODO: log this
+                }
+            }
+        }
+
+        private async Task BackgroundPeriodicSyncValuesTask(CancellationToken cancellationToken)
+        {
+            var delayInterval = TimeSpan.FromSeconds(Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(delayInterval, cancellationToken);
+
+                    await SyncValues(initialRequest: false);
+                }
+                catch (TaskCanceledException)
+                {
+                    // This is expected to occur when the cancellationToken is signaled during the Task.Delay()
+                    break;
+                }
+                catch
+                {
+                    // TODO: log this
+                }
+            }
         }
 
         private async Task SyncIDLists()
         {
-            var tasks = new List<Task<IReadOnlyDictionary<string, JToken>>>();
-            foreach (KeyValuePair<string, IDList> entry in IDLists)
+            // Build a list of requests from the current state of the _idLists
+            List<Dictionary<string, object>> requests;
+            _idListLock.EnterReadLock();
+            try
             {
-                var list = entry.Value;
-                tasks.Add(
-                    _requestDispatcher.Fetch("download_id_list", new Dictionary<string, object>
+                requests = new List<Dictionary<string, object>>(_idLists.Count);
+                foreach (var entry in _idLists)
+                {
+                    var list = entry.Value;
+                    requests.Add(new Dictionary<string, object>
                     {
                         ["listName"] = entry.Key,
                         ["sinceTime"] = list.Time,
                         ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-                    }));
+                    });
+                }
             }
-            await Task.WhenAll(tasks);
-            foreach (Task<IReadOnlyDictionary<string, JToken>> task in tasks)
+            finally
             {
-                try
+                _idListLock.ExitReadLock();
+            }
+
+            // Dispatch the requests in parallel
+            var tasks = new List<Task<IReadOnlyDictionary<string, JToken>>>(requests.Count);
+            foreach (var request in requests)
+            {
+                tasks.Add(_requestDispatcher.Fetch("download_id_list", request));
+            }
+
+            // Wait for all the requests to complete
+            await Task.WhenAll(tasks);
+
+            // Process the result of each request
+            _idListLock.EnterWriteLock();
+            try
+            {
+                foreach (Task<IReadOnlyDictionary<string, JToken>> task in tasks)
                 {
-                    if (task == null || task.Result == null)
+                    // RequestDispatcher.Fetch() can return null if it fails to execute the request.
+                    // Gracefully handle that error here.
+                    if (task.Result == null)
                     {
                         continue;
                     }
+
                     var response = task.Result;
                     JToken name, time, addIDsToken, removeIDsToken;
                     var listName = response.TryGetValue("list_name", out name) ? name.Value<string>() : "";
-                    if (IDLists.ContainsKey(listName))
+
+                    if (_idLists.TryGetValue(listName, out var list))
                     {
-                        var list = IDLists[listName];
-                        var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : new string[] { };
-                        var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : new string[] { };
-                        foreach (string id in addIDs)
+                        var addIDs = response.TryGetValue("add_ids", out addIDsToken) ? addIDsToken.ToObject<string[]>() : null;
+                        var removeIDs = response.TryGetValue("remove_ids", out removeIDsToken) ? removeIDsToken.ToObject<string[]>() : null;
+
+                        if (addIDs != null)
                         {
-                            list.IDs.Add(id);
+                            foreach (string id in addIDs)
+                            {
+                                list.IDs.Add(id);
+                            }
                         }
-                        foreach (string id in removeIDs)
+
+                        if (removeIDs != null)
                         {
-                            list.IDs.Remove(id);
+                            foreach (string id in removeIDs)
+                            {
+                                list.IDs.Remove(id);
+                            }
                         }
+
                         var newTime = response.TryGetValue("time", out time) ? time.Value<double>() : 0;
                         list.Time = Math.Max(list.Time, newTime);
                     }
                 }
-                catch
-                {
-                    // TODO: log this
-                }
             }
-
-            _idListSyncTimer = new Timer
+            finally
             {
-                Interval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC * 1000,
-                Enabled = true,
-                AutoReset = false
-            };
-            _idListSyncTimer.Elapsed += async (sender, e) =>
-            {
-                try
-                {
-                    await SyncIDLists();
-                }
-                catch
-                {
-                    // TODO: log this
-                }
-            };
+                _idListLock.ExitWriteLock();
+            }
         }
 
         private async Task SyncValues(bool initialRequest)
@@ -139,24 +235,6 @@ namespace Statsig.Server
             {
                 ParseResponse(response, initialRequest);
             }
-
-            _syncTimer = new Timer
-            {
-                Interval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC * 1000,
-                Enabled = true,
-                AutoReset = false
-            };
-            _syncTimer.Elapsed += async (sender, e) =>
-            {
-                try
-                {
-                    await SyncValues(false);
-                }
-                catch
-                {
-                    // TODO: log this
-                }
-            };
         }
 
         private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
@@ -221,19 +299,26 @@ namespace Statsig.Server
                 if (response.TryGetValue("id_lists", out objVal))
                 {
                     var lists = objVal.ToObject<Dictionary<string, bool>>();
-                    foreach (string listName in IDLists.Keys)
+                    _idListLock.EnterWriteLock();
+                    try
                     {
-                        if (!lists.ContainsKey(listName))
+                        var toRemove = _idLists.Keys.Except(lists.Keys).ToList();
+                        foreach (string listName in toRemove)
                         {
-                            IDLists.Remove(listName);
+                            _idLists.Remove(listName);
+                        }
+
+                        foreach (KeyValuePair<string, bool> entry in lists)
+                        {
+                            if (!_idLists.ContainsKey(entry.Key))
+                            {
+                                _idLists.Add(entry.Key, new IDList(entry.Key));
+                            }
                         }
                     }
-                    foreach (KeyValuePair<string, bool> entry in lists)
+                    finally
                     {
-                        if (!IDLists.ContainsKey(entry.Key))
-                        {
-                            IDLists.Add(entry.Key, new IDList(entry.Key));
-                        }
+                        _idListLock.ExitWriteLock();
                     }
                 }
             }
