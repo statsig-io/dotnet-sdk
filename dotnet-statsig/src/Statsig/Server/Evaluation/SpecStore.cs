@@ -261,7 +261,7 @@ namespace Statsig.Server
                     foreach (JObject gate in gates)
                     {
                         var gateSpec = ConfigSpec.FromJObject(gate);
-                        newGates.Add(gateSpec.Name.ToLowerInvariant(), ConfigSpec.FromJObject(gate));
+                        newGates[gateSpec.Name.ToLowerInvariant()] = ConfigSpec.FromJObject(gate);
                     }
                 }
             }
@@ -280,7 +280,7 @@ namespace Statsig.Server
                     foreach (JObject config in configs)
                     {
                         var configSpec = ConfigSpec.FromJObject(config);
-                        newConfigs.Add(configSpec.Name.ToLowerInvariant(), ConfigSpec.FromJObject(config));
+                        newConfigs[configSpec.Name.ToLowerInvariant()] = ConfigSpec.FromJObject(config);
                     }
                 }
             }

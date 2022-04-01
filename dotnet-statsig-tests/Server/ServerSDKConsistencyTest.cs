@@ -129,7 +129,7 @@ namespace dotnet_statsig_tests
             var exposures2Lookup = new Dictionary<string, IReadOnlyDictionary<string, string>>();
             foreach (var expo in exposures2)
             {
-                exposures2Lookup.Add(expo["gate"], expo);
+                exposures2Lookup[expo["gate"]] = expo;
             }
 
             foreach (var expo in exposures1)
