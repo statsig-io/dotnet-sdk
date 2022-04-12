@@ -80,6 +80,31 @@ namespace Statsig
             };
         }
 
+        internal static EventLog CreateLayerExposureLog(
+            StatsigUser user,
+            string layerName,
+            string ruleID,
+            string allocatedExperiment,
+            string parameterName,
+            bool isExplicitParameter,
+            List<IReadOnlyDictionary<string, string>> exposures)
+        {
+            return new EventLog
+            {
+                User = user,
+                EventName = Constants.CONFIG_EXPOSURE_EVENT,
+                Metadata = new Dictionary<string, string>
+                {
+                    ["config"] = layerName,
+                    ["ruleID"] = ruleID,
+                    ["allocatedExperiment"] = allocatedExperiment,
+                    ["parameterName"] = parameterName,
+                    ["isExplicitParameter"] = isExplicitParameter ? "true" : "false",
+                },
+                SecondaryExposures = exposures,
+            };
+        }
+
         internal static EventLog CreateErrorLog(string eventName, string errorMessage = null)
         {
             if (errorMessage == null)

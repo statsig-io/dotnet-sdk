@@ -12,6 +12,26 @@ using System.Threading.Tasks;
 
 namespace dotnet_statsig_tests
 {
+    internal class LayerWithExposures : Layer
+    {
+        [JsonProperty("secondary_exposures")]
+        public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; }
+
+        [JsonProperty("undelegated_secondary_exposures")]
+        public List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures { get; }
+
+        public LayerWithExposures(
+            string name = null,
+            IReadOnlyDictionary<string, JToken> value = null,
+            string ruleID = null, Action<Layer, string> onExposure = null,
+            List<IReadOnlyDictionary<string, string>> secondaryExposures = null,
+            List<IReadOnlyDictionary<string, string>> undelegatedSecondaryExposures = null) : base(name, value, ruleID, onExposure)
+        {
+            SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
+            UndelegatedSecondaryExposures = undelegatedSecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
+        }
+    }
+
     public class ServerSDKConsistencyTest : IAsyncLifetime
     {
         private class TestData
@@ -19,27 +39,26 @@ namespace dotnet_statsig_tests
             public StatsigUser user { get; set; }
             public Dictionary<string, FeatureGate> feature_gates_v2 { get; set; }
             public Dictionary<string, DynamicConfig> dynamic_configs { get; set; }
+            public Dictionary<string, LayerWithExposures> layer_configs { get; set; }
         }
 
         string secret;
 
-        public async Task InitializeAsync()
+        public Task InitializeAsync()
         {
             try
             {
                 secret = Environment.GetEnvironmentVariable("test_api_key");
-                if (string.IsNullOrEmpty(secret))
-                {
-                    secret = File.ReadAllText("../../../../../ops/secrets/prod_keys/statsig-rulesets-eval-consistency-test-secret.key");
-                }
             }
             catch
             {
                 throw new InvalidOperationException("THIS TEST IS EXPECTED TO FAIL FOR NON-STATSIG EMPLOYEES! If this is the only test failing, please proceed to submit a pull request. If you are a Statsig employee, chat with jkw.");
             }
+
+            return Task.CompletedTask;
         }
 
-        public async Task DisposeAsync() { }
+        public Task DisposeAsync() { return Task.CompletedTask; }
 
         [Fact]
         public async void TestProd()
@@ -92,6 +111,7 @@ namespace dotnet_statsig_tests
                     Assert.True(compareSecondaryExposures(sdkGateResult.SecondaryExposures, serverResult.SecondaryExposures),
                         string.Format("Secondary exposures are different for gate {0}. Expected {1} but got {2}", gate.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkGateResult.SecondaryExposures)));
                 }
+
                 foreach (var config in data.dynamic_configs)
                 {
                     var sdkResult = driver.evaluator.GetConfig(data.user, config.Key);
@@ -105,6 +125,23 @@ namespace dotnet_statsig_tests
                     Assert.True(sdkConfigResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for config {0}. Expected {1} but got {2}", config.Key, serverResult.RuleID, sdkConfigResult.RuleID));
                     Assert.True(compareSecondaryExposures(sdkConfigResult.SecondaryExposures, serverResult.SecondaryExposures),
                         string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", config.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkConfigResult.SecondaryExposures)));
+                }
+
+                foreach (var layer in data.layer_configs)
+                {
+                    var sdkResult = driver.evaluator.GetLayer(data.user, layer.Key);
+                    var sdkConfigResult = sdkResult.ConfigValue;
+                    var serverResult = layer.Value;
+                    foreach (var entry in sdkConfigResult.Value)
+                    {
+                        Assert.True(JToken.DeepEquals(entry.Value, serverResult.Value[entry.Key]),
+                            string.Format("Values are different for config {0}.", layer.Key));
+                    }
+                    Assert.True(sdkConfigResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for config {0}. Expected {1} but got {2}", layer.Key, serverResult.RuleID, sdkConfigResult.RuleID));
+                    Assert.True(compareSecondaryExposures(sdkConfigResult.SecondaryExposures, serverResult.SecondaryExposures),
+                        string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", layer.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkConfigResult.SecondaryExposures)));
+                    Assert.True(compareSecondaryExposures(sdkResult.UndelegatedSecondaryExposures, serverResult.UndelegatedSecondaryExposures),
+                        string.Format("Undelegated Secondary exposures are different for config {0}. Expected {1} but got {2}", layer.Key, stringifyExposures(serverResult.UndelegatedSecondaryExposures), stringifyExposures(sdkResult.UndelegatedSecondaryExposures)));
                 }
             }
             await driver.Shutdown();
@@ -151,7 +188,7 @@ namespace dotnet_statsig_tests
 
         private string stringifyExposures(List<IReadOnlyDictionary<string, string>> exposures)
         {
-            if (exposures.Count == 0)
+            if (exposures == null || exposures.Count == 0)
             {
                 return "";
             }

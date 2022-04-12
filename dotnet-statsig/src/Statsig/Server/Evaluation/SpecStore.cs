@@ -34,6 +34,7 @@ namespace Statsig.Server
 
         internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
+        internal Dictionary<string, ConfigSpec> LayerConfigs { get; private set; }
         private readonly Dictionary<string, IDList> _idLists;
         private readonly ReaderWriterLockSlim _idListLock;
 
@@ -43,6 +44,7 @@ namespace Statsig.Server
             _lastSyncTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
+            LayerConfigs = new Dictionary<string, ConfigSpec>();
             _idLists = new Dictionary<string, IDList>();
             _idListLock = new ReaderWriterLockSlim();
 
@@ -252,6 +254,7 @@ namespace Statsig.Server
 
             var newGates = new Dictionary<string, ConfigSpec>();
             var newConfigs = new Dictionary<string, ConfigSpec>();
+            var newLayers = new Dictionary<string, ConfigSpec>();
             try
             {
                 JToken objVal;
@@ -290,8 +293,28 @@ namespace Statsig.Server
                 return;
             }
 
+            try
+            {
+                JToken objVal;
+                if (response.TryGetValue("layer_configs", out objVal))
+                {
+                    var configs = objVal.ToObject<JObject[]>();
+                    foreach (JObject config in configs)
+                    {
+                        var configSpec = ConfigSpec.FromJObject(config);
+                        newLayers[configSpec.Name.ToLowerInvariant()] = ConfigSpec.FromJObject(config);
+                    }
+                }
+            }
+            catch
+            {
+                // TODO: Log this
+                return;
+            }
+
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
+            LayerConfigs = newLayers;
 
             try
             {

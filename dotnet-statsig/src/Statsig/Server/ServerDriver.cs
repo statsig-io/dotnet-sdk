@@ -125,25 +125,7 @@ namespace Statsig.Server
 
             if (evaluation?.Result == EvaluationResult.FetchFromServer)
             {
-                var response = await _requestDispatcher.Fetch("get_config", new Dictionary<string, object>
-                {
-                    ["user"] = user,
-                    ["configName"] = configName
-                });
-                if (response != null)
-                {
-                    JToken outVal;
-                    if (response.TryGetValue("value", out outVal))
-                    {
-                        var configVal = outVal.ToObject<Dictionary<string, JToken>>();
-                        JToken ruleID;
-                        if (!response.TryGetValue("rule_id", out ruleID))
-                        {
-                            ruleID = "";
-                        }
-                        result = new DynamicConfig(configName, configVal, ruleID.Value<string>());
-                    }
-                }
+                result = await FetchFromServer(user, configName);
             }
             else
             {
@@ -152,6 +134,72 @@ namespace Statsig.Server
                 _eventLogger.Enqueue(
                     EventLog.CreateConfigExposureLog(user, result.ConfigName, result.RuleID, exposures)
                 );
+            }
+
+            return result;
+        }
+
+        public async Task<Layer> GetLayer(StatsigUser user, string layerName)
+        {
+            EnsureInitialized();
+            ValidateUser(user);
+            NormalizeUser(user);
+            ValidateNonEmptyArgument(layerName, "layerName");
+
+            var evaluation = evaluator.GetLayer(user, layerName);
+            var config = evaluation?.ConfigValue;
+
+            if (evaluation?.Result == EvaluationResult.FetchFromServer)
+            {
+                config = await FetchFromServer(user, evaluation?.ConfigDelegate);
+            }
+
+            return new Layer(layerName, config?.Value, config?.RuleID, delegate (Layer layer, string parameterName)
+            {
+                var allocatedExperiment = "";
+                var isExplicit = evaluation?.ExplicitParameters?.Contains(parameterName) ?? false;
+                var exposures = evaluation?.UndelegatedSecondaryExposures;
+
+                if (isExplicit)
+                {
+                    allocatedExperiment = evaluation?.ConfigDelegate ?? "";
+                    exposures = evaluation?.ConfigValue.SecondaryExposures;
+                }
+
+                _eventLogger.Enqueue(
+                    EventLog.CreateLayerExposureLog(
+                        user,
+                        layer.Name,
+                        layer.RuleID,
+                        allocatedExperiment,
+                        parameterName,
+                        isExplicit,
+                        exposures ?? new List<IReadOnlyDictionary<string, string>>())
+                    );
+            });
+        }
+
+        private async Task<DynamicConfig> FetchFromServer(StatsigUser user, string name)
+        {
+            var result = new DynamicConfig(name);
+            var response = await _requestDispatcher.Fetch("get_config", new Dictionary<string, object>
+            {
+                ["user"] = user,
+                ["configName"] = name
+            });
+            if (response != null)
+            {
+                JToken outVal;
+                if (response.TryGetValue("value", out outVal))
+                {
+                    var configVal = outVal.ToObject<Dictionary<string, JToken>>();
+                    JToken ruleID;
+                    if (!response.TryGetValue("rule_id", out ruleID))
+                    {
+                        ruleID = "";
+                    }
+                    result = new DynamicConfig(name, configVal, ruleID.Value<string>());
+                }
             }
 
             return result;
@@ -286,6 +334,6 @@ namespace Statsig.Server
             _eventLogger.Enqueue(eventLog);
         }
 
-#endregion
+        #endregion
     }
 }

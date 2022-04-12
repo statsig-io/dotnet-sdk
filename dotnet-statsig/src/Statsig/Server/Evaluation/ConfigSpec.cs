@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 
 namespace Statsig.Server
@@ -14,8 +15,9 @@ namespace Statsig.Server
         internal List<ConfigRule> Rules { get; }
         internal DynamicConfig DynamicConfigDefault { get; }
         internal FeatureGate FeatureGateDefault { get; }
+        internal List<string> ExplicitParameters { get; }
 
-        internal ConfigSpec(string name, string type, string salt, JToken defaultValue, bool enabled, List<ConfigRule> rules, string idType)
+        internal ConfigSpec(string name, string type, string salt, JToken defaultValue, bool enabled, List<ConfigRule> rules, string idType, List<string> explicitParameters)
         {
             Name = name;
             Type = type;
@@ -25,6 +27,7 @@ namespace Statsig.Server
             IDType = idType;
             DynamicConfigDefault = new DynamicConfig(name);
             FeatureGateDefault = new FeatureGate(name);
+            ExplicitParameters = explicitParameters;
 
             if (Type.ToLower().Equals(Constants.DYNAMIC_CONFIG_SPEC_TYPE))
             {
@@ -39,7 +42,7 @@ namespace Statsig.Server
 
         internal static ConfigSpec FromJObject(JObject jobj)
         {
-            JToken name, type, salt, defaultValue, rules, enabled, idType;
+            JToken name, type, salt, defaultValue, rules, enabled, idType, explicitParameters;
 
             if (jobj == null ||
                 !jobj.TryGetValue("name", out name) ||
@@ -66,7 +69,10 @@ namespace Statsig.Server
                 jobj.TryGetValue("defaultValue", out defaultValue) ? defaultValue : null,
                 enabled.Value<bool>(),
                 rulesList,
-                jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null);
+                jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null,
+                jobj.TryGetValue("explicitParameters", out explicitParameters)
+                    ? explicitParameters.Values<string>().ToList()
+                    : new List<string>());
         }
     }
 }

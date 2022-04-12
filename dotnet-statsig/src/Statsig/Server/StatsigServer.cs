@@ -30,6 +30,7 @@ namespace Statsig.Server
         {
             EnsureInitialized();
             await _singleDriver.Shutdown();
+            _singleDriver = null;
         }
 
         public static async Task<bool> CheckGate(StatsigUser user, string gateName)
@@ -48,6 +49,12 @@ namespace Statsig.Server
         {
             EnsureInitialized();
             return await _singleDriver.GetConfig(user, experimentName);
+        }
+
+        public static async Task<Layer> GetLayer(StatsigUser user, string layerName)
+        {
+            EnsureInitialized();
+            return await _singleDriver.GetLayer(user, layerName);
         }
 
         public static void LogEvent(

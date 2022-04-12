@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 
 namespace dotnet_statsig_tests
 {
+    [Collection("Statsig Singleton Tests")]
     public class StatsigTest : IAsyncLifetime
     {
         WireMockServer _server;

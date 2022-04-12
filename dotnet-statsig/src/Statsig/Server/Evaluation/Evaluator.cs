@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -53,6 +54,34 @@ namespace Statsig.Server.Evaluation
             return Evaluate(user, _store.DynamicConfigs[configName]);
         }
 
+        internal ConfigEvaluation GetLayer(StatsigUser user, string layerName)
+        {
+            layerName = layerName.ToLowerInvariant();
+            if (!_initialized || string.IsNullOrWhiteSpace(layerName) || !_store.LayerConfigs.ContainsKey(layerName))
+            {
+                return null;
+            }
+            return Evaluate(user, _store.LayerConfigs[layerName]);
+        }
+
+        private ConfigEvaluation EvaluateDelegate(StatsigUser user, ConfigRule rule, List<IReadOnlyDictionary<string, string>> exposures)
+        {
+            ConfigSpec config;
+            _store.DynamicConfigs.TryGetValue(rule.ConfigDelegate ?? "", out config);
+            if (config == null)
+            {
+                return null;
+            }
+
+            var delegatedResult = Evaluate(user, config);
+            var result = new ConfigEvaluation(delegatedResult.Result, delegatedResult.GateValue, delegatedResult.ConfigValue);
+            result.ExplicitParameters = config.ExplicitParameters;
+            result.UndelegatedSecondaryExposures = exposures;
+            result.ConfigValue.SecondaryExposures = exposures.Concat(delegatedResult.ConfigValue.SecondaryExposures).ToList();
+            result.ConfigDelegate = rule.ConfigDelegate;
+            return result;
+        }
+
         private ConfigEvaluation Evaluate(StatsigUser user, ConfigSpec spec)
         {
             var secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
@@ -68,6 +97,12 @@ namespace Statsig.Server.Evaluation
                         case EvaluationResult.FetchFromServer:
                             return new ConfigEvaluation(EvaluationResult.FetchFromServer);
                         case EvaluationResult.Pass:
+                            var delegatedResult = EvaluateDelegate(user, rule, secondaryExposures);
+                            if (delegatedResult != null)
+                            {
+                                return delegatedResult;
+                            }
+
                             // return the value of the first rule that the user passes.
                             var passPercentage = EvaluatePassPercentage(user, rule, spec);
                             var gateV = new FeatureGate

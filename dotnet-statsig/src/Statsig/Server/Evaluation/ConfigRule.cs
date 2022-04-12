@@ -14,8 +14,9 @@ namespace Statsig.Server
         internal List<ConfigCondition> Conditions { get; }
         internal DynamicConfig DynamicConfigValue { get; }
         internal FeatureGate FeatureGateValue { get; }
+        internal string ConfigDelegate { get; }
 
-        internal ConfigRule(string name, double passPercentage, JToken returnValue, string id, string salt, List<ConfigCondition> conditions, string idType)
+        internal ConfigRule(string name, double passPercentage, JToken returnValue, string id, string salt, List<ConfigCondition> conditions, string idType, string configDelegate)
         {
             Name = name;
             PassPercentage = passPercentage;
@@ -26,6 +27,7 @@ namespace Statsig.Server
 
             FeatureGateValue = new FeatureGate(name, true, id);
             DynamicConfigValue = new DynamicConfig(name, null, id);
+            ConfigDelegate = configDelegate;
             try
             {
                 DynamicConfigValue =
@@ -36,7 +38,7 @@ namespace Statsig.Server
 
         internal static ConfigRule FromJObject(JObject jobj)
         {
-            JToken name, passPercentage, returnValue, conditions, id, salt, idType;
+            JToken name, passPercentage, returnValue, conditions, id, salt, idType, configDelegate;
 
             if (jobj == null ||
                 !jobj.TryGetValue("name", out name) ||
@@ -61,7 +63,8 @@ namespace Statsig.Server
                 id.Value<string>(),
                 jobj.TryGetValue("salt", out salt) ? salt.Value<string>() : null,
                 conditionsList,
-                jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null);
+                jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null,
+                jobj.TryGetValue("configDelegate", out configDelegate) ? configDelegate.Value<string>() : null);
         }
     }
 }

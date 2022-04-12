@@ -15,6 +15,9 @@ namespace Statsig.Server.Evaluation
         internal EvaluationResult Result { get; set; }
         internal FeatureGate GateValue { get; set; }
         internal DynamicConfig ConfigValue { get; set; }
+        internal List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures { get; set; }
+        internal List<string> ExplicitParameters { get; set; }
+        internal string ConfigDelegate { get; set; }
 
         internal ConfigEvaluation(
             EvaluationResult result,

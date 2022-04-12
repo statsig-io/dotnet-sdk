@@ -5,44 +5,39 @@ using Newtonsoft.Json;
 
 namespace Statsig
 {
-    public class DynamicConfig
+    public class Layer
     {
         [JsonProperty("name")]
-        public string ConfigName { get; }
-
-        [JsonProperty("value")]
-        public IReadOnlyDictionary<string, JToken> Value { get; }
+        public string Name { get; }
 
         [JsonProperty("rule_id")]
         public string RuleID { get; }
 
-        [JsonProperty("secondary_exposures")]
-        public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; internal set; }
+        [JsonProperty("value")]
+        internal IReadOnlyDictionary<string, JToken> Value { get; }
 
-        static DynamicConfig _defaultConfig;
+        private Action<Layer, string> OnExposure;
 
-        public static DynamicConfig Default
+        static Layer _default;
+
+        public static Layer Default
         {
             get
             {
-                if (_defaultConfig == null)
+                if (_default == null)
                 {
-                    _defaultConfig = new DynamicConfig();
+                    _default = new Layer();
                 }
-                return _defaultConfig;
+                return _default;
             }
         }
 
-        public DynamicConfig(
-            string configName = null,
-            IReadOnlyDictionary<string, JToken> value = null,
-            string ruleID = null,
-            List<IReadOnlyDictionary<string, string>> secondaryExposures = null)
+        public Layer(string name = null, IReadOnlyDictionary<string, JToken> value = null, string ruleID = null, Action<Layer, string> onExposure = null)
         {
-            ConfigName = configName ?? "";
+            Name = name ?? "";
             Value = value ?? new Dictionary<string, JToken>();
             RuleID = ruleID ?? "";
-            SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
+            OnExposure = onExposure ?? delegate { };
         }
 
         public T Get<T>(string key, T defaultValue = default(T))
@@ -55,7 +50,9 @@ namespace Statsig
 
             try
             {
-                return outVal.Value<T>();
+                var result = outVal.Value<T>();
+                OnExposure(this, key);
+                return result;
             }
             catch
             {
@@ -66,7 +63,7 @@ namespace Statsig
             }
         }
 
-        internal static DynamicConfig FromJObject(string configName, JObject jobj)
+        internal static Layer FromJObject(string configName, JObject jobj)
         {
             if (jobj == null)
             {
@@ -82,14 +79,11 @@ namespace Statsig
             try
             {
                 var value = valueToken == null ? null : valueToken.ToObject<Dictionary<string, JToken>>();
-                return new DynamicConfig
+                return new Layer
                 (
                     configName,
                     value,
-                    ruleToken == null ? null : ruleToken.Value<string>(),
-                    jobj.TryGetValue("secondary_exposures", out JToken exposures)
-                        ? exposures.ToObject<List<IReadOnlyDictionary<string, string>>>()
-                        : new List<IReadOnlyDictionary<string, string>>()
+                    ruleToken == null ? null : ruleToken.Value<string>()
                 );
             }
             catch
