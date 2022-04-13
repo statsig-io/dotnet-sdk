@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace Statsig
 {
@@ -16,7 +17,19 @@ namespace Statsig
         [JsonProperty("value")]
         internal IReadOnlyDictionary<string, JToken> Value { get; }
 
-        private Action<Layer, string> OnExposure;
+        [JsonProperty("secondary_exposures")]
+        internal List<IReadOnlyDictionary<string, string>> SecondaryExposures;
+
+        [JsonProperty("undelegated_secondary_exposures")]
+        internal List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures;
+
+        [JsonProperty("explicit_parameters")]
+        internal List<string> ExplicitParameters;
+
+        [JsonProperty("allocated_experiment_name")]
+        internal string AllocatedExperimentName;
+
+        internal Action<Layer, string> OnExposure;
 
         static Layer _default;
 
@@ -50,7 +63,7 @@ namespace Statsig
 
             try
             {
-                var result = outVal.Value<T>();
+                var result = outVal.ToObject<T>();
                 OnExposure(this, key);
                 return result;
             }
@@ -70,27 +83,35 @@ namespace Statsig
                 return null;
             }
 
-            JToken ruleToken;
-            jobj.TryGetValue("rule_id", out ruleToken);
-
-            JToken valueToken;
-            jobj.TryGetValue("value", out valueToken);
 
             try
             {
-                var value = valueToken == null ? null : valueToken.ToObject<Dictionary<string, JToken>>();
-                return new Layer
+                var layer = new Layer
                 (
                     configName,
-                    value,
-                    ruleToken == null ? null : ruleToken.Value<string>()
+                    GetFromJSON<Dictionary<string, JToken>>(jobj, "value", null),
+                    GetFromJSON<string>(jobj, "rule_id", null)
                 );
+
+                layer.AllocatedExperimentName = GetFromJSON(jobj, "allocated_experiment_name", "");
+                layer.SecondaryExposures = GetFromJSON(jobj, "secondary_exposures", new List<IReadOnlyDictionary<string, string>>());
+                layer.UndelegatedSecondaryExposures = GetFromJSON(jobj, "undelegated_secondary_exposures", new List<IReadOnlyDictionary<string, string>>());
+                layer.ExplicitParameters = GetFromJSON(jobj, "explicit_parameters", new List<string>());
+
+                return layer;
             }
             catch
             {
                 // Failed to parse config.  TODO: Log this
                 return null;
             }
+        }
+
+        private static T GetFromJSON<T>(JObject json, string key, T defaultValue)
+        {
+            JToken token;
+            json.TryGetValue(key, out token);
+            return token == null ? defaultValue : token.ToObject<T>();
         }
     }
 }

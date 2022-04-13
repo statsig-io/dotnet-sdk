@@ -9,20 +9,60 @@ namespace dotnet_statsig_tests
               'feature_gates': {},
               'dynamic_configs': {},
               'layer_configs': {
-                '7KbKUZW/yEHFyPbl8k69KMGsZH46ncEaVybX1zSJPh0=': {
-                  'name': '7KbKUZW/yEHFyPbl8k69KMGsZH46ncEaVybX1zSJPh0=',
+                'VUVogMV1FuIxgfJ9HUkvcckQofFSnOJ1ydZpl5KXC0U=': {
+                  '____UNHASHED_NAME': 'unallocated_layer',
+                  'name': 'VUVogMV1FuIxgfJ9HUkvcckQofFSnOJ1ydZpl5KXC0U=',
                   'value': {
-                    'a_string': 'a_value'
+                    'a_bool': true,
+                    'an_int': 99,
+                    'a_double': 12.34,
+                    'a_long': 9223372036854775806,
+                    'a_string': 'value',
+                    'an_array': ['a','b'],
+                    'an_object': {'c': 'd'},
                   },
-                  'rule_id': '4wAsx5uAYntXGDy7jEwfb6',
+                  'rule_id': 'default',
                   'group': '4wAsx5uAYntXGDy7jEwfb6',
-                  'allocated_experiment_name': 'PGxbC3EpEOjMyuU7Rg2s+leE0uRnj25OfzOqKcBWLs4=',
+                  'allocated_experiment_name': '',
                   'is_device_based': false,
                   'is_experiment_active': true,
                   'explicit_parameters': [],
                   'is_user_in_experiment': true,
-                  'secondary_exposures': [],
-                  'undelegated_secondary_exposures': []
+                  'secondary_exposures': [{
+                        'gate': 'secondary_exp',
+                        'gateValue': 'false',
+                        'ruleID': 'default'
+                    }],
+                  'undelegated_secondary_exposures': [{
+                        'gate': 'undelegated_secondary_exp',
+                        'gateValue': 'false',
+                        'ruleID': 'default'
+                    }]
+                },
+                'vQFNFFjIekL9Dw9KZx9yDlQxnh8pEV1XSO1Q2KyLqjY=': {
+                  '____UNHASHED_NAME': 'allocated_layer',
+                  'name': 'vQFNFFjIekL9Dw9KZx9yDlQxnh8pEV1XSO1Q2KyLqjY=',
+                  'value': {
+                    'explicit_key': 'from_exp',
+                    'implicit_key': 'from_layer',
+                  },
+                  'rule_id': 'default',
+                  'group': '4wAsx5uAYntXGDy7jEwfb6',
+                  'allocated_experiment_name': 'an_experiment',
+                  'is_device_based': false,
+                  'is_experiment_active': true,
+                  'explicit_parameters': ['explicit_key'],
+                  'is_user_in_experiment': true,
+                  'secondary_exposures': [{
+                        'gate': 'secondary_exp',
+                        'gateValue': 'false',
+                        'ruleID': 'default'
+                    }],
+                  'undelegated_secondary_exposures': [{
+                        'gate': 'undelegated_secondary_exp',
+                        'gateValue': 'false',
+                        'ruleID': 'default'
+                    }]
                 }
               },
               'sdkParams': {},
@@ -157,8 +197,10 @@ namespace dotnet_statsig_tests
                   'defaultValue': {
                     'a_bool': true,
                     'an_int': 99,
-                    'a_double': 1.23,
-                    'a_long': 9223372036854776000,
+                    'a_float': 3.4028235E+38,
+                    'a_double': 1.7976931348623157E+308,
+                    'a_long': 9223372036854775807,
+                    'a_ulong': 18446744073709551615,
                     'a_string': 'value',
                     'an_array': [
                       'a',

@@ -19,6 +19,7 @@
   <ItemGroup>
     <Folder Include="Server\" />
     <Folder Include="Common\" />
+    <Folder Include="Client\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\dotnet-statsig\dotnet-statsig.csproj" />
@@ -27,5 +28,6 @@
     <None Remove="Common\" />
     <None Remove="Moq" />
     <None Remove="WireMock.Net" />
+    <None Remove="Client\" />
   </ItemGroup>
 </Project>

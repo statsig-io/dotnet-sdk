@@ -92,7 +92,7 @@ namespace Statsig
             return new EventLog
             {
                 User = user,
-                EventName = Constants.CONFIG_EXPOSURE_EVENT,
+                EventName = Constants.LAYER_EXPOSURE_EVENT,
                 Metadata = new Dictionary<string, string>
                 {
                     ["config"] = layerName,

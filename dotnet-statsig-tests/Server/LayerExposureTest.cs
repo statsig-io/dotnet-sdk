@@ -155,6 +155,60 @@ namespace dotnet_statsig_tests
             Assert.Equal(JObject.Parse(@"{'arr': []}")["arr"], _events[1]["secondaryExposures"]);
         }
 
+        [Fact]
+        public async void TestDifferentObjectTypeLogging()
+        {
+            await Start();
+
+            var layer = await StatsigServer.GetLayer(_user, "different_object_type_logging_layer");
+            layer.Get("a_bool", false);
+            layer.Get("an_int", 0);
+            layer.Get("a_float", 0.0f);
+            layer.Get("a_double", 0.0d);
+            layer.Get("a_long", 0L);
+            layer.Get<ulong>("a_ulong", 0);
+            layer.Get("a_string", "err");
+            layer.Get("an_array", new string[] { });
+            layer.Get("an_object", new Dictionary<string, object> { });
+            await StatsigServer.Shutdown();
+
+            Assert.Equal("a_bool", _events[0]["metadata"]["parameterName"]);
+            Assert.Equal("an_int", _events[1]["metadata"]["parameterName"]);
+            Assert.Equal("a_float", _events[2]["metadata"]["parameterName"]);
+            Assert.Equal("a_double", _events[3]["metadata"]["parameterName"]);
+            Assert.Equal("a_long", _events[4]["metadata"]["parameterName"]);
+            Assert.Equal("a_ulong", _events[5]["metadata"]["parameterName"]);
+            Assert.Equal("a_string", _events[6]["metadata"]["parameterName"]);
+            Assert.Equal("an_array", _events[7]["metadata"]["parameterName"]);
+            Assert.Equal("an_object", _events[8]["metadata"]["parameterName"]);
+
+            Assert.Equal(9, _events.Count);
+        }
+
+        [Fact]
+        public async void TestLogsUserAndEventName()
+        {
+            await Start();
+
+            var user = new StatsigUser { UserID = "dan", Email = "dan@theman.com" };
+
+            var layer = await StatsigServer.GetLayer(user, "unallocated_layer");
+            layer.Get("an_int", 0);
+            await StatsigServer.Shutdown();
+
+            Assert.Equal(JObject.Parse(@"{
+                'statsigEnvironment': {},
+                'userID': 'dan',
+                'email': 'dan@theman.com',
+                'custom': {},
+                'privateAttributes': {}
+            }"), _events[0]["user"]);
+
+            Assert.Equal("statsig::layer_exposure", _events[0]["eventName"]);
+
+            Assert.Single(_events);
+        }
+
         private async Task Start()
         {
             await StatsigServer.Initialize(

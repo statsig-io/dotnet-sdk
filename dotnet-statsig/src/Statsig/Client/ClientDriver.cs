@@ -24,6 +24,7 @@ namespace Statsig.Client
     {
         const string gatesStoreKey = "statsig::featureGates";
         const string configsStoreKey = "statsig::configs";
+        const string layersStoreKey = "statsig::layers";
 
         readonly StatsigOptions _options;
         internal readonly string _clientKey;
@@ -33,6 +34,7 @@ namespace Statsig.Client
         StatsigUser _user;
         Dictionary<string, FeatureGate> _gates;
         Dictionary<string, DynamicConfig> _configs;
+        Dictionary<string, Layer> _layers;
         Dictionary<string, string> _statsigMetadata;
 
         public ClientDriver(string clientKey, StatsigOptions options = null)
@@ -66,6 +68,7 @@ namespace Statsig.Client
             PersistentStore.Deserialize();
             _gates = PersistentStore.GetValue(gatesStoreKey, new Dictionary<string, FeatureGate>());
             _configs = PersistentStore.GetValue(configsStoreKey, new Dictionary<string, DynamicConfig>());
+            _layers = PersistentStore.GetValue(layersStoreKey, new Dictionary<string, Layer>());
         }
 
         public async Task Initialize(StatsigUser user)
@@ -133,6 +136,45 @@ namespace Statsig.Client
             return value;
         }
 
+        public Layer GetLayer(string layerName)
+        {
+            var hashedName = GetNameHash(layerName);
+            Layer value;
+            if (!_layers.TryGetValue(hashedName, out value))
+            {
+                if (!_layers.TryGetValue(layerName, out value))
+                {
+                    value = new Layer(layerName);
+                }
+            }
+
+            value.OnExposure = delegate (Layer layer, string parameterName)
+            {
+                var allocatedExperiment = "";
+                var isExplicit = layer.ExplicitParameters.Contains(parameterName);
+                var exposures = layer.UndelegatedSecondaryExposures;
+
+                if (isExplicit)
+                {
+                    allocatedExperiment = layer.AllocatedExperimentName;
+                    exposures = layer.SecondaryExposures;
+                }
+
+                _eventLogger.Enqueue(
+                    EventLog.CreateLayerExposureLog(
+                        _user,
+                        layerName,
+                        layer.RuleID,
+                        allocatedExperiment,
+                        parameterName,
+                        isExplicit,
+                        exposures ?? new List<IReadOnlyDictionary<string, string>>())
+                    );
+            };
+
+            return value;
+        }
+
         public async Task UpdateUser(StatsigUser newUser)
         {
             _statsigMetadata = null;
@@ -194,7 +236,7 @@ namespace Statsig.Client
         }
 #endif
 
-#region Private helpers
+        #region Private helpers
 
         void LogEventHelper(
             string eventName,
@@ -268,6 +310,24 @@ namespace Statsig.Client
             {
                 // Configs parsing failed.  TODO: Log this
             }
+
+            try
+            {
+                JToken objVal;
+                if (response.TryGetValue("layer_configs", out objVal))
+                {
+                    var configMap = objVal.ToObject<Dictionary<string, object>>();
+                    foreach (var kv in configMap)
+                    {
+                        _layers[kv.Key] = Layer.FromJObject(kv.Key, kv.Value as JObject);
+                    }
+                    PersistentStore.SetValue(layersStoreKey, _layers);
+                }
+            }
+            catch
+            {
+                // Layers parsing failed.  TODO: Log this
+            }
         }
 
         IReadOnlyDictionary<string, string> GetStatsigMetadata()
@@ -302,6 +362,6 @@ namespace Statsig.Client
             return _statsigMetadata;
         }
 
-#endregion
+        #endregion
     }
 }

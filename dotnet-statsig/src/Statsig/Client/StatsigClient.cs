@@ -23,6 +23,7 @@ namespace Statsig.Client
         {
             EnsureInitialized();
             await _singleDriver.Shutdown();
+            _singleDriver = null;
         }
 
         public static bool CheckGate(string gateName)
@@ -41,6 +42,12 @@ namespace Statsig.Client
         {
             EnsureInitialized();
             return _singleDriver.GetConfig(experimentName);
+        }
+
+        public static Layer GetLayer(string layerName)
+        {
+            EnsureInitialized();
+            return _singleDriver.GetLayer(layerName);
         }
 
         public static void LogEvent(
