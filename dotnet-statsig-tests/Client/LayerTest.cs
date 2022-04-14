@@ -150,36 +150,6 @@ namespace dotnet_statsig_tests
             Assert.Equal(2, _events.Count);
         }
 
-        [Fact]
-        public async void TestLoadingFromStorage()
-        {
-            await Start();
-            StatsigClient.GetLayer("unallocated_layer");
-            await StatsigClient.Shutdown();
-
-
-            await Start(Response.Create().WithStatusCode(404));
-            var layer = StatsigClient.GetLayer("unallocated_layer");
-            layer.Get("an_int", 0);
-            await StatsigClient.Shutdown();
-
-            Assert.Equal(JObject.Parse(@"{
-                'config': 'unallocated_layer',
-                'ruleID': 'default',
-                'allocatedExperiment': '',
-                'parameterName': 'an_int',
-                'isExplicitParameter': 'false'
-            }"), _events[0]["metadata"]);
-
-            Assert.Equal(JObject.Parse(@"{'arr': [{
-                'gate': 'undelegated_secondary_exp',
-                'gateValue': 'false',
-                'ruleID': 'default'
-            }]}")["arr"], _events[0]["secondaryExposures"]);
-
-            Assert.Single(_events);
-        }
-
         private async Task Start(IResponseBuilder initResponseBuilder = null)
         {
             _initResponseBuilder = initResponseBuilder ?? Response.Create()

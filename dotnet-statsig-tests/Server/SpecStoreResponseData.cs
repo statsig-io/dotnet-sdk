@@ -23,7 +23,7 @@ namespace dotnet_statsig_tests
                 "-1\n+2\n",
                 "+3\n",
                 "3",
-                "+3\n+4\n+5\n+4\n-4\n+6\n",
+                "+3\n+4\n+5\n+4\n-4\n+6\n+6\n+5\n",
             };
             return index >= responses.Length ? responses[responses.Length - 1] : responses[index];
         }
@@ -37,7 +37,7 @@ namespace dotnet_statsig_tests
                 idListWithIDs("list_1", 3, baseURL + "/list_1", 3, "file_id_1_a", new string[] { "3" }),
                 idListWithIDs("list_1", 3, baseURL + "/list_1", 3, "file_id_1_a", new string[] { "3" }),
                 null,
-                idListWithIDs("list_1", 18, baseURL + "/list_1", 3, "file_id_1_a", new string[] { "3", "5", "6" }),
+                idListWithIDs("list_1", 24, baseURL + "/list_1", 3, "file_id_1_a", new string[] { "3", "5", "6" }),
             };
             var expectedList2 = new IDList[]
             {
@@ -140,7 +140,7 @@ namespace dotnet_statsig_tests
                 $@"{{
                     'list_1': {{
                         'name': 'list_1',
-                        'size': 18,
+                        'size': 24,
                         'url': '{url1}',
                         'creationTime': 3,
                         'fileID': 'file_id_1_a',

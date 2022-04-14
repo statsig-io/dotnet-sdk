@@ -282,7 +282,7 @@ namespace Statsig.Server
 
                     tasks.Add(DownloadIDList(localList));
                 }
-                catch (Exception e)
+                catch
                 {
                     // malformatted list, ignore
                 }
