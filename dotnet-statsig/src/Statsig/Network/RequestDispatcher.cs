@@ -61,8 +61,7 @@ namespace Statsig.Network
                 {
                     return null;
                 }
-                if (response.StatusCode == HttpStatusCode.Accepted ||
-                response.StatusCode == HttpStatusCode.OK)
+                if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
                 {
                     using (var reader = new StreamReader(response.GetResponseStream()))
                     {

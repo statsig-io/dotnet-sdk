@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -363,7 +363,7 @@ namespace dotnet_statsig_tests
             );
             var nowSeconds = Convert.ToInt32(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
 
-            Assert.Single(_server.LogEntries);
+            Assert.Equal(2, _server.LogEntries.Count());
 
             var requestBody = _server.LogEntries.ElementAt(0).RequestMessage.Body;
             var requestHeaders = _server.LogEntries.ElementAt(0).RequestMessage.Headers;
@@ -401,8 +401,8 @@ namespace dotnet_statsig_tests
             await StatsigServer.Shutdown();
 
             // Verify log event requets for exposures and custom logs
-            requestBody = _server.LogEntries.ElementAt(1).RequestMessage.Body;
-            requestHeaders = _server.LogEntries.ElementAt(1).RequestMessage.Headers;
+            requestBody = _server.LogEntries.ElementAt(2).RequestMessage.Body;
+            requestHeaders = _server.LogEntries.ElementAt(2).RequestMessage.Headers;
             requestDict = JObject.Parse(requestBody);
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
