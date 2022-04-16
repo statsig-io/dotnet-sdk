@@ -125,15 +125,15 @@ namespace dotnet_statsig_tests
             await store.Initialize();
             var expectedIDLists = SpecStoreResponseData.getIDListExpectedResults(_server.Urls[0]);
             TestStoreHelper(store, expectedIDLists, 0);
-            System.Threading.Thread.Sleep(1100);
+            System.Threading.Thread.Sleep(1200);
             TestStoreHelper(store, expectedIDLists, 1);
-            System.Threading.Thread.Sleep(1100);
+            System.Threading.Thread.Sleep(1200);
             TestStoreHelper(store, expectedIDLists, 2);
-            System.Threading.Thread.Sleep(1100);
+            System.Threading.Thread.Sleep(1200);
             TestStoreHelper(store, expectedIDLists, 3);
-            System.Threading.Thread.Sleep(1100);
+            System.Threading.Thread.Sleep(1200);
             TestStoreHelper(store, expectedIDLists, 4);
-            System.Threading.Thread.Sleep(1100);
+            System.Threading.Thread.Sleep(1200);
             TestStoreHelper(store, expectedIDLists, 5);
         }
 
