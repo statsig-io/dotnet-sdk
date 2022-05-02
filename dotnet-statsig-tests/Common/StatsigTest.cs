@@ -277,6 +277,7 @@ namespace dotnet_statsig_tests
                                 {
                                     { "name", "test_gate" },
                                     { "type", "feature_gate" },
+                                    { "entity", "feature_gate" },
                                     { "salt", "na" },
                                     { "defaultValue", false },
                                     { "enabled", true },
@@ -312,6 +313,7 @@ namespace dotnet_statsig_tests
                                 {
                                     { "name", "test_config" },
                                     { "type", "dynamic_config" },
+                                    { "entity", "dynamic_config" },
                                     { "salt", "na" },
                                     { "defaultValue", new Dictionary<string, object> {} },
                                     { "enabled", true },
