@@ -15,7 +15,12 @@ namespace Statsig.Network
         private static readonly HashSet<int> retryCodes = new HashSet<int> { 408, 500, 502, 503, 504, 522, 524, 599 };
         public string Key { get; }
         public string ApiBaseUrl { get; }
-        public RequestDispatcher(string key, string apiBaseUrl = null)
+        public IReadOnlyDictionary<string, string> AdditionalHeaders { get; }
+        public RequestDispatcher(
+            string key, 
+            string apiBaseUrl = null, 
+            IReadOnlyDictionary<string, string> headers = null
+        )
         {
             if (string.IsNullOrWhiteSpace(key))
             {
@@ -25,9 +30,14 @@ namespace Statsig.Network
             {
                 apiBaseUrl = Constants.DEFAULT_API_URL_BASE;
             }
+            if (headers == null)
+            {
+                headers = new Dictionary<string, string>();
+            }
 
             Key = key;
             ApiBaseUrl = apiBaseUrl;
+            AdditionalHeaders = headers;
         }
 
         public async Task<IReadOnlyDictionary<string, JToken>> Fetch(
@@ -45,6 +55,11 @@ namespace Statsig.Network
                 request.Headers.Add("STATSIG-API-KEY", Key);
                 request.Headers.Add("STATSIG-CLIENT-TIME",
                     (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds.ToString());
+
+                foreach (var kv in AdditionalHeaders)
+                {
+                    request.Headers.Add(kv.Key, kv.Value);
+                }
 
                 var jsonSettings = new JsonSerializerSettings
                 {

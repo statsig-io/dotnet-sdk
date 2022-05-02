@@ -64,6 +64,178 @@ namespace Statsig.Server.Evaluation
             return Evaluate(user, _store.LayerConfigs[layerName]);
         }
 
+        internal Dictionary<string, Object> GetAllEvaluations(StatsigUser user)
+        {
+            if (!_initialized)
+            {
+                return null;
+            }
+
+            var gates = new Dictionary<string, Dictionary<string, object>>();
+            foreach (var kv in _store.FeatureGates)
+            {
+                if (kv.Value.Entity == "segment") 
+                {
+                    continue;
+                }
+
+                var hashedName = HashName(kv.Value.Name);
+                var gate = Evaluate(user, kv.Value).GateValue;
+                var entry = new Dictionary<string, object>
+                {
+                    ["name"] = hashedName,
+                    ["value"] = gate.Value,
+                    ["rule_id"] = gate.RuleID,
+                };
+                if (gate.SecondaryExposures.Count > 0)
+                {
+                    entry["secondary_exposures"] = CleanExposures(gate.SecondaryExposures);
+                }
+                gates.Add(hashedName, entry);
+            }
+            
+            var dynamicConfigs = new Dictionary<string, Dictionary<string, object>>();
+            foreach (var kv in _store.DynamicConfigs)
+            {
+                var hashedName = HashName(kv.Value.Name);
+                var config = Evaluate(user, kv.Value).ConfigValue;
+                var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
+                if (kv.Value.Entity != "dynamic_config")
+                {
+                    entry["is_experiment_active"] = IsExperimentActive(kv.Value);
+                    entry["is_user_in_experiment"] = IsUserAllocatedToExperiment(user, kv.Value);
+                }
+                dynamicConfigs.Add(hashedName, entry);
+            }
+
+            var layerConfigs = new Dictionary<string, Dictionary<string, object>>();
+            foreach (var kv in _store.LayerConfigs)
+            {
+                var hashedName = HashName(kv.Value.Name);
+                var evaluation = Evaluate(user, kv.Value);
+                var config = evaluation.ConfigValue;
+                var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
+
+                if (!string.IsNullOrWhiteSpace(evaluation.ConfigDelegate))
+                {
+                    entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate);
+                    entry["is_experiment_active"] = true;
+                    entry["is_user_in_experiment"] = true;
+                }
+                if (!entry.ContainsKey("explicit_parameters")) 
+                {
+                    entry["explicit_parameters"] = new List<string>();
+                }
+                entry["undelegated_secondary_exposures"] = 
+                    CleanExposures(evaluation.UndelegatedSecondaryExposures);
+                layerConfigs.Add(hashedName, entry);
+            }
+
+            var result = new Dictionary<string, Object>
+            {
+                ["feature_gates"] = gates,
+                ["dynamic_configs"] = dynamicConfigs,
+                ["layer_configs"] = layerConfigs,
+                ["sdkParams"] = new Object(),
+                ["has_updates"] = true,
+                ["time"] = 0,
+            };
+            return result;
+        }
+
+        private IEnumerable<IReadOnlyDictionary<string, string>> CleanExposures(
+            IEnumerable<IReadOnlyDictionary<string, string>> exposures
+        )
+        {
+            if (exposures == null) 
+            {
+                return new List<IReadOnlyDictionary<string, string>>();
+            }
+
+            var seen = new HashSet<string>();
+            return exposures.Select((exp) => {
+                var gate = exp["gate"];
+                var gateValue = exp["gateValue"];
+                var ruleID = exp["ruleID"];
+                var key = $"{gate}|{gateValue}|{ruleID}";
+                if (seen.Contains(key)) 
+                {
+                    return null;
+                }
+                seen.Add(key);
+                return exp;
+            }).Where((exp) => exp != null);
+        }
+
+        private bool IsExperimentActive(ConfigSpec spec)
+        {
+            foreach (var rule in spec.Rules)
+            {
+                if (rule.ID.ToLowerInvariant() == "layerassignment")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool IsUserAllocatedToExperiment(
+            StatsigUser user, 
+            ConfigSpec spec
+        )
+        {
+            foreach (var rule in spec.Rules)
+            {
+                if (string.IsNullOrWhiteSpace(rule.ID)) 
+                {
+                    continue;
+                }
+                if (rule.ID.ToLowerInvariant() == "layerassignment")
+                {
+                    List<IReadOnlyDictionary<string, string>> secondaryExposures;
+                    var evalResult = EvaluateRule(user, rule, out secondaryExposures);
+                    return (evalResult == EvaluationResult.Fail);
+                }
+            }
+            return false;
+        }
+
+        private Dictionary<string, object> ConfigSpecToInitResponse(
+            string hashedName,
+            ConfigSpec spec, 
+            DynamicConfig config
+        )
+        {
+            var entry = new Dictionary<string, object>
+            {
+                ["name"] = hashedName,
+                ["value"] = config.Value,
+                ["rule_id"] = config.RuleID,
+                ["group"] = config.RuleID,
+                ["is_device_based"] = (spec.IDType != null && 
+                    spec.IDType.ToLowerInvariant() == "stableid"),
+            };
+
+            if (config.SecondaryExposures.Count > 0)
+            {
+                entry["secondary_exposures"] = CleanExposures(config.SecondaryExposures);
+            }
+            if (spec.ExplicitParameters != null && spec.ExplicitParameters.Count > 0) 
+            {
+                entry["explicit_parameters"] = spec.ExplicitParameters;
+            }
+            return entry;
+        }
+
+        private string HashName(string name)
+        {
+            using (var sha = SHA256.Create())
+            {
+                var buffer = sha.ComputeHash(Encoding.UTF8.GetBytes(name));
+                return Convert.ToBase64String(buffer);
+            }
+        }
+
         private ConfigEvaluation EvaluateDelegate(StatsigUser user, ConfigRule rule, List<IReadOnlyDictionary<string, string>> exposures)
         {
             ConfigSpec config;
