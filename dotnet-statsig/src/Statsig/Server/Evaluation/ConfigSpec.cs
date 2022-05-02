@@ -50,16 +50,11 @@ namespace Statsig.Server
                 !jobj.TryGetValue("name", out name) ||
                 !jobj.TryGetValue("type", out type) ||
                 !jobj.TryGetValue("salt", out salt) ||
-                !jobj.TryGetValue("enabled", out enabled))
+                !jobj.TryGetValue("enabled", out enabled) ||
+                !jobj.TryGetValue("entity", out entity))
             {
                 return null;
             }
-
-            // entity could be missing;
-            if (!jobj.TryGetValue("entity", out entity)) 
-            {
-                entity = type;
-            }            
 
             var rulesList = new List<ConfigRule>();
             if (jobj.TryGetValue("rules", out rules))
