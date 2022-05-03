@@ -25,8 +25,8 @@ namespace Statsig.Server.Evaluation
             DynamicConfig config = null)
         {
             Result = result;
-            GateValue = gate;
-            ConfigValue = config;
+            GateValue = gate ?? new FeatureGate();
+            ConfigValue = config ?? new DynamicConfig();
         }
     }
 }

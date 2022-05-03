@@ -80,13 +80,13 @@ namespace Statsig.Server
 
     class SpecStore
     {
-        private double _lastSyncTime;
         private readonly RequestDispatcher _requestDispatcher = null;
 
         private Task _syncIDListsTask;
         private Task _syncValuesTask;
         private readonly CancellationTokenSource _cts = null;
 
+        internal double LastSyncTime { get; private set; }
         internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
         internal Dictionary<string, ConfigSpec> LayerConfigs { get; private set; }
@@ -96,7 +96,7 @@ namespace Statsig.Server
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
             _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase, options.AdditionalHeaders);
-            _lastSyncTime = 0;
+            LastSyncTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             LayerConfigs = new Dictionary<string, ConfigSpec>();
@@ -329,7 +329,7 @@ namespace Statsig.Server
                 "download_config_specs",
                 new Dictionary<string, object>
                 {
-                    ["sinceTime"] = _lastSyncTime,
+                    ["sinceTime"] = LastSyncTime,
                     ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
                 }
             );
@@ -343,7 +343,7 @@ namespace Statsig.Server
         private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
         {
             JToken time;
-            _lastSyncTime = response.TryGetValue("time", out time) ? time.Value<double>() : _lastSyncTime;
+            LastSyncTime = response.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
 
             if (!initialRequest)
             {

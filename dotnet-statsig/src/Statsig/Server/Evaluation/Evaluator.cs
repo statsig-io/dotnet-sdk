@@ -39,7 +39,7 @@ namespace Statsig.Server.Evaluation
             gateName = gateName.ToLowerInvariant();
             if (!_initialized || string.IsNullOrWhiteSpace(gateName) || !_store.FeatureGates.ContainsKey(gateName))
             {
-                return null;
+                return new ConfigEvaluation(EvaluationResult.Fail);
             }
             return Evaluate(user, _store.FeatureGates[gateName]);
         }
@@ -49,7 +49,7 @@ namespace Statsig.Server.Evaluation
             configName = configName.ToLowerInvariant();
             if (!_initialized || string.IsNullOrWhiteSpace(configName) || !_store.DynamicConfigs.ContainsKey(configName))
             {
-                return null;
+                return new ConfigEvaluation(EvaluationResult.Fail);
             }
             return Evaluate(user, _store.DynamicConfigs[configName]);
         }
@@ -59,7 +59,7 @@ namespace Statsig.Server.Evaluation
             layerName = layerName.ToLowerInvariant();
             if (!_initialized || string.IsNullOrWhiteSpace(layerName) || !_store.LayerConfigs.ContainsKey(layerName))
             {
-                return null;
+                return new ConfigEvaluation(EvaluationResult.Fail);
             }
             return Evaluate(user, _store.LayerConfigs[layerName]);
         }
@@ -138,7 +138,7 @@ namespace Statsig.Server.Evaluation
                 ["layer_configs"] = layerConfigs,
                 ["sdkParams"] = new Object(),
                 ["has_updates"] = true,
-                ["time"] = 0,
+                ["time"] = _store.LastSyncTime,
             };
             return result;
         }
