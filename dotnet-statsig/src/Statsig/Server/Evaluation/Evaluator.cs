@@ -103,7 +103,8 @@ namespace Statsig.Server.Evaluation
                 if (kv.Value.Entity != "dynamic_config")
                 {
                     entry["is_experiment_active"] = IsExperimentActive(kv.Value);
-                    entry["is_user_in_experiment"] = IsUserAllocatedToExperiment(user, kv.Value);
+                    entry["is_user_in_experiment"] = 
+                        IsUserAllocatedToExperiment(user, kv.Value, config.RuleID);
                     entry["is_in_layer"] = IsExperimentInLayer(kv.Value);
                 }
                 dynamicConfigs.Add(hashedName, entry);
@@ -124,7 +125,12 @@ namespace Statsig.Server.Evaluation
                     _store.DynamicConfigs.TryGetValue(evaluation.ConfigDelegate, out experimentSpec);
                     
                     entry["is_experiment_active"] = IsExperimentActive(experimentSpec);
-                    entry["is_user_in_experiment"] = IsUserAllocatedToExperiment(user, experimentSpec);
+                    entry["is_user_in_experiment"] = 
+                        IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
+                    if (experimentSpec.ExplicitParameters != null && experimentSpec.ExplicitParameters.Count > 0)
+                    {
+                        entry["explicit_parameters"] = experimentSpec.ExplicitParameters;
+                    }
                 }
                 entry["undelegated_secondary_exposures"] = 
                     CleanExposures(evaluation.UndelegatedSecondaryExposures);
@@ -198,19 +204,24 @@ namespace Statsig.Server.Evaluation
 
         private bool IsUserAllocatedToExperiment(
             StatsigUser user, 
-            ConfigSpec spec
+            ConfigSpec spec,
+            string evaluatedRuleID
         )
         {
+            var evaluatedRule = spec.Rules.First((r) => r.ID == evaluatedRuleID);
+            List<IReadOnlyDictionary<string, string>> sec;
+            var evalResult = EvaluateRule(user, evaluatedRule, out sec);
+            if (evalResult == EvaluationResult.Fail)
+            {
+                return false;
+            }
+
             foreach (var rule in spec.Rules)
             {
-                if (string.IsNullOrWhiteSpace(rule.ID)) 
+                var ruleID = (rule.ID == null ? "" : rule.ID.ToLowerInvariant());
+                if (ruleID == "layerassignment")
                 {
-                    continue;
-                }
-                if (rule.ID.ToLowerInvariant() == "layerassignment")
-                {
-                    List<IReadOnlyDictionary<string, string>> secondaryExposures;
-                    var evalResult = EvaluateRule(user, rule, out secondaryExposures);
+                    evalResult = EvaluateRule(user, rule, out sec);
                     return (evalResult == EvaluationResult.Fail);
                 }
             }
