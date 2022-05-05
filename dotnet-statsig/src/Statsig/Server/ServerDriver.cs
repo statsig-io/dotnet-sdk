@@ -39,8 +39,6 @@ namespace Statsig.Server
             {
                 if (options.AdditionalHeaders.Count == 0) 
                 {
-                    // In a multi-server environment, a client key could be used.  
-                    // In that setup additional headers will be provided.
                     throw new ArgumentException(
                         "Invalid key provided. Please check your Statsig console to get the right server key.", 
                         "serverSecret"
