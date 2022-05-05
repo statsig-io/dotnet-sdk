@@ -120,12 +120,11 @@ namespace Statsig.Server.Evaluation
                 if (!string.IsNullOrWhiteSpace(evaluation.ConfigDelegate))
                 {
                     entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate);
-                    entry["is_experiment_active"] = true;
-                    entry["is_user_in_experiment"] = true;
-                }
-                if (!entry.ContainsKey("explicit_parameters")) 
-                {
-                    entry["explicit_parameters"] = new List<string>();
+                    ConfigSpec experimentSpec = null;
+                    _store.DynamicConfigs.TryGetValue(evaluation.ConfigDelegate, out experimentSpec);
+                    
+                    entry["is_experiment_active"] = IsExperimentActive(experimentSpec);
+                    entry["is_user_in_experiment"] = IsUserAllocatedToExperiment(user, experimentSpec);
                 }
                 entry["undelegated_secondary_exposures"] = 
                     CleanExposures(evaluation.UndelegatedSecondaryExposures);
@@ -170,14 +169,19 @@ namespace Statsig.Server.Evaluation
 
         private bool IsExperimentActive(ConfigSpec spec)
         {
+            bool layerAssignmentFound = false;
             foreach (var rule in spec.Rules)
             {
+                if (rule.Name == "abandoned" || rule.Name == "prestart")
+                {
+                    return false;
+                }
                 if (rule.ID.ToLowerInvariant() == "layerassignment")
                 {
-                    return true;
+                    layerAssignmentFound = true;
                 }
             }
-            return false;
+            return layerAssignmentFound;
         }
         
         private bool IsExperimentInLayer(ConfigSpec spec)
@@ -233,10 +237,8 @@ namespace Statsig.Server.Evaluation
             {
                 entry["secondary_exposures"] = CleanExposures(config.SecondaryExposures);
             }
-            if (spec.ExplicitParameters != null && spec.ExplicitParameters.Count > 0) 
-            {
-                entry["explicit_parameters"] = spec.ExplicitParameters;
-            }
+            entry["explicit_parameters"] = spec.ExplicitParameters ?? new List<string>();
+            
             return entry;
         }
 
