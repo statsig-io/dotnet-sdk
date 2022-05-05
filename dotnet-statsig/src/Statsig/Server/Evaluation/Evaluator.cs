@@ -104,6 +104,7 @@ namespace Statsig.Server.Evaluation
                 {
                     entry["is_experiment_active"] = IsExperimentActive(kv.Value);
                     entry["is_user_in_experiment"] = IsUserAllocatedToExperiment(user, kv.Value);
+                    entry["is_in_layer"] = IsExperimentInLayer(kv.Value);
                 }
                 dynamicConfigs.Add(hashedName, entry);
             }
@@ -172,6 +173,18 @@ namespace Statsig.Server.Evaluation
             foreach (var rule in spec.Rules)
             {
                 if (rule.ID.ToLowerInvariant() == "layerassignment")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        private bool IsExperimentInLayer(ConfigSpec spec)
+        {
+            foreach (var kv in _store.LayersMap)
+            {
+                if (kv.Value.Contains(spec.Name))
                 {
                     return true;
                 }
