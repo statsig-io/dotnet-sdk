@@ -219,10 +219,6 @@ namespace Statsig.Server.Evaluation
                 }
                 if (firstCondition.Type == "pass_gate" || firstCondition.Type == "fail_gate") 
                 {
-                    // This is a holdout or targeting gate
-                    System.Diagnostics.Debug.Assert(
-                        evaluatedRule.DynamicConfigValue.Value.Count == 0
-                    );
                     return false;
                 }
             }
