@@ -209,13 +209,20 @@ namespace Statsig.Server.Evaluation
         )
         {
             List<IReadOnlyDictionary<string, string>> sec;
-            var evaluatedRule = spec.Rules.FirstOrDefault((r) => r.ID == "targetingGate");
+            var evaluatedRule = spec.Rules.FirstOrDefault((r) => r.ID == evaluatedRuleID);
             if (evaluatedRule != null)
             {
-                var evalResult = EvaluateRule(user, evaluatedRule, out sec);
-                // User is allocated if they FAIL the target gate check
-                if (evalResult != EvaluationResult.Fail)
+                var firstCondition = evaluatedRule.Conditions.FirstOrDefault();
+                if (firstCondition == null)
                 {
+                    return false;
+                }
+                if (firstCondition.Type == "pass_gate" || firstCondition.Type == "fail_gate") 
+                {
+                    // This is a holdout or targeting gate
+                    System.Diagnostics.Debug.Assert(
+                        evaluatedRule.DynamicConfigValue.Value.Count == 0
+                    );
                     return false;
                 }
             }
