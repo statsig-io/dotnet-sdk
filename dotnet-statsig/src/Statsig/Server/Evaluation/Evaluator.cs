@@ -208,12 +208,16 @@ namespace Statsig.Server.Evaluation
             string evaluatedRuleID
         )
         {
-            var evaluatedRule = spec.Rules.First((r) => r.ID == evaluatedRuleID);
             List<IReadOnlyDictionary<string, string>> sec;
-            var evalResult = EvaluateRule(user, evaluatedRule, out sec);
-            if (evalResult == EvaluationResult.Fail)
+            var evaluatedRule = spec.Rules.FirstOrDefault((r) => r.ID == "targetingGate");
+            if (evaluatedRule != null)
             {
-                return false;
+                var evalResult = EvaluateRule(user, evaluatedRule, out sec);
+                // User is allocated if they FAIL the target gate check
+                if (evalResult != EvaluationResult.Fail)
+                {
+                    return false;
+                }
             }
 
             foreach (var rule in spec.Rules)
@@ -221,7 +225,8 @@ namespace Statsig.Server.Evaluation
                 var ruleID = (rule.ID == null ? "" : rule.ID.ToLowerInvariant());
                 if (ruleID == "layerassignment")
                 {
-                    evalResult = EvaluateRule(user, rule, out sec);
+                    // User is allocated if they FAIL the layer assignment
+                    var evalResult = EvaluateRule(user, rule, out sec);
                     return (evalResult == EvaluationResult.Fail);
                 }
             }
