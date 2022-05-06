@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Statsig
 {
@@ -7,17 +8,17 @@ namespace Statsig
         public string ApiUrlBase { get; }
         public StatsigEnvironment StatsigEnvironment { get; }
         public string PersistentStorageFolder { get; set; }
-
-        public StatsigOptions()
+        private Dictionary<string, string> _additionalHeaders;
+        
+        public StatsigOptions(): this(null)
         {
-            ApiUrlBase = Constants.DEFAULT_API_URL_BASE;
-            StatsigEnvironment = new StatsigEnvironment();
         }
 
         public StatsigOptions(StatsigEnvironment environment = null)
         {
             ApiUrlBase = Constants.DEFAULT_API_URL_BASE;
             StatsigEnvironment = environment ?? new StatsigEnvironment();
+            _additionalHeaders = new Dictionary<string, string>();
         }
 
         public StatsigOptions(string apiUrlBase = null, StatsigEnvironment environment = null)
@@ -25,6 +26,20 @@ namespace Statsig
             ApiUrlBase = string.IsNullOrWhiteSpace(apiUrlBase) ?
                 Constants.DEFAULT_API_URL_BASE : apiUrlBase;
             StatsigEnvironment = environment ?? new StatsigEnvironment();
+        }
+
+        internal IReadOnlyDictionary<string, string> AdditionalHeaders
+        {
+            get { return _additionalHeaders; }
+        }
+
+        public void AddRequestHeader(string key, string value)
+        {
+            if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value)) 
+            {
+                throw new ArgumentException("Both Key and Value need to be non-empty");
+            }
+            _additionalHeaders.Add(key, value);
         }
     }
 }

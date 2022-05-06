@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Statsig.Network;
 using Statsig.Server.Evaluation;
@@ -30,13 +31,19 @@ namespace Statsig.Server
             {
                 throw new ArgumentException("serverSecret cannot be empty.", "serverSecret");
             }
-            if (!serverSecret.StartsWith("secret-"))
-            {
-                throw new ArgumentException("Invalid key provided. Please check your Statsig console to get the right server key.", "serverSecret");
-            }
             if (options == null)
             {
                 options = new StatsigOptions();
+            }
+            if (!serverSecret.StartsWith("secret-"))
+            {
+                if (options.AdditionalHeaders.Count == 0) 
+                {
+                    throw new ArgumentException(
+                        "Invalid key provided. Please check your Statsig console to get the right server key.", 
+                        "serverSecret"
+                    );
+                }
             }
             _serverSecret = serverSecret;
             _options = options;
@@ -203,6 +210,16 @@ namespace Statsig.Server
             }
 
             return result;
+        }
+
+        public string GenerateInitializeResponse(StatsigUser user) 
+        {
+            EnsureInitialized();
+            ValidateUser(user);
+            NormalizeUser(user);
+
+            var allEvals = evaluator.GetAllEvaluations(user);
+            return JsonConvert.SerializeObject(allEvals);
         }
 
         public void LogEvent(

@@ -71,30 +71,37 @@ namespace Statsig.Server
                 return attributesSame && idsSame;
             }
         }
+
+        public override int GetHashCode()
+        {
+            return this.Name.GetHashCode();
+        }
     }
 
     class SpecStore
     {
-        private double _lastSyncTime;
-        private readonly RequestDispatcher _requestDispatcher;
+        private readonly RequestDispatcher _requestDispatcher = null;
 
         private Task _syncIDListsTask;
         private Task _syncValuesTask;
-        private readonly CancellationTokenSource _cts;
+        private readonly CancellationTokenSource _cts = null;
 
+        internal long LastSyncTime { get; private set; }
         internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
         internal Dictionary<string, ConfigSpec> LayerConfigs { get; private set; }
+        internal Dictionary<string, IReadOnlyCollection<string>> LayersMap { get; private set; }
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
         internal int IDListSyncInterval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC;
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
-            _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase);
-            _lastSyncTime = 0;
+            _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase, options.AdditionalHeaders);
+            LastSyncTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             LayerConfigs = new Dictionary<string, ConfigSpec>();
+            LayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
             _idLists = new ConcurrentDictionary<string, IDList>();
 
             _syncIDListsTask = null;
@@ -116,7 +123,10 @@ namespace Statsig.Server
         internal async Task Shutdown()
         {
             // Signal that the periodic task should exit, and then wait for them to finish
-            _cts.Cancel();
+            if (_cts != null) 
+            {
+                _cts.Cancel();
+            }
             if (_syncIDListsTask != null)
             {
                 await _syncIDListsTask;
@@ -141,7 +151,6 @@ namespace Statsig.Server
                 try
                 {
                     await Task.Delay(delayInterval, cancellationToken);
-
                     await SyncIDLists();
                 }
                 catch (TaskCanceledException)
@@ -233,6 +242,75 @@ namespace Statsig.Server
             }
         }
 
+        private async Task AddServerIDList(string listName, IDList serverList)
+        {
+            _idLists.TryGetValue(listName, out var localList);
+
+            // reset local id list if it doesn't exist, or if server list is a newer file by creation time
+            if (localList == null || (serverList.FileID != localList.FileID && serverList.CreationTime >= localList.CreationTime))
+            {
+                localList = new IDList
+                {
+                    Name = listName,
+                    Size = 0,
+                    URL = serverList.URL,
+                    CreationTime = serverList.CreationTime,
+                    FileID = serverList.FileID
+                };
+                _idLists[listName] = localList;
+            }
+
+            // skip the list if url or fileID is invalid, or if the list was an old one
+            if (string.IsNullOrEmpty(serverList.URL) || 
+                string.IsNullOrEmpty(serverList.FileID) || 
+                serverList.CreationTime < localList.CreationTime)
+            {
+                return;
+            }
+
+            // skip if server list is not bigger
+            if (serverList.Size <= localList.Size)
+            {
+                return;
+            }
+
+            await DownloadIDList(localList);
+        }
+
+        private async Task SyncIDLists(IReadOnlyDictionary<string, JToken> idListMap)
+        {
+            var tasks = new List<Task>();
+            foreach (var entry in idListMap)
+            {
+                try
+                {
+                    var serverList = entry.Value.ToObject<IDList>();
+                    if (serverList != null)
+                    {
+                        tasks.Add(this.AddServerIDList(entry.Key, serverList));
+                    }
+                }
+                catch
+                {
+                    // Ignore malformed lists
+                }
+            }
+            await Task.WhenAll(tasks);
+
+            var deletedLists = new List<string>();
+            foreach (var listName in _idLists.Keys)
+            {
+                if (!idListMap.ContainsKey(listName))
+                {
+                    deletedLists.Add(listName);
+                }
+            }
+            foreach (var listName in deletedLists)
+            {
+                _idLists.TryRemove(listName, out _);
+            }
+        }
+
         private async Task SyncIDLists()
         {
             var response = await _requestDispatcher.Fetch("get_id_lists", new Dictionary<string, object>
@@ -244,72 +322,16 @@ namespace Statsig.Server
                 return;
             }
 
-            // Build a list of tasks to download each id list
-            var tasks = new List<Task>();
-            foreach (var entry in response)
-            {
-                var listName = entry.Key;
-                try
-                {
-                    var serverList = entry.Value.ToObject<IDList>();
-                    _idLists.TryGetValue(listName, out var localList);
-
-                    // reset local id list if it doesn't exist, or if server list is a newer file by creation time
-                    if (localList == null || (serverList.FileID != localList.FileID && serverList.CreationTime >= localList.CreationTime))
-                    {
-                        localList = new IDList
-                        {
-                            Name = listName,
-                            Size = 0,
-                            URL = serverList.URL,
-                            CreationTime = serverList.CreationTime,
-                            FileID = serverList.FileID
-                        };
-                        _idLists[listName] = localList;
-                    }
-
-                    // skip the list if url or fileID is invalid, or if the list was an old one
-                    if (string.IsNullOrEmpty(serverList.URL) || string.IsNullOrEmpty(serverList.FileID) || serverList.CreationTime < localList.CreationTime)
-                    {
-                        continue;
-                    }
-
-                    // skip if server list is not bigger
-                    if (serverList.Size <= localList.Size)
-                    {
-                        continue;
-                    }
-
-                    tasks.Add(DownloadIDList(localList));
-                }
-                catch
-                {
-                    // malformatted list, ignore
-                }
-            }
-            await Task.WhenAll(tasks);
-
-            var deletedLists = new List<string>();
-            foreach (var listName in _idLists.Keys)
-            {
-                if (!response.ContainsKey(listName))
-                {
-                    deletedLists.Add(listName);
-                }
-            }
-            foreach (var listName in deletedLists)
-            {
-                _idLists.TryRemove(listName, out _);
-            }
+            await SyncIDLists(response);
         }
-
+        
         private async Task SyncValues(bool initialRequest)
         {
             var response = await _requestDispatcher.Fetch(
                 "download_config_specs",
                 new Dictionary<string, object>
                 {
-                    ["sinceTime"] = _lastSyncTime,
+                    ["sinceTime"] = LastSyncTime,
                     ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
                 }
             );
@@ -323,7 +345,7 @@ namespace Statsig.Server
         private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
         {
             JToken time;
-            _lastSyncTime = response.TryGetValue("time", out time) ? time.Value<double>() : _lastSyncTime;
+            LastSyncTime = response.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
 
             if (!initialRequest)
             {
@@ -335,7 +357,8 @@ namespace Statsig.Server
 
             var newGates = new Dictionary<string, ConfigSpec>();
             var newConfigs = new Dictionary<string, ConfigSpec>();
-            var newLayers = new Dictionary<string, ConfigSpec>();
+            var newLayerConfigs = new Dictionary<string, ConfigSpec>();
+            var newLayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
             try
             {
                 JToken objVal;
@@ -383,7 +406,7 @@ namespace Statsig.Server
                     foreach (JObject config in configs)
                     {
                         var configSpec = ConfigSpec.FromJObject(config);
-                        newLayers[configSpec.Name.ToLowerInvariant()] = ConfigSpec.FromJObject(config);
+                        newLayerConfigs[configSpec.Name.ToLowerInvariant()] = ConfigSpec.FromJObject(config);
                     }
                 }
             }
@@ -393,9 +416,36 @@ namespace Statsig.Server
                 return;
             }
 
+            try
+            {
+                JToken objVal;
+                if (response.TryGetValue("layers", out objVal) && objVal.Type == JTokenType.Object)
+                {
+                    var jobj = objVal.Value<JObject>();
+                    foreach (var prop in jobj.Properties())
+                    {
+                        if (prop.Value.Type == JTokenType.Array)
+                        {
+                            var array = prop.Value.Value<JArray>();
+                            var list = new List<string>();
+                            foreach (var item in array)
+                            {
+                                list.Add(item.Value<string>());
+                            }
+                            newLayersMap.Add(prop.Name, list);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // TODO: Log this & continue
+            }
+
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
-            LayerConfigs = newLayers;
+            LayerConfigs = newLayerConfigs;
+            LayersMap = newLayersMap;
         }
     }
 }

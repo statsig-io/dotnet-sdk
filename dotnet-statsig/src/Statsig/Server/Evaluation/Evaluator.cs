@@ -39,7 +39,7 @@ namespace Statsig.Server.Evaluation
             gateName = gateName.ToLowerInvariant();
             if (!_initialized || string.IsNullOrWhiteSpace(gateName) || !_store.FeatureGates.ContainsKey(gateName))
             {
-                return null;
+                return new ConfigEvaluation(EvaluationResult.Fail);
             }
             return Evaluate(user, _store.FeatureGates[gateName]);
         }
@@ -49,7 +49,7 @@ namespace Statsig.Server.Evaluation
             configName = configName.ToLowerInvariant();
             if (!_initialized || string.IsNullOrWhiteSpace(configName) || !_store.DynamicConfigs.ContainsKey(configName))
             {
-                return null;
+                return new ConfigEvaluation(EvaluationResult.Fail);
             }
             return Evaluate(user, _store.DynamicConfigs[configName]);
         }
@@ -59,9 +59,219 @@ namespace Statsig.Server.Evaluation
             layerName = layerName.ToLowerInvariant();
             if (!_initialized || string.IsNullOrWhiteSpace(layerName) || !_store.LayerConfigs.ContainsKey(layerName))
             {
-                return null;
+                return new ConfigEvaluation(EvaluationResult.Fail);
             }
             return Evaluate(user, _store.LayerConfigs[layerName]);
+        }
+
+        internal Dictionary<string, Object> GetAllEvaluations(StatsigUser user)
+        {
+            if (!_initialized)
+            {
+                return null;
+            }
+
+            var gates = new Dictionary<string, Dictionary<string, object>>();
+            foreach (var kv in _store.FeatureGates)
+            {
+                if (kv.Value.Entity == "segment") 
+                {
+                    continue;
+                }
+
+                var hashedName = HashName(kv.Value.Name);
+                var gate = Evaluate(user, kv.Value).GateValue;
+                var entry = new Dictionary<string, object>
+                {
+                    ["name"] = hashedName,
+                    ["value"] = gate.Value,
+                    ["rule_id"] = gate.RuleID,
+                };
+                if (gate.SecondaryExposures.Count > 0)
+                {
+                    entry["secondary_exposures"] = CleanExposures(gate.SecondaryExposures);
+                }
+                gates.Add(hashedName, entry);
+            }
+            
+            var dynamicConfigs = new Dictionary<string, Dictionary<string, object>>();
+            foreach (var kv in _store.DynamicConfigs)
+            {
+                var hashedName = HashName(kv.Value.Name);
+                var config = Evaluate(user, kv.Value).ConfigValue;
+                var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
+                if (kv.Value.Entity != "dynamic_config")
+                {
+                    entry["is_experiment_active"] = IsExperimentActive(kv.Value);
+                    entry["is_user_in_experiment"] = 
+                        IsUserAllocatedToExperiment(user, kv.Value, config.RuleID);
+                    entry["is_in_layer"] = IsExperimentInLayer(kv.Value);
+                }
+                dynamicConfigs.Add(hashedName, entry);
+            }
+
+            var layerConfigs = new Dictionary<string, Dictionary<string, object>>();
+            foreach (var kv in _store.LayerConfigs)
+            {
+                var hashedName = HashName(kv.Value.Name);
+                var evaluation = Evaluate(user, kv.Value);
+                var config = evaluation.ConfigValue;
+                var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
+
+                if (!string.IsNullOrWhiteSpace(evaluation.ConfigDelegate))
+                {
+                    entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate);
+                    ConfigSpec experimentSpec = null;
+                    _store.DynamicConfigs.TryGetValue(evaluation.ConfigDelegate, out experimentSpec);
+                    
+                    entry["is_experiment_active"] = IsExperimentActive(experimentSpec);
+                    entry["is_user_in_experiment"] = 
+                        IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
+                    if (experimentSpec.ExplicitParameters != null && experimentSpec.ExplicitParameters.Count > 0)
+                    {
+                        entry["explicit_parameters"] = experimentSpec.ExplicitParameters;
+                    }
+                }
+                entry["undelegated_secondary_exposures"] = 
+                    CleanExposures(evaluation.UndelegatedSecondaryExposures);
+                layerConfigs.Add(hashedName, entry);
+            }
+
+            var result = new Dictionary<string, Object>
+            {
+                ["feature_gates"] = gates,
+                ["dynamic_configs"] = dynamicConfigs,
+                ["layer_configs"] = layerConfigs,
+                ["sdkParams"] = new Object(),
+                ["has_updates"] = true,
+                ["time"] = _store.LastSyncTime,
+            };
+            return result;
+        }
+
+        private IEnumerable<IReadOnlyDictionary<string, string>> CleanExposures(
+            IEnumerable<IReadOnlyDictionary<string, string>> exposures
+        )
+        {
+            if (exposures == null) 
+            {
+                return new List<IReadOnlyDictionary<string, string>>();
+            }
+
+            var seen = new HashSet<string>();
+            return exposures.Select((exp) => {
+                var gate = exp["gate"];
+                var gateValue = exp["gateValue"];
+                var ruleID = exp["ruleID"];
+                var key = $"{gate}|{gateValue}|{ruleID}";
+                if (seen.Contains(key)) 
+                {
+                    return null;
+                }
+                seen.Add(key);
+                return exp;
+            }).Where((exp) => exp != null);
+        }
+
+        private bool IsExperimentActive(ConfigSpec spec)
+        {
+            bool layerAssignmentFound = false;
+            foreach (var rule in spec.Rules)
+            {
+                if (rule.Name == "abandoned" || rule.Name == "prestart")
+                {
+                    return false;
+                }
+                if (rule.ID.ToLowerInvariant() == "layerassignment")
+                {
+                    layerAssignmentFound = true;
+                }
+            }
+            return layerAssignmentFound;
+        }
+        
+        private bool IsExperimentInLayer(ConfigSpec spec)
+        {
+            foreach (var kv in _store.LayersMap)
+            {
+                if (kv.Value.Contains(spec.Name))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool IsUserAllocatedToExperiment(
+            StatsigUser user, 
+            ConfigSpec spec,
+            string evaluatedRuleID
+        )
+        {
+            List<IReadOnlyDictionary<string, string>> sec;
+            var evaluatedRule = spec.Rules.FirstOrDefault((r) => r.ID == evaluatedRuleID);
+            if (evaluatedRule != null)
+            {
+                var firstCondition = evaluatedRule.Conditions.FirstOrDefault();
+                if (firstCondition == null)
+                {
+                    return false;
+                }
+                if (firstCondition.Type == "pass_gate" || firstCondition.Type == "fail_gate") 
+                {
+                    // This is a holdout or targeting gate
+                    System.Diagnostics.Debug.Assert(
+                        evaluatedRule.DynamicConfigValue.Value.Count == 0
+                    );
+                    return false;
+                }
+            }
+
+            foreach (var rule in spec.Rules)
+            {
+                var ruleID = (rule.ID == null ? "" : rule.ID.ToLowerInvariant());
+                if (ruleID == "layerassignment")
+                {
+                    // User is allocated if they FAIL the layer assignment
+                    var evalResult = EvaluateRule(user, rule, out sec);
+                    return (evalResult == EvaluationResult.Fail);
+                }
+            }
+            return false;
+        }
+
+        private Dictionary<string, object> ConfigSpecToInitResponse(
+            string hashedName,
+            ConfigSpec spec, 
+            DynamicConfig config
+        )
+        {
+            var entry = new Dictionary<string, object>
+            {
+                ["name"] = hashedName,
+                ["value"] = config.Value,
+                ["rule_id"] = config.RuleID,
+                ["group"] = config.RuleID,
+                ["is_device_based"] = (spec.IDType != null && 
+                    spec.IDType.ToLowerInvariant() == "stableid"),
+            };
+
+            if (config.SecondaryExposures.Count > 0)
+            {
+                entry["secondary_exposures"] = CleanExposures(config.SecondaryExposures);
+            }
+            entry["explicit_parameters"] = spec.ExplicitParameters ?? new List<string>();
+            
+            return entry;
+        }
+
+        private string HashName(string name)
+        {
+            using (var sha = SHA256.Create())
+            {
+                var buffer = sha.ComputeHash(Encoding.UTF8.GetBytes(name));
+                return Convert.ToBase64String(buffer);
+            }
         }
 
         private ConfigEvaluation EvaluateDelegate(StatsigUser user, ConfigRule rule, List<IReadOnlyDictionary<string, string>> exposures)
