@@ -90,7 +90,7 @@ namespace Statsig.Server
         internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
         internal Dictionary<string, ConfigSpec> LayerConfigs { get; private set; }
-        internal Dictionary<string, IReadOnlyCollection<string>> LayersMap { get; private set; }
+        internal Dictionary<string, List<string>> LayersMap { get; private set; }
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
         internal int IDListSyncInterval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC;
 
@@ -101,7 +101,7 @@ namespace Statsig.Server
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             LayerConfigs = new Dictionary<string, ConfigSpec>();
-            LayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
+            LayersMap = new Dictionary<string, List<string>>();
             _idLists = new ConcurrentDictionary<string, IDList>();
 
             _syncIDListsTask = null;
@@ -358,7 +358,7 @@ namespace Statsig.Server
             var newGates = new Dictionary<string, ConfigSpec>();
             var newConfigs = new Dictionary<string, ConfigSpec>();
             var newLayerConfigs = new Dictionary<string, ConfigSpec>();
-            var newLayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
+            var newLayersMap = new Dictionary<string, List<string>>();
             try
             {
                 JToken objVal;
@@ -426,9 +426,9 @@ namespace Statsig.Server
                     {
                         if (prop.Value.Type == JTokenType.Array)
                         {
-                            var array = prop.Value.Value<JArray>();
+                            var jarr = prop.Value.ToArray();
                             var list = new List<string>();
-                            foreach (var item in array)
+                            foreach (var item in jarr) 
                             {
                                 list.Add(item.Value<string>());
                             }
