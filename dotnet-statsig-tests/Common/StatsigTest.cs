@@ -136,7 +136,7 @@ namespace dotnet_statsig_tests
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
 
             Assert.True(metadata["sdkType"].Equals("dotnet-client"));
-            Assert.True(metadata["sdkVersion"].Equals("1.8.0.0"));
+            Assert.True(metadata["sdkVersion"].Equals("1.9.0.0"));
 
             Assert.True(StatsigClient.CheckGate("test_gate"));
             var exp = StatsigClient.GetExperiment("test_config");
@@ -378,7 +378,7 @@ namespace dotnet_statsig_tests
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
 
             Assert.True(metadata["sdkType"].Equals("dotnet-server"));
-            Assert.True(metadata["sdkVersion"].Equals("1.8.0.0"));
+            Assert.True(metadata["sdkVersion"].Equals("1.9.0.0"));
 
             var gate = await StatsigServer.CheckGate(user, "test_gate");
             Assert.True(gate);
