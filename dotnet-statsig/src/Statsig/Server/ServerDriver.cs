@@ -219,6 +219,7 @@ namespace Statsig.Server
             NormalizeUser(user);
 
             var allEvals = evaluator.GetAllEvaluations(user);
+            allEvals.Add("generator", "Dotnet Server");
             return JsonConvert.SerializeObject(allEvals);
         }
 
