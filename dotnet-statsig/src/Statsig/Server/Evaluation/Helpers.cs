@@ -9,6 +9,7 @@ namespace Statsig.Server.Evaluation
 {
     static class Helpers
     {
+        internal static Parser _uaParser;
         internal static object GetFromUser(StatsigUser user, string field)
         {
             if (user == null)
@@ -50,23 +51,32 @@ namespace Statsig.Server.Evaluation
             {
                 return null;
             }
-            var uaParser = Parser.GetDefault();
-            ClientInfo c = uaParser.Parse((string)ua);
-            Dictionary<string, string> uaValues = new Dictionary<string, string>
+            try
             {
-                ["os_name"] = c.OS.Family,
-                ["os_version"] = string.Join(".", new string[] {
-                    c.OS.Major, c.OS.Minor, c.OS.Patch
-                }.Where(v => !string.IsNullOrEmpty(v)).ToArray()),
-                ["browser_name"] = c.UA.Family,
-                ["browser_version"] = string.Join(".", new string[] {
-                    c.UA.Major, c.UA.Minor, c.UA.Patch
-                }.Where(v => !string.IsNullOrEmpty(v)).ToArray())
-            };
+                if (_uaParser == null)
+                {
+                    _uaParser = Parser.GetDefault();
+                }
+                ClientInfo c = _uaParser.Parse((string)ua);
+                Dictionary<string, string> uaValues = new Dictionary<string, string>
+                {
+                    ["os_name"] = c.OS.Family,
+                    ["os_version"] = string.Join(".", new string[] {
+                        c.OS.Major, c.OS.Minor, c.OS.Patch
+                    }.Where(v => !string.IsNullOrEmpty(v)).ToArray()),
+                    ["browser_name"] = c.UA.Family,
+                    ["browser_version"] = string.Join(".", new string[] {
+                        c.UA.Major, c.UA.Minor, c.UA.Patch
+                    }.Where(v => !string.IsNullOrEmpty(v)).ToArray())
+                };
 
-            if (uaValues.TryGetValue(field, out string value))
+                if (uaValues.TryGetValue(field, out string value))
+                {
+                    return value;
+                }
+            }
+            catch (Exception)
             {
-                return value;
             }
 
             return null;
