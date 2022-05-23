@@ -212,7 +212,7 @@ namespace Statsig.Server
             return result;
         }
 
-        public string GenerateInitializeResponse(StatsigUser user) 
+        public Dictionary<string, object> GenerateInitializeResponse(StatsigUser user) 
         {
             EnsureInitialized();
             ValidateUser(user);
@@ -220,7 +220,7 @@ namespace Statsig.Server
 
             var allEvals = evaluator.GetAllEvaluations(user);
             allEvals.Add("generator", "Dotnet Server");
-            return JsonConvert.SerializeObject(allEvals);
+            return allEvals;
         }
 
         public void LogEvent(
