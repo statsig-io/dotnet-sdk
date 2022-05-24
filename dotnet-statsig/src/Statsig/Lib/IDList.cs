@@ -61,8 +61,20 @@ namespace Statsig.Server.Lib
                     && list.CreationTime == CreationTime
                     && list.URL == URL
                     && list.FileID == FileID;
-                var idsSame = list.IDs.Count == IDs.Count; // TODO: && list.IDs.Keys.OrderBy(v => v).SequenceEqual(IDs.Keys.OrderBy(v => v));
-                return attributesSame && idsSame;
+                var idsSame = list.IDs.Count == IDs.Count; 
+                if (!attributesSame || !idsSame) 
+                {
+                  return false;
+                }
+
+                foreach (var item in list.IDs._hashSet)
+                {
+                  if (!this.IDs.Contains(item)) 
+                  {
+                    return false;
+                  }
+                }                
+                return true;
             }
         }
 

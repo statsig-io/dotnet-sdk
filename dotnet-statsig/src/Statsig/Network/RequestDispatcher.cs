@@ -39,7 +39,12 @@ namespace Statsig.Network
             Key = key;
             ApiBaseUrl = apiBaseUrl;
             AdditionalHeaders = headers;
-            defaultSerializer = JsonSerializer.CreateDefault();
+
+            var jsonSettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            };
+            defaultSerializer = JsonSerializer.CreateDefault(jsonSettings);
         }
 
         public async Task<IReadOnlyDictionary<string, JToken>> Fetch(

@@ -136,7 +136,15 @@ namespace Statsig.Server
             {
                 if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
                 {
-                    using (var reader = new StreamReader(response.GetResponseStream()))
+                    var memoryStream = new MemoryStream();
+                    using (var responseStream = response.GetResponseStream())
+                    {
+                        responseStream.CopyTo(memoryStream);
+                    }
+                    var contentLength = memoryStream.Length;
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+
+                    using (var reader = new StreamReader(memoryStream))
                     {
                         var next = reader.Peek();
                         if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
@@ -164,7 +172,7 @@ namespace Statsig.Server
                         }
 
                         list.TrimExcess();
-                        list.Size = list.Size + response.ContentLength;
+                        list.Size = list.Size + contentLength;
                     }
                 }
             }
