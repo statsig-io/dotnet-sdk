@@ -25,11 +25,14 @@ namespace Statsig.Server
         internal Dictionary<string, ConfigSpec> LayerConfigs { get; private set; }
         internal Dictionary<string, IReadOnlyCollection<string>> LayersMap { get; private set; }
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
-        internal int IDListSyncInterval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC;
+        private double _idListsSyncInterval;
+        private double _rulesetsSyncInterval;
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
             _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase, options.AdditionalHeaders);
+            _idListsSyncInterval = options.IDListsSyncInterval;
+            _rulesetsSyncInterval = options.RulesetsSyncInterval;
             LastSyncTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
@@ -56,7 +59,7 @@ namespace Statsig.Server
         internal async Task Shutdown()
         {
             // Signal that the periodic task should exit, and then wait for them to finish
-            if (_cts != null) 
+            if (_cts != null)
             {
                 _cts.Cancel();
             }
@@ -77,8 +80,7 @@ namespace Statsig.Server
 
         private async Task BackgroundPeriodicSyncIDListsTask(CancellationToken cancellationToken)
         {
-            var delayInterval = TimeSpan.FromSeconds(IDListSyncInterval);
-
+            var delayInterval = TimeSpan.FromSeconds(_idListsSyncInterval);
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
@@ -100,8 +102,7 @@ namespace Statsig.Server
 
         private async Task BackgroundPeriodicSyncValuesTask(CancellationToken cancellationToken)
         {
-            var delayInterval = TimeSpan.FromSeconds(Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC);
-
+            var delayInterval = TimeSpan.FromSeconds(_rulesetsSyncInterval);
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
@@ -203,8 +204,8 @@ namespace Statsig.Server
             }
 
             // skip the list if url or fileID is invalid, or if the list was an old one
-            if (string.IsNullOrEmpty(serverList.URL) || 
-                string.IsNullOrEmpty(serverList.FileID) || 
+            if (string.IsNullOrEmpty(serverList.URL) ||
+                string.IsNullOrEmpty(serverList.FileID) ||
                 serverList.CreationTime < localList.CreationTime)
             {
                 return;
@@ -266,7 +267,7 @@ namespace Statsig.Server
 
             await SyncIDLists(response);
         }
-        
+
         private async Task SyncValues(bool initialRequest)
         {
             var response = await _requestDispatcher.Fetch(

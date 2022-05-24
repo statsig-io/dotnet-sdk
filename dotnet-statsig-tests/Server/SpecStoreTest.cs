@@ -30,7 +30,6 @@ namespace dotnet_statsig_tests
         WireMockServer _server;
         string baseURL;
 
-        int downloadConfigsCount = 0;
         int getIDListCount = 0;
         int list1Count = 0;
 
@@ -70,7 +69,6 @@ namespace dotnet_statsig_tests
 
             if (requestMessage.AbsolutePath.Contains("/v1/download_config_specs"))
             {
-                downloadConfigsCount++;
                 return await Response.Create()
                     .WithStatusCode(200)
                     .WithBody(SpecStoreResponseData.downloadConfigSpecResponse)
@@ -121,8 +119,7 @@ namespace dotnet_statsig_tests
         [Fact]
         public async void TestStore()
         {
-            var store = new SpecStore("secret-123", new StatsigOptions(_server.Urls[0] + "/v1"));
-            store.IDListSyncInterval = 1;
+            var store = new SpecStore("secret-123", new StatsigOptions(_server.Urls[0] + "/v1") { IDListsSyncInterval = 1});
             await store.Initialize();
             var expectedIDLists = SpecStoreResponseData.getIDListExpectedResults(_server.Urls[0]);
             TestStoreHelper(store, expectedIDLists, 0);

@@ -8,6 +8,9 @@ namespace Statsig
         public string ApiUrlBase { get; }
         public StatsigEnvironment StatsigEnvironment { get; }
         public string PersistentStorageFolder { get; set; }
+        public double RulesetsSyncInterval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC;
+        public double IDListsSyncInterval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC;
+
         private Dictionary<string, string> _additionalHeaders;
         
         public StatsigOptions(): this(null)
