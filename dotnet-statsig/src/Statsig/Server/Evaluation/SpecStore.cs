@@ -136,43 +136,45 @@ namespace Statsig.Server
             {
                 if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
                 {
-                    var memoryStream = new MemoryStream();
-                    using (var responseStream = response.GetResponseStream())
+                    using (var memoryStream = new MemoryStream())
                     {
-                        responseStream.CopyTo(memoryStream);
-                    }
-                    var contentLength = memoryStream.Length;
-                    memoryStream.Seek(0, SeekOrigin.Begin);
-
-                    using (var reader = new StreamReader(memoryStream))
-                    {
-                        var next = reader.Peek();
-                        if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
+                        using (var responseStream = response.GetResponseStream())
                         {
-                            _idLists.TryRemove(list.Name, out _);
-                            return;
+                            responseStream.CopyTo(memoryStream);
                         }
+                        var contentLength = memoryStream.Length;
+                        memoryStream.Seek(0, SeekOrigin.Begin);
 
-                        string line;
-                        while ((line = reader.ReadLine()) != null)
+                        using (var reader = new StreamReader(memoryStream))
                         {
-                            if (string.IsNullOrEmpty(line))
+                            var next = reader.Peek();
+                            if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
                             {
-                                continue;
+                                _idLists.TryRemove(list.Name, out _);
+                                return;
                             }
-                            var id = line.Substring(1);
-                            if (line[0] == '+')
-                            {
-                                list.Add(id);
-                            }
-                            else if (line[0] == '-')
-                            {
-                                list.Remove(id);
-                            }
-                        }
 
-                        list.TrimExcess();
-                        list.Size = list.Size + contentLength;
+                            string line;
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                if (string.IsNullOrEmpty(line))
+                                {
+                                    continue;
+                                }
+                                var id = line.Substring(1);
+                                if (line[0] == '+')
+                                {
+                                    list.Add(id);
+                                }
+                                else if (line[0] == '-')
+                                {
+                                    list.Remove(id);
+                                }
+                            }
+
+                            list.TrimExcess();
+                            list.Size = list.Size + contentLength;
+                        }
                     }
                 }
             }
