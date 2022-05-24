@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Statsig.Server;
+using Statsig.Server.Lib;
 
 namespace dotnet_statsig_tests
 {
@@ -77,7 +77,7 @@ namespace dotnet_statsig_tests
             };
             foreach (var id in ids)
             {
-                list.IDs.TryAdd(id, true);
+                list.IDs.Add(id);
             }
             return list;
         }

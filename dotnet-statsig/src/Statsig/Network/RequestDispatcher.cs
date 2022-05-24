@@ -12,6 +12,7 @@ namespace Statsig.Network
     public class RequestDispatcher
     {
         const int backoffMultiplier = 2;
+        private JsonSerializer defaultSerializer;
         private static readonly HashSet<int> retryCodes = new HashSet<int> { 408, 500, 502, 503, 504, 522, 524, 599 };
         public string Key { get; }
         public string ApiBaseUrl { get; }
@@ -38,6 +39,12 @@ namespace Statsig.Network
             Key = key;
             ApiBaseUrl = apiBaseUrl;
             AdditionalHeaders = headers;
+
+            var jsonSettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            };
+            defaultSerializer = JsonSerializer.CreateDefault(jsonSettings);
         }
 
         public async Task<IReadOnlyDictionary<string, JToken>> Fetch(
@@ -61,14 +68,10 @@ namespace Statsig.Network
                     request.Headers.Add(kv.Key, kv.Value);
                 }
 
-                var jsonSettings = new JsonSerializerSettings
-                {
-                    NullValueHandling = NullValueHandling.Ignore
-                };
                 using (var writer = new StreamWriter(request.GetRequestStream()))
                 {
-                    var bodyJson = JsonConvert.SerializeObject(body, Formatting.None, jsonSettings);
-                    writer.Write(bodyJson);
+                    var jsonWriter = new JsonTextWriter(writer);
+                    defaultSerializer.Serialize(writer, body);
                 }
 
                 var response = (HttpWebResponse)await request.GetResponseAsync();
@@ -80,8 +83,8 @@ namespace Statsig.Network
                 {
                     using (var reader = new StreamReader(response.GetResponseStream()))
                     {
-                        var json = reader.ReadToEnd();
-                        return JsonConvert.DeserializeObject<Dictionary<string, JToken>>(json);
+                        var jsonReader = new JsonTextReader(reader);
+                        return defaultSerializer.Deserialize<Dictionary<string, JToken>>(jsonReader);
                     }
                 }
                 else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))

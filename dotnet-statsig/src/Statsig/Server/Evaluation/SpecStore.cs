@@ -1,83 +1,16 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Statsig.Network;
+using Statsig.Server.Lib;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Statsig.Server
 {
-
-    class IDList
-    {
-        [JsonProperty("name")]
-        internal string Name { get; set; }
-
-        [JsonProperty("size")]
-        internal double Size { get; set; }
-
-        [JsonProperty("creationTime")]
-        internal double CreationTime { get; set; }
-
-        [JsonProperty("url")]
-        internal string URL { get; set; }
-
-        [JsonProperty("fileID")]
-        internal string FileID { get; set; }
-
-        internal ConcurrentDictionary<string, bool> IDs { get; set; }
-
-        internal IDList()
-        {
-            IDs = new ConcurrentDictionary<string, bool>();
-        }
-
-        internal void Add(string id)
-        {
-            IDs[id] = true;
-        }
-
-        internal void Remove(string id)
-        {
-            IDs.TryRemove(id, out _);
-        }
-
-        internal bool Contains(string id)
-        {
-            return IDs.ContainsKey(id);
-        }
-
-        public override bool Equals(object obj)
-        {
-            //Check for null and compare run-time types.
-            if ((obj == null) || !GetType().Equals(obj.GetType()))
-            {
-                return false;
-            }
-            else
-            {
-                IDList list = (IDList)obj;
-                var attributesSame = list.Name == Name
-                    && list.Size == Size
-                    && list.CreationTime == CreationTime
-                    && list.URL == URL
-                    && list.FileID == FileID;
-                var idsSame = list.IDs.Count == IDs.Count && list.IDs.Keys.OrderBy(v => v).SequenceEqual(IDs.Keys.OrderBy(v => v));
-                return attributesSame && idsSame;
-            }
-        }
-
-        public override int GetHashCode()
-        {
-            return this.Name.GetHashCode();
-        }
-    }
-
     class SpecStore
     {
         private readonly RequestDispatcher _requestDispatcher = null;
@@ -203,19 +136,26 @@ namespace Statsig.Server
             {
                 if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
                 {
-                    using (var reader = new StreamReader(response.GetResponseStream()))
+                    using (var memoryStream = new MemoryStream())
                     {
-                        var content = reader.ReadToEnd();
-                        var contentLength = content.Length;
-                        if (string.IsNullOrEmpty(content) || (content[0] != '+' && content[0] != '-'))
+                        using (var responseStream = response.GetResponseStream())
                         {
-                            _idLists.TryRemove(list.Name, out _);
-                            return;
+                            responseStream.CopyTo(memoryStream);
                         }
-                        using (var lineReader = new StringReader(content))
+                        var contentLength = memoryStream.Length;
+                        memoryStream.Seek(0, SeekOrigin.Begin);
+
+                        using (var reader = new StreamReader(memoryStream))
                         {
+                            var next = reader.Peek();
+                            if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
+                            {
+                                _idLists.TryRemove(list.Name, out _);
+                                return;
+                            }
+
                             string line;
-                            while ((line = lineReader.ReadLine()) != null)
+                            while ((line = reader.ReadLine()) != null)
                             {
                                 if (string.IsNullOrEmpty(line))
                                 {
@@ -231,8 +171,10 @@ namespace Statsig.Server
                                     list.Remove(id);
                                 }
                             }
+
+                            list.TrimExcess();
+                            list.Size = list.Size + contentLength;
                         }
-                        list.Size = list.Size + contentLength;
                     }
                 }
             }
