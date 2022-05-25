@@ -39,12 +39,6 @@ namespace dotnet_statsig_tests
             _server.Given(
                 Request.Create().WithPath("/list_1").UsingAnyMethod()
             ).RespondWith(this);
-            _server.Given(
-                Request.Create().WithPath("/list_2").UsingAnyMethod()
-            ).RespondWith(this);
-            _server.Given(
-                Request.Create().WithPath("/list_3").UsingAnyMethod()
-            ).RespondWith(this);
 
             return Task.CompletedTask;
         }
@@ -148,7 +142,7 @@ namespace dotnet_statsig_tests
                 Assert.True(await StatsigServer.CheckGate(user, "always_on_gate"));
 
                 // check id list gate for a user that should be in the id list
-                Assert.True(await StatsigServer.CheckGate(new StatsigUser { UserID = "regular_user_id" }, "always_on_gate"));
+                Assert.True(await StatsigServer.CheckGate(new StatsigUser { UserID = "regular_user_id" }, "on_for_id_list"));
 
                 StatsigServer.LogEvent(user, "test_event_2", 1, new Dictionary<string, string>() { { "Key", "Value" } });
 
