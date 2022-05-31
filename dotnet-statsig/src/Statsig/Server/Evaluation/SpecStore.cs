@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using Statsig.Network;
-using Statsig.Server.Lib;
+using Statsig.Lib;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -27,9 +27,11 @@ namespace Statsig.Server
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
         private double _idListsSyncInterval;
         private double _rulesetsSyncInterval;
+        private Func<IIDStore> _idStoreFactory;
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
+            _idStoreFactory = options.IDStoreFactory;
             _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase, options.AdditionalHeaders);
             _idListsSyncInterval = options.IDListsSyncInterval;
             _rulesetsSyncInterval = options.RulesetsSyncInterval;
@@ -75,7 +77,7 @@ namespace Statsig.Server
 
         internal bool IDListContainsValue(string listName, string value)
         {
-            return _idLists.TryGetValue(listName, out var list) && list.Contains(value);
+            return _idLists.TryGetValue(listName, out var list) && list.Store.Contains(value);
         }
 
         private async Task BackgroundPeriodicSyncIDListsTask(CancellationToken cancellationToken)
@@ -151,7 +153,11 @@ namespace Statsig.Server
                             var next = reader.Peek();
                             if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
                             {
-                                _idLists.TryRemove(list.Name, out _);
+                                IDList removed;
+                                if (_idLists.TryRemove(list.Name, out removed))
+                                {
+                                    removed.Dispose();
+                                }
                                 return;
                             }
 
@@ -165,15 +171,15 @@ namespace Statsig.Server
                                 var id = line.Substring(1);
                                 if (line[0] == '+')
                                 {
-                                    list.Add(id);
+                                    list.Store.Add(id);
                                 }
                                 else if (line[0] == '-')
                                 {
-                                    list.Remove(id);
+                                    list.Store.Remove(id);
                                 }
                             }
 
-                            list.TrimExcess();
+                            list.Store.TrimExcess();
                             list.Size = list.Size + contentLength;
                         }
                     }
@@ -200,6 +206,10 @@ namespace Statsig.Server
                     CreationTime = serverList.CreationTime,
                     FileID = serverList.FileID
                 };
+                if (_idStoreFactory != null)
+                {
+                    localList.Store = _idStoreFactory();
+                }
                 _idLists[listName] = localList;
             }
 
@@ -230,6 +240,10 @@ namespace Statsig.Server
                     var serverList = entry.Value.ToObject<IDList>();
                     if (serverList != null)
                     {
+                        if (_idStoreFactory != null)
+                        {
+                            serverList.Store = _idStoreFactory();
+                        }
                         tasks.Add(this.AddServerIDList(entry.Key, serverList));
                     }
                 }
@@ -250,7 +264,11 @@ namespace Statsig.Server
             }
             foreach (var listName in deletedLists)
             {
-                _idLists.TryRemove(listName, out _);
+                IDList removed;
+                if (_idLists.TryRemove(listName, out removed))
+                {
+                    removed.Dispose();
+                }
             }
         }
 

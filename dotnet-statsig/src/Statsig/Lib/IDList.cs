@@ -1,8 +1,9 @@
+using System;
 using Newtonsoft.Json;
 
-namespace Statsig.Server.Lib
+namespace Statsig.Lib
 {
-    class IDList
+    internal class IDList: IDisposable
     {
         [JsonProperty("name")]
         internal string Name { get; set; }
@@ -19,31 +20,11 @@ namespace Statsig.Server.Lib
         [JsonProperty("fileID")]
         internal string FileID { get; set; }
 
-        internal ConcurrentHashSet<string> IDs { get; set; }
+        internal IIDStore Store { get; set; }
 
         internal IDList()
         {
-            IDs = new ConcurrentHashSet<string>();
-        }
-
-        internal void Add(string id)
-        {
-            IDs.Add(id);
-        }
-
-        internal void Remove(string id)
-        {
-            IDs.Remove(id);
-        }
-
-        internal bool Contains(string id)
-        {
-            return IDs.Contains(id);
-        }
-
-        internal void TrimExcess()
-        {
-            IDs.TrimExcess();
+            Store = new InMemoryIDStore();
         }
 
         public override bool Equals(object obj)
@@ -61,18 +42,21 @@ namespace Statsig.Server.Lib
                     && list.CreationTime == CreationTime
                     && list.URL == URL
                     && list.FileID == FileID;
-                var idsSame = list.IDs.Count == IDs.Count; 
+                var idsSame = list.Store.Count == Store.Count; 
                 if (!attributesSame || !idsSame) 
                 {
                   return false;
                 }
 
-                foreach (var item in list.IDs._hashSet)
+                if (this.Store is InMemoryIDStore)
                 {
-                  if (!this.IDs.Contains(item)) 
-                  {
-                    return false;
-                  }
+                    foreach (var item in ((InMemoryIDStore)this.Store)._hashSet)
+                    {
+                        if (!list.Store.Contains(item)) 
+                        {
+                            return false;
+                        }
+                    }
                 }                
                 return true;
             }
@@ -81,6 +65,20 @@ namespace Statsig.Server.Lib
         public override int GetHashCode()
         {
             return this.Name.GetHashCode();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Store.Dispose();
+            }
         }
     }
 }
