@@ -3,14 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Statsig.Server.Lib
+namespace Statsig.Lib
 {
-    class ConcurrentHashSet<T>: IDisposable
+    class InMemoryIDStore: IDisposable, IIDStore
     {
         readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(
           LockRecursionPolicy.SupportsRecursion
         );
-        internal readonly HashSet<T> _hashSet = new HashSet<T>();
+        internal readonly HashSet<string> _hashSet = new HashSet<string>();
 
         public int Count
         {
@@ -31,7 +31,7 @@ namespace Statsig.Server.Lib
             }
         }
 
-        public bool Add(T item)
+        public bool Add(string item)
         {
             _lock.EnterWriteLock();
             try 
@@ -47,7 +47,7 @@ namespace Statsig.Server.Lib
             }
         }
 
-        public bool Remove(T item)
+        public bool Remove(string item)
         {
             _lock.EnterWriteLock();
             try 
@@ -95,7 +95,7 @@ namespace Statsig.Server.Lib
             }
         }
 
-        public bool Contains(T item)
+        public bool Contains(string item)
         {
             _lock.EnterReadLock();
             try 
@@ -122,6 +122,7 @@ namespace Statsig.Server.Lib
             if (disposing)
             {
                 _lock.Dispose();
+                _hashSet.Clear();
             }
         }
     }

@@ -1,26 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
+﻿using System.Collections.Generic;
 using Xunit;
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Statsig;
 using Statsig.Server;
-using Statsig.Server.Lib;
+using Statsig.Lib;
 using System.Threading.Tasks;
-using Moq;
-using System.Net;
-using System.Text;
 using WireMock.ResponseProviders;
 using WireMock;
 using WireMock.Settings;
 using WireMock.Server;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
-using WireMock.Util;
-using System.Linq;
 
 namespace dotnet_statsig_tests
 {

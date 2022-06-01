@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Statsig.Lib;
 
 namespace Statsig
 {
@@ -12,6 +13,7 @@ namespace Statsig
         public double IDListsSyncInterval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC;
 
         private Dictionary<string, string> _additionalHeaders;
+        private Func<IIDStore> _idStoreFactory = null;
         
         public StatsigOptions(): this(null)
         {
@@ -34,6 +36,12 @@ namespace Statsig
         internal IReadOnlyDictionary<string, string> AdditionalHeaders
         {
             get { return _additionalHeaders; }
+        }
+
+        public Func<IIDStore> IDStoreFactory
+        {
+            get { return _idStoreFactory; }
+            set { _idStoreFactory = value; }
         }
 
         public void AddRequestHeader(string key, string value)
