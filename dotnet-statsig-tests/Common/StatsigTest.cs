@@ -37,61 +37,7 @@ namespace dotnet_statsig_tests
             _server.Given(
                 Request.Create().WithPath("/v1/initialize").UsingPost()
             ).RespondWith(
-                Response.Create().WithStatusCode(200).WithBodyAsJson(
-                    new Dictionary<string, object>
-                    {
-                        { "feature_gates", new Dictionary<string, object> {
-                            { "AoZS0F06Ub+W2ONx+94rPTS7MRxuxa+GnXro5Q1uaGY=",
-                                new Dictionary<string, object>
-                                {
-                                    { "value", true },
-                                    { "rule_id", "ruleID" },
-                                    { "name", "AoZS0F06Ub+W2ONx+94rPTS7MRxuxa+GnXro5Q1uaGY=" },
-                                    { "secondary_exposures",
-                                        new List<Dictionary<string, string>>
-                                        {
-                                            new Dictionary<string, string> {
-                                                { "gate", "dependent_gate_1" },
-                                                { "gateValue", "true" },
-                                                { "ruleID", "rule_1" },
-                                            },
-                                            new Dictionary<string, string> {
-                                                { "gate", "dependent_gate_2" },
-                                                { "gateValue", "false" },
-                                                { "ruleID", "rule_2" },
-                                            },
-                                        }
-                                    }
-                                }
-                            }}
-                        },
-                        { "dynamic_configs", new Dictionary<string, object> {
-                            { "RMv0YJlLOBe7cY7HgZ3Jox34R0Wrk7jLv3DZyBETA7I=",
-                                new Dictionary<string, object>
-                                {
-                                    { "value", new Dictionary<string, object> { { "stringValue", "1" }, { "numberValue", 1 }, { "boolValue", true } } },
-                                    { "rule_id", "ruleID" },
-                                    { "name", "RMv0YJlLOBe7cY7HgZ3Jox34R0Wrk7jLv3DZyBETA7I=" },
-                                    { "secondary_exposures",
-                                        new List<Dictionary<string, string>>
-                                        {
-                                            new Dictionary<string, string> {
-                                                { "gate", "dependent_gate_1" },
-                                                { "gateValue", "true" },
-                                                { "ruleID", "rule_1" },
-                                            },
-                                            new Dictionary<string, string> {
-                                                { "gate", "dependent_gate_2" },
-                                                { "gateValue", "false" },
-                                                { "ruleID", "rule_2" },
-                                            },
-                                        }
-                                    }
-                                }
-                            }}
-                        }
-                    }
-                )
+                Response.Create().WithStatusCode(200).WithBodyAsJson(TestData.ClientInitializeResponse)
             );
             _server.Given(
                 Request.Create().WithPath("/v1/log_event").UsingPost()
