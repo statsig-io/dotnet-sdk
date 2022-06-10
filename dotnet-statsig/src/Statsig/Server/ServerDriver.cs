@@ -263,7 +263,7 @@ namespace Statsig.Server
             }
 
             // Blocking wait is gross, but there isn't much we can do better as this point as we
-            // need to synchronously dispose of this object
+            // need to synchronously dispose this object
             _eventLogger.FlushEvents().Wait();
             _disposed = true;
         }
@@ -273,7 +273,7 @@ namespace Statsig.Server
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException("ClientDriver");
+                throw new ObjectDisposedException("ServerDriver");
             }
 
             await _eventLogger.FlushEvents();

@@ -320,67 +320,61 @@ namespace Statsig.Server
             var newConfigs = new Dictionary<string, ConfigSpec>();
             var newLayerConfigs = new Dictionary<string, ConfigSpec>();
             var newLayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
-            try
+            JToken objVal;
+            if (response.TryGetValue("feature_gates", out objVal))
             {
-                JToken objVal;
-                if (response.TryGetValue("feature_gates", out objVal))
+                var gates = objVal.ToObject<JObject[]>();
+                foreach (JObject gate in gates)
                 {
-                    var gates = objVal.ToObject<JObject[]>();
-                    foreach (JObject gate in gates)
+                    try
                     {
                         var gateSpec = ConfigSpec.FromJObject(gate);
-                        newGates[gateSpec.Name.ToLowerInvariant()] = ConfigSpec.FromJObject(gate);
+                        newGates[gateSpec.Name.ToLowerInvariant()] = gateSpec;
+                    }
+                    catch
+                    {
+                        // Skip
                     }
                 }
             }
-            catch
+            
+            if (response.TryGetValue("dynamic_configs", out objVal))
             {
-                // TODO: Log this
-                return;
-            }
-
-            try
-            {
-                JToken objVal;
-                if (response.TryGetValue("dynamic_configs", out objVal))
+                var configs = objVal.ToObject<JObject[]>();
+                foreach (JObject config in configs)
                 {
-                    var configs = objVal.ToObject<JObject[]>();
-                    foreach (JObject config in configs)
+                    try
                     {
                         var configSpec = ConfigSpec.FromJObject(config);
-                        newConfigs[configSpec.Name.ToLowerInvariant()] = ConfigSpec.FromJObject(config);
+                        newConfigs[configSpec.Name.ToLowerInvariant()] = configSpec;
+                    }
+                    catch
+                    {
+                        // Skip
                     }
                 }
             }
-            catch
+            
+            if (response.TryGetValue("layer_configs", out objVal))
             {
-                // TODO: Log this
-                return;
-            }
-
-            try
-            {
-                JToken objVal;
-                if (response.TryGetValue("layer_configs", out objVal))
+                var configs = objVal.ToObject<JObject[]>();
+                foreach (JObject config in configs)
                 {
-                    var configs = objVal.ToObject<JObject[]>();
-                    foreach (JObject config in configs)
+                    try
                     {
                         var configSpec = ConfigSpec.FromJObject(config);
-                        newLayerConfigs[configSpec.Name.ToLowerInvariant()] = ConfigSpec.FromJObject(config);
+                        newLayerConfigs[configSpec.Name.ToLowerInvariant()] = configSpec;
+                    }
+                    catch
+                    {
+                        // Skip
                     }
                 }
             }
-            catch
+            
+            if (response.TryGetValue("layers", out objVal) && objVal.Type == JTokenType.Object)
             {
-                // TODO: Log this
-                return;
-            }
-
-            try
-            {
-                JToken objVal;
-                if (response.TryGetValue("layers", out objVal) && objVal.Type == JTokenType.Object)
+                try
                 {
                     var jobj = objVal.Value<JObject>();
                     foreach (var prop in jobj.Properties())
@@ -397,12 +391,12 @@ namespace Statsig.Server
                         }
                     }
                 }
+                catch
+                {
+                    // Skip all layers
+                }
             }
-            catch
-            {
-                // TODO: Log this & continue
-            }
-
+            
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
             LayerConfigs = newLayerConfigs;
