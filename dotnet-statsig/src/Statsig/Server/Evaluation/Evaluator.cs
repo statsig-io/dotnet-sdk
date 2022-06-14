@@ -124,10 +124,7 @@ namespace Statsig.Server.Evaluation
                     entry["is_experiment_active"] = experimentSpec.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
-                    if (experimentSpec.ExplicitParameters != null && experimentSpec.ExplicitParameters.Count > 0)
-                    {
-                        entry["explicit_parameters"] = experimentSpec.ExplicitParameters;
-                    }
+                    entry["explicit_parameters"] = experimentSpec.ExplicitParameters;
                 }
                 entry["undelegated_secondary_exposures"] = 
                     CleanExposures(evaluation.UndelegatedSecondaryExposures);
