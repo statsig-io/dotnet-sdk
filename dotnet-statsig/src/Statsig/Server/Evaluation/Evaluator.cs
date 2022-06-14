@@ -86,11 +86,8 @@ namespace Statsig.Server.Evaluation
                     ["name"] = hashedName,
                     ["value"] = gate.Value,
                     ["rule_id"] = gate.RuleID,
+                    ["secondary_exposures"] = CleanExposures(gate.SecondaryExposures),
                 };
-                if (gate.SecondaryExposures.Count > 0)
-                {
-                    entry["secondary_exposures"] = CleanExposures(gate.SecondaryExposures);
-                }
                 gates.Add(hashedName, entry);
             }
             
@@ -213,12 +210,8 @@ namespace Statsig.Server.Evaluation
                 ["group"] = config.RuleID,
                 ["is_device_based"] = (spec.IDType != null && 
                     spec.IDType.ToLowerInvariant() == "stableid"),
+                ["secondary_exposures"] = CleanExposures(config.SecondaryExposures),
             };
-
-            if (config.SecondaryExposures.Count > 0)
-            {
-                entry["secondary_exposures"] = CleanExposures(config.SecondaryExposures);
-            }
             entry["explicit_parameters"] = spec.ExplicitParameters ?? new List<string>();
             
             return entry;
