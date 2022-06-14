@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Net.Cache;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -52,51 +52,47 @@ namespace Statsig.Network
             IReadOnlyDictionary<string, object> body,
             int retries = 0,
             int backoff = 1,
-            int timeout = 0)
+            int timeoutInMs = 0)
         {
             try
             {
                 var url = ApiBaseUrl.EndsWith("/") ? ApiBaseUrl + endpoint : ApiBaseUrl + "/" + endpoint;
-                var request = WebRequest.CreateHttp(url);
-                request.Method = "POST";
-                request.ContentType = "application/json";
-                request.Headers.Add("STATSIG-API-KEY", Key);
-                request.Headers.Add("STATSIG-CLIENT-TIME",
-                    (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds.ToString());
-                if (timeout > 0)
+                var client = new HttpClient();
+                using (var request = new HttpRequestMessage(HttpMethod.Post, url))
                 {
-                    request.Timeout = timeout;
-                }
-                
-                foreach (var kv in AdditionalHeaders)
-                {
-                    request.Headers.Add(kv.Key, kv.Value);
-                }
-
-                using (var writer = new StreamWriter(request.GetRequestStream()))
-                {
-                    var jsonWriter = new JsonTextWriter(writer);
-                    defaultSerializer.Serialize(writer, body);
-                }
-
-                var response = (HttpWebResponse)await request.GetResponseAsync();
-                if (response == null)
-                {
-                    return null;
-                }
-                if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
-                {
-                    using (var reader = new StreamReader(response.GetResponseStream()))
+                    var bodyJson = JsonConvert.SerializeObject(body);
+                    request.Content = new StringContent(bodyJson, Encoding.UTF8, "application/json");
+                    request.Headers.Add("STATSIG-API-KEY", Key);
+                    request.Headers.Add("STATSIG-CLIENT-TIME",
+                        (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds.ToString());
+                    foreach (var kv in AdditionalHeaders)
                     {
-                        var jsonReader = new JsonTextReader(reader);
-                        return defaultSerializer.Deserialize<Dictionary<string, JToken>>(jsonReader);
+                        request.Headers.Add(kv.Key, kv.Value);
+                    }
+                    if (timeoutInMs > 0)
+                    {
+                        client.Timeout = TimeSpan.FromMilliseconds(timeoutInMs);
+                    }
+                
+                    var response = await client.SendAsync(request);
+                    if (response == null)
+                    {
+                        return null;
+                    }
+                    if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
+                    {
+                        var stream = await response.Content.ReadAsStreamAsync();
+                        using (var reader = new StreamReader(stream))
+                        {
+                            var jsonReader = new JsonTextReader(reader);
+                            return defaultSerializer.Deserialize<Dictionary<string, JToken>>(jsonReader);
+                        }
+                    }
+                    else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))
+                    {
+                        return await retry(endpoint, body, retries, backoff);
                     }
                 }
-                else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))
-                {
-                    return await retry(endpoint, body, retries, backoff);
-                }
-
             }
             catch (Exception)
             {

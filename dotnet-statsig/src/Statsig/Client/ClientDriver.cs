@@ -87,7 +87,7 @@ namespace Statsig.Client
                     ["user"] = _user,
                     ["statsigMetadata"] = GetStatsigMetadata(),
                 },
-                timeout: _options.ClientRequestTimeoutMs
+                timeoutInMs: _options.ClientRequestTimeoutMs
             );
             if (response == null)
             {

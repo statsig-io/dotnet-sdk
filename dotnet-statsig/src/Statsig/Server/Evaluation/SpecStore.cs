@@ -5,9 +5,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace Statsig.Server
 {
@@ -127,60 +127,60 @@ namespace Statsig.Server
 
         private async Task DownloadIDList(IDList list)
         {
-            var request = WebRequest.CreateHttp(list.URL);
-            request.Method = "GET";
-            request.Headers.Add("Range", string.Format("bytes={0}-", list.Size));
-            var response = (HttpWebResponse)await request.GetResponseAsync();
-            if (response == null)
-            {
-                return;
-            }
             try
             {
-                if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
+                var client = new HttpClient();
+                using (var request = new HttpRequestMessage(HttpMethod.Get, list.URL))
                 {
-                    using (var memoryStream = new MemoryStream())
+                    request.Headers.Add("Range", string.Format("bytes={0}-", list.Size));
+                    var response = await client.SendAsync(request);
+                    if (response == null)
                     {
-                        using (var responseStream = response.GetResponseStream())
+                        return;
+                    }
+            
+                    if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
+                    {
+                        using (var memoryStream = new MemoryStream())
                         {
-                            responseStream.CopyTo(memoryStream);
-                        }
-                        var contentLength = memoryStream.Length;
-                        memoryStream.Seek(0, SeekOrigin.Begin);
+                            await response.Content.CopyToAsync(memoryStream);
+                            var contentLength = memoryStream.Length;
+                            memoryStream.Seek(0, SeekOrigin.Begin);
 
-                        using (var reader = new StreamReader(memoryStream))
-                        {
-                            var next = reader.Peek();
-                            if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
+                            using (var reader = new StreamReader(memoryStream))
                             {
-                                IDList removed;
-                                if (_idLists.TryRemove(list.Name, out removed))
+                                var next = reader.Peek();
+                                if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
                                 {
-                                    removed.Dispose();
+                                    IDList removed;
+                                    if (_idLists.TryRemove(list.Name, out removed))
+                                    {
+                                        removed.Dispose();
+                                    }
+                                    return;
                                 }
-                                return;
-                            }
 
-                            string line;
-                            while ((line = reader.ReadLine()) != null)
-                            {
-                                if (string.IsNullOrEmpty(line))
+                                string line;
+                                while ((line = reader.ReadLine()) != null)
                                 {
-                                    continue;
+                                    if (string.IsNullOrEmpty(line))
+                                    {
+                                        continue;
+                                    }
+                                    var id = line.Substring(1);
+                                    if (line[0] == '+')
+                                    {
+                                        list.Store.Add(id);
+                                    }
+                                    else if (line[0] == '-')
+                                    {
+                                        list.Store.Remove(id);
+                                    }
                                 }
-                                var id = line.Substring(1);
-                                if (line[0] == '+')
-                                {
-                                    list.Store.Add(id);
-                                }
-                                else if (line[0] == '-')
-                                {
-                                    list.Store.Remove(id);
-                                }
-                            }
 
-                            list.Store.TrimExcess();
-                            list.Size = list.Size + contentLength;
+                                list.Store.TrimExcess();
+                                list.Size = list.Size + contentLength;
+                            }
                         }
                     }
                 }
