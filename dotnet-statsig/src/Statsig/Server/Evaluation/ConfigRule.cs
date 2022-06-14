@@ -6,39 +6,38 @@ namespace Statsig.Server
 {
     class ConfigRule
     {
-        internal string Name { get; }
-        internal double PassPercentage { get; }
-        internal string ID { get; }
-        internal string Salt { get; }
-        internal string IDType { get; }
-        internal List<ConfigCondition> Conditions { get; }
-        internal DynamicConfig DynamicConfigValue { get; }
-        internal FeatureGate FeatureGateValue { get; }
-        internal string ConfigDelegate { get; }
+        internal string Name { get; private set; }
+        internal double PassPercentage { get; private set; }
+        internal string ID { get; private set; }
+        internal string Salt { get; private set; }
+        internal string IDType { get; private set; }
+        internal bool IsExperimentGroup { get; private set; }
+        internal List<ConfigCondition> Conditions { get; private set; }
+        internal DynamicConfig DynamicConfigValue { get; private set; }
+        internal FeatureGate FeatureGateValue { get; private set; }
+        internal string ConfigDelegate { get; private set; }
 
-        internal ConfigRule(string name, double passPercentage, JToken returnValue, string id, string salt, List<ConfigCondition> conditions, string idType, string configDelegate)
+        ConfigRule()
         {
-            Name = name;
-            PassPercentage = passPercentage;
-            Conditions = conditions;
-            ID = id;
-            Salt = salt;
-            IDType = idType;
+        }
 
-            FeatureGateValue = new FeatureGate(name, true, id);
-            DynamicConfigValue = new DynamicConfig(name, null, id);
-            ConfigDelegate = configDelegate;
+        void SetConfigValue(JToken returnValue)
+        {
+            FeatureGateValue = new FeatureGate(Name, true, ID);
+            DynamicConfigValue = new DynamicConfig(Name, null, ID);
+
             try
             {
                 DynamicConfigValue =
-                    new DynamicConfig(name, returnValue.ToObject<Dictionary<string, JToken>>(), id);
+                    new DynamicConfig(Name, returnValue.ToObject<Dictionary<string, JToken>>(), ID);
             }
             catch { }
         }
 
         internal static ConfigRule FromJObject(JObject jobj)
         {
-            JToken name, passPercentage, returnValue, conditions, id, salt, idType, configDelegate;
+            JToken name, passPercentage, returnValue, conditions, id, salt, 
+                idType, configDelegate, isExperimentGroup;
 
             if (jobj == null ||
                 !jobj.TryGetValue("name", out name) ||
@@ -56,15 +55,20 @@ namespace Statsig.Server
                 conditionsList.Add(ConfigCondition.FromJObject(cond));
             }
 
-            return new ConfigRule(
-                name.Value<string>(),
-                passPercentage.Value<double>(),
-                returnValue,
-                id.Value<string>(),
-                jobj.TryGetValue("salt", out salt) ? salt.Value<string>() : null,
-                conditionsList,
-                jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null,
-                jobj.TryGetValue("configDelegate", out configDelegate) ? configDelegate.Value<string>() : null);
+            var rule = new ConfigRule()
+            {
+                Name = name.Value<string>(),
+                PassPercentage = passPercentage.Value<double>(),
+                ID = id.Value<string>(),
+                Salt = jobj.TryGetValue("salt", out salt) ? salt.Value<string>() : null,
+                Conditions = conditionsList,
+                IsExperimentGroup = jobj.TryGetValue("isExperimentGroup", out isExperimentGroup) ? isExperimentGroup.Value<bool>() : false,
+                IDType = jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null,
+                ConfigDelegate = jobj.TryGetValue("configDelegate", out configDelegate) ? configDelegate.Value<string>() : null,
+            };
+            
+            rule.SetConfigValue(returnValue);            
+            return rule;
         }
     }
 }

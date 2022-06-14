@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 
 namespace Statsig
 {
+    [JsonObject(ItemNullValueHandling = NullValueHandling.Ignore)]
     public class StatsigUser
     {
         internal Dictionary<string, string> properties;

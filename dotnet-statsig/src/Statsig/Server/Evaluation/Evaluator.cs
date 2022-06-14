@@ -102,7 +102,7 @@ namespace Statsig.Server.Evaluation
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
                 if (kv.Value.Entity != "dynamic_config")
                 {
-                    entry["is_experiment_active"] = IsExperimentActive(kv.Value);
+                    entry["is_experiment_active"] = kv.Value.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, kv.Value, config.RuleID);
                     entry["is_in_layer"] = IsExperimentInLayer(kv.Value);
@@ -124,7 +124,7 @@ namespace Statsig.Server.Evaluation
                     ConfigSpec experimentSpec = null;
                     _store.DynamicConfigs.TryGetValue(evaluation.ConfigDelegate, out experimentSpec);
                     
-                    entry["is_experiment_active"] = IsExperimentActive(experimentSpec);
+                    entry["is_experiment_active"] = experimentSpec.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
                     if (experimentSpec.ExplicitParameters != null && experimentSpec.ExplicitParameters.Count > 0)
@@ -173,23 +173,6 @@ namespace Statsig.Server.Evaluation
             }).Where((exp) => exp != null);
         }
 
-        private bool IsExperimentActive(ConfigSpec spec)
-        {
-            bool layerAssignmentFound = false;
-            foreach (var rule in spec.Rules)
-            {
-                if (rule.Name == "abandoned" || rule.Name == "prestart")
-                {
-                    return false;
-                }
-                if (rule.ID.ToLowerInvariant() == "layerassignment")
-                {
-                    layerAssignmentFound = true;
-                }
-            }
-            return layerAssignmentFound;
-        }
-        
         private bool IsExperimentInLayer(ConfigSpec spec)
         {
             foreach (var kv in _store.LayersMap)
@@ -208,30 +191,10 @@ namespace Statsig.Server.Evaluation
             string evaluatedRuleID
         )
         {
-            List<IReadOnlyDictionary<string, string>> sec;
             var evaluatedRule = spec.Rules.FirstOrDefault((r) => r.ID == evaluatedRuleID);
             if (evaluatedRule != null)
             {
-                var firstCondition = evaluatedRule.Conditions.FirstOrDefault();
-                if (firstCondition == null)
-                {
-                    return false;
-                }
-                if (firstCondition.Type == "pass_gate" || firstCondition.Type == "fail_gate") 
-                {
-                    return false;
-                }
-            }
-
-            foreach (var rule in spec.Rules)
-            {
-                var ruleID = (rule.ID == null ? "" : rule.ID.ToLowerInvariant());
-                if (ruleID == "layerassignment")
-                {
-                    // User is allocated if they FAIL the layer assignment
-                    var evalResult = EvaluateRule(user, rule, out sec);
-                    return (evalResult == EvaluationResult.Fail);
-                }
+                return evaluatedRule.IsExperimentGroup;
             }
             return false;
         }
