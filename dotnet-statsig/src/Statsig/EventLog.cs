@@ -23,9 +23,9 @@ namespace Statsig
             }
         }
         [JsonProperty("metadata")]
-        public IReadOnlyDictionary<string, string> Metadata { get; set; }
+        public IReadOnlyDictionary<string, string>? Metadata { get; set; }
         [JsonProperty("value")]
-        public object Value { get; set; }
+        public object? Value { get; set; }
         [JsonProperty("time")]
         public double Time { get; } = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
         [JsonProperty("secondaryExposures")]
@@ -36,9 +36,11 @@ namespace Statsig
         [JsonIgnore]
         internal string ErrorKey { get; set; }
 
-        public EventLog()
-        {
+#pragma warning disable CS8618 // Creation helpers below take care of properties init
+        internal EventLog()
+        {            
         }
+#pragma warning restore CS8618
 
         internal static EventLog CreateGateExposureLog(
             StatsigUser user,
@@ -105,7 +107,7 @@ namespace Statsig
             };
         }
 
-        internal static EventLog CreateErrorLog(string eventName, string errorMessage = null)
+        internal static EventLog CreateErrorLog(string eventName, string? errorMessage = null)
         {
             if (errorMessage == null)
             {
@@ -124,7 +126,7 @@ namespace Statsig
             };
         }
 
-        internal static IReadOnlyDictionary<string, string> TrimMetadataAsNeeded(IReadOnlyDictionary<string, string> metadata = null)
+        internal static IReadOnlyDictionary<string, string>? TrimMetadataAsNeeded(IReadOnlyDictionary<string, string>? metadata = null)
         {
             if (metadata == null)
             {

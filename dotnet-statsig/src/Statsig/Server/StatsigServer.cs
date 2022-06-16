@@ -6,9 +6,9 @@ namespace Statsig.Server
 {
     public static class StatsigServer
     {
-        static ServerDriver _singleDriver;
+        static ServerDriver? _singleDriver;
 
-        public static async Task Initialize(string serverSecret, StatsigOptions options = null)
+        public static async Task Initialize(string serverSecret, StatsigOptions? options = null)
         {
             if (_singleDriver != null)
             {
@@ -29,62 +29,62 @@ namespace Statsig.Server
         public static async Task Shutdown()
         {
             EnsureInitialized();
-            await _singleDriver.Shutdown();
+            await _singleDriver!.Shutdown();
             _singleDriver = null;
         }
 
         public static async Task<bool> CheckGate(StatsigUser user, string gateName)
         {
             EnsureInitialized();
-            return await _singleDriver.CheckGate(user, gateName);
+            return await _singleDriver!.CheckGate(user, gateName);
         }
 
         public static async Task<DynamicConfig> GetConfig(StatsigUser user, string configName)
         {
             EnsureInitialized();
-            return await _singleDriver.GetConfig(user, configName);
+            return await _singleDriver!.GetConfig(user, configName);
         }
 
         public static async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
         {
             EnsureInitialized();
-            return await _singleDriver.GetConfig(user, experimentName);
+            return await _singleDriver!.GetConfig(user, experimentName);
         }
 
         public static async Task<Layer> GetLayer(StatsigUser user, string layerName)
         {
             EnsureInitialized();
-            return await _singleDriver.GetLayer(user, layerName);
+            return await _singleDriver!.GetLayer(user, layerName);
         }
 
         public static void LogEvent(
             StatsigUser user,
             string eventName,
-            string value = null,
-            IReadOnlyDictionary<string, string> metadata = null)
+            string? value = null,
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             EnsureInitialized();
-            _singleDriver.LogEvent(user, eventName, value, metadata);
+            _singleDriver!.LogEvent(user, eventName, value, metadata);
         }
 
         public static void LogEvent(
             StatsigUser user,
             string eventName,
             int value,
-            IReadOnlyDictionary<string, string> metadata = null)
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             EnsureInitialized();
-            _singleDriver.LogEvent(user, eventName, value, metadata);
+            _singleDriver!.LogEvent(user, eventName, value, metadata);
         }
 
         public static void LogEvent(
             StatsigUser user,
             string eventName,
             double value,
-            IReadOnlyDictionary<string, string> metadata = null)
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             EnsureInitialized();
-            _singleDriver.LogEvent(user, eventName, value, metadata);
+            _singleDriver!.LogEvent(user, eventName, value, metadata);
         }
 
         static void EnsureInitialized()

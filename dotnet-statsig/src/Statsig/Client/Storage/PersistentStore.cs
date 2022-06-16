@@ -12,9 +12,9 @@ namespace Statsig.Client.Storage
     {
         const string stableIDKey = "statsig::stableID";
         const string storeFileName = "statsig_store.json";
-        static string storageFolder = null;
+        static string? storageFolder = null;
         static Dictionary<string, object> _properties = new Dictionary<string, object>();
-        static Timer _timer;
+        static Timer? _timer;
         
         static PersistentStore()
         {
@@ -24,8 +24,8 @@ namespace Statsig.Client.Storage
         {
             get
             {
-                var stableID = GetValue<string>(stableIDKey, null);
-                if (stableID == null)
+                var stableID = GetValue<string>(stableIDKey, "");
+                if (stableID == "")
                 {
                     stableID = Guid.NewGuid().ToString();
                     SetValue(stableIDKey, stableID);
@@ -35,19 +35,19 @@ namespace Statsig.Client.Storage
             }
         }
 
-        public static T GetValue<T>(string scope, string key, T defaultValue)
+        public static T? GetValue<T>(string scope, string key, T? defaultValue)
         {
             return GetValue(scope == null ? key : scope + key, defaultValue);
         }
 
         public static T GetValue<T>(string key, T defaultValue)
         {
-            object objVal;
+            object? objVal;
             if (_properties.TryGetValue(key, out objVal))
             {
                 if (objVal is JToken)
                 {
-                    return ((JToken)objVal).ToObject<T>();
+                    return ((JToken)objVal).ToObject<T>() ?? defaultValue;
                 }
 
                 try
@@ -103,7 +103,7 @@ namespace Statsig.Client.Storage
             }
         }
 
-        static StreamReader GetReader()
+        static StreamReader? GetReader()
         {
             if (storageFolder != null)
             {
@@ -127,7 +127,7 @@ namespace Statsig.Client.Storage
             }
         }
 
-        static void FlushNow(object _)
+        static void FlushNow(object? _)
         {
             try
             {
@@ -156,13 +156,14 @@ namespace Statsig.Client.Storage
                     }
 
                     var serializer = new JsonSerializer();
-                    _properties = serializer.Deserialize<Dictionary<string, object>>(
+                    var prop = serializer.Deserialize<Dictionary<string, object>>(
                         new JsonTextReader(reader)
                     );
-                    if (_properties == null)
+                    if (prop == null)
                     {
-                        _properties = new Dictionary<string, object>();
+                        prop = new Dictionary<string, object>();
                     }
+                    _properties = prop;
                 }
             }
             catch (Exception e)

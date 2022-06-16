@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 
 namespace Statsig.Server
@@ -9,17 +10,19 @@ namespace Statsig.Server
         internal string Name { get; private set; }
         internal double PassPercentage { get; private set; }
         internal string ID { get; private set; }
-        internal string Salt { get; private set; }
-        internal string IDType { get; private set; }
+        internal string? Salt { get; private set; }
+        internal string? IDType { get; private set; }
         internal bool IsExperimentGroup { get; private set; }
         internal List<ConfigCondition> Conditions { get; private set; }
         internal DynamicConfig DynamicConfigValue { get; private set; }
         internal FeatureGate FeatureGateValue { get; private set; }
-        internal string ConfigDelegate { get; private set; }
+        internal string? ConfigDelegate { get; private set; }
 
+#pragma warning disable CS8618 // FromJObject below takes care of properties init
         ConfigRule()
         {
         }
+#pragma warning restore CS8618
 
         void SetConfigValue(JToken returnValue)
         {
@@ -34,9 +37,9 @@ namespace Statsig.Server
             catch { }
         }
 
-        internal static ConfigRule FromJObject(JObject jobj)
+        internal static ConfigRule? FromJObject(JObject jobj)
         {
-            JToken name, passPercentage, returnValue, conditions, id, salt, 
+            JToken? name, passPercentage, returnValue, conditions, id, salt, 
                 idType, configDelegate, isExperimentGroup;
 
             if (jobj == null ||
@@ -50,16 +53,20 @@ namespace Statsig.Server
             }
 
             var conditionsList = new List<ConfigCondition>();
-            foreach (JObject cond in conditions.ToObject<JObject[]>())
+            foreach (JObject cond in (conditions.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>()))
             {
-                conditionsList.Add(ConfigCondition.FromJObject(cond));
+                var condition = ConfigCondition.FromJObject(cond);
+                if (condition != null)
+                {
+                    conditionsList.Add(condition);
+                }
             }
 
             var rule = new ConfigRule()
             {
-                Name = name.Value<string>(),
+                Name = name.Value<string>() ?? "",
                 PassPercentage = passPercentage.Value<double>(),
-                ID = id.Value<string>(),
+                ID = id.Value<string>() ?? "",
                 Salt = jobj.TryGetValue("salt", out salt) ? salt.Value<string>() : null,
                 Conditions = conditionsList,
                 IsExperimentGroup = jobj.TryGetValue("isExperimentGroup", out isExperimentGroup) ? isExperimentGroup.Value<bool>() : false,

@@ -5,16 +5,16 @@ namespace Statsig
 {
     public class SDKDetails
     {
-        private static SDKDetails _clientDetails;
-        private static SDKDetails _serverDetails;
+        private static SDKDetails? _clientDetails;
+        private static SDKDetails? _serverDetails;
 
-        internal string SDKType = null;
-        internal string SDKVersion = null;
+        internal string SDKType;
+        internal string SDKVersion;
 
         internal SDKDetails(string type)
         {
             SDKType = type;
-            SDKVersion = GetType().Assembly.GetName().Version.ToString();
+            SDKVersion = GetType().Assembly.GetName()!.Version!.ToString();
         }
 
         internal IReadOnlyDictionary<string, string> StatsigMetadata

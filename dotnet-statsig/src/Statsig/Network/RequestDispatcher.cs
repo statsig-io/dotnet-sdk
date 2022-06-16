@@ -19,26 +19,18 @@ namespace Statsig.Network
         public IReadOnlyDictionary<string, string> AdditionalHeaders { get; }
         public RequestDispatcher(
             string key, 
-            string apiBaseUrl = null, 
-            IReadOnlyDictionary<string, string> headers = null
+            string? apiBaseUrl = null, 
+            IReadOnlyDictionary<string, string>? headers = null
         )
         {
             if (string.IsNullOrWhiteSpace(key))
             {
                 throw new ArgumentException("Key cannot be empty.", "key");
             }
-            if (string.IsNullOrWhiteSpace(apiBaseUrl))
-            {
-                apiBaseUrl = Constants.DEFAULT_API_URL_BASE;
-            }
-            if (headers == null)
-            {
-                headers = new Dictionary<string, string>();
-            }
-
+            ApiBaseUrl = string.IsNullOrWhiteSpace(apiBaseUrl) ? 
+                Constants.DEFAULT_API_URL_BASE : apiBaseUrl!;
             Key = key;
-            ApiBaseUrl = apiBaseUrl;
-            AdditionalHeaders = headers;
+            AdditionalHeaders = headers ?? new Dictionary<string, string>();
 
             var jsonSettings = new JsonSerializerSettings
             {
@@ -47,7 +39,7 @@ namespace Statsig.Network
             defaultSerializer = JsonSerializer.CreateDefault(jsonSettings);
         }
 
-        public async Task<IReadOnlyDictionary<string, JToken>> Fetch(
+        public async Task<IReadOnlyDictionary<string, JToken>?> Fetch(
             string endpoint,
             IReadOnlyDictionary<string, object> body,
             int retries = 0,
@@ -104,7 +96,7 @@ namespace Statsig.Network
             return null;
         }
 
-        private async Task<IReadOnlyDictionary<string, JToken>> retry(
+        private async Task<IReadOnlyDictionary<string, JToken>?> retry(
             string endpoint,
             IReadOnlyDictionary<string, object> body,
             int retries = 0,

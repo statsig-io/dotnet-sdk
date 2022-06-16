@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 
@@ -16,7 +15,7 @@ namespace Statsig
         [JsonProperty("secondary_exposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; }
 
-        static FeatureGate _defaultConfig;
+        static FeatureGate? _defaultConfig;
 
         public static FeatureGate Default
         {
@@ -30,7 +29,7 @@ namespace Statsig
             }
         }
 
-        public FeatureGate(string name = null, bool value = false, string ruleID = null, List<IReadOnlyDictionary<string, string>> secondaryExposures = null)
+        public FeatureGate(string? name = null, bool value = false, string? ruleID = null, List<IReadOnlyDictionary<string, string>>? secondaryExposures = null)
         {
             Name = name ?? "";
             Value = value;
@@ -38,26 +37,26 @@ namespace Statsig
             SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
         }
 
-        internal static FeatureGate FromJObject(string name, JObject jobj)
+        internal static FeatureGate? FromJObject(string name, JObject? jobj)
         {
             if (jobj == null)
             {
                 return null;
             }
 
-            JToken ruleToken;
+            JToken? ruleToken;
             if (!jobj.TryGetValue("rule_id", out ruleToken))
             {
                 return null;
             }
 
-            JToken valueToken;
+            JToken? valueToken;
             if (!jobj.TryGetValue("value", out valueToken))
             {
                 return null;
             }
 
-            JToken nameToken;
+            JToken? nameToken;
             if (!jobj.TryGetValue("name", out nameToken))
             {
                 return null;
@@ -70,7 +69,7 @@ namespace Statsig
                     nameToken.Value<string>(),
                     valueToken.Value<bool>(),
                     ruleToken.Value<string>(),
-                    jobj.TryGetValue("secondary_exposures", out JToken exposures)
+                    jobj.TryGetValue("secondary_exposures", out JToken? exposures)
                         ? exposures.ToObject<List<IReadOnlyDictionary<string, string>>>()
                         : new List<IReadOnlyDictionary<string, string>>()
                 );

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Statsig
 {
@@ -14,12 +13,12 @@ namespace Statsig
     {
         public Dictionary<string, string> Values { get; }
 
-        public StatsigEnvironment(EnvironmentTier? tier = null, IReadOnlyDictionary<string, string> additionalParams = null)
+        public StatsigEnvironment(EnvironmentTier? tier = null, IReadOnlyDictionary<string, string>? additionalParams = null)
         {
             Values = new Dictionary<string, string>();
             if (tier != null)
             {
-                Values["tier"] = tier.ToString().ToLowerInvariant();
+                Values["tier"] = tier.ToString()!.ToLowerInvariant();
             };
 
             if (additionalParams != null)

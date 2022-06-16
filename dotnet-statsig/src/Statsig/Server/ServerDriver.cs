@@ -25,7 +25,7 @@ namespace Statsig.Server
         EventLogger _eventLogger;
         internal Evaluator evaluator;
 
-        public ServerDriver(string serverSecret, StatsigOptions options = null)
+        public ServerDriver(string serverSecret, StatsigOptions? options = null)
         {
             if (string.IsNullOrWhiteSpace(serverSecret))
             {
@@ -97,7 +97,7 @@ namespace Statsig.Server
 
                 if (response != null)
                 {
-                    JToken outVal;
+                    JToken? outVal;
                     if (response.TryGetValue("value", out outVal))
                     {
                         result = outVal.Value<bool>();
@@ -124,10 +124,14 @@ namespace Statsig.Server
             ValidateNonEmptyArgument(configName, "configName");
 
             var evaluation = evaluator.GetConfig(user, configName);
-            var result = evaluation?.ConfigValue;
+            DynamicConfig result;
             if (evaluation == null)
             {
                 result = new DynamicConfig(configName);
+            }
+            else
+            {
+                result = evaluation.ConfigValue;
             }
 
             if (evaluation?.Result == EvaluationResult.FetchFromServer)
@@ -156,15 +160,15 @@ namespace Statsig.Server
             var evaluation = evaluator.GetLayer(user, layerName);
             var config = evaluation?.ConfigValue;
 
-            if (evaluation?.Result == EvaluationResult.FetchFromServer)
+            if (evaluation?.Result == EvaluationResult.FetchFromServer && evaluation.ConfigDelegate != null)
             {
-                config = await FetchFromServer(user, evaluation?.ConfigDelegate);
+                config = await FetchFromServer(user, evaluation.ConfigDelegate);
             }
 
             return new Layer(layerName, config?.Value, config?.RuleID, delegate (Layer layer, string parameterName)
             {
                 var allocatedExperiment = "";
-                var isExplicit = evaluation?.ExplicitParameters?.Contains(parameterName) ?? false;
+                var isExplicit = evaluation?.ExplicitParameters.Contains(parameterName) ?? false;
                 var exposures = evaluation?.UndelegatedSecondaryExposures;
 
                 if (isExplicit)
@@ -196,11 +200,11 @@ namespace Statsig.Server
             });
             if (response != null)
             {
-                JToken outVal;
+                JToken? outVal;
                 if (response.TryGetValue("value", out outVal))
                 {
                     var configVal = outVal.ToObject<Dictionary<string, JToken>>();
-                    JToken ruleID;
+                    JToken? ruleID;
                     if (!response.TryGetValue("rule_id", out ruleID))
                     {
                         ruleID = "";
@@ -218,7 +222,7 @@ namespace Statsig.Server
             ValidateUser(user);
             NormalizeUser(user);
 
-            var allEvals = evaluator.GetAllEvaluations(user);
+            var allEvals = evaluator.GetAllEvaluations(user) ?? new Dictionary<string, object>();
             allEvals.Add("generator", "Dotnet Server");
             return allEvals;
         }
@@ -226,8 +230,8 @@ namespace Statsig.Server
         public void LogEvent(
             StatsigUser user,
             string eventName,
-            string value = null,
-            IReadOnlyDictionary<string, string> metadata = null)
+            string? value = null,
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             if (value != null && value.Length > Constants.MAX_SCALAR_LENGTH)
             {
@@ -241,7 +245,7 @@ namespace Statsig.Server
             StatsigUser user,
             string eventName,
             int value,
-            IReadOnlyDictionary<string, string> metadata = null)
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             LogEventHelper(user, eventName, value, metadata);
         }
@@ -250,7 +254,7 @@ namespace Statsig.Server
             StatsigUser user,
             string eventName,
             double value,
-            IReadOnlyDictionary<string, string> metadata = null)
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             LogEventHelper(user, eventName, value, metadata);
         }
@@ -328,8 +332,8 @@ namespace Statsig.Server
         void LogEventHelper(
             StatsigUser user,
             string eventName,
-            object value,
-            IReadOnlyDictionary<string, string> metadata = null)
+            object? value,
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             // User can be null for logEvent
             EnsureInitialized();
