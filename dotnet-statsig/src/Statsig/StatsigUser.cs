@@ -20,7 +20,7 @@ namespace Statsig
             }
             set
             {
-                properties["userID"] = value!;
+                SetProperty("userID", value);
             }
         }
         [JsonProperty("email")]
@@ -32,7 +32,7 @@ namespace Statsig
             }
             set
             {
-                properties["email"] = value!;
+                SetProperty("email", value);
             }
         }
         [JsonProperty("ip")]
@@ -44,7 +44,7 @@ namespace Statsig
             }
             set
             {
-                properties["ip"] = value!;
+                SetProperty("ip", value);
             }
         }
         [JsonProperty("userAgent")]
@@ -56,7 +56,7 @@ namespace Statsig
             }
             set
             {
-                properties["userAgent"] = value!;
+                SetProperty("userAgent", value);
             }
         }
         [JsonProperty("country")]
@@ -68,7 +68,7 @@ namespace Statsig
             }
             set
             {
-                properties["country"] = value!;
+                SetProperty("country", value);
             }
         }
         [JsonProperty("locale")]
@@ -80,7 +80,7 @@ namespace Statsig
             }
             set
             {
-                properties["locale"] = value!;
+                SetProperty("locale", value);
             }
         }
         [JsonProperty("appVersion")]
@@ -92,7 +92,7 @@ namespace Statsig
             }
             set
             {
-                properties["appVersion"] = value!;
+                SetProperty("appVersion", value);
             }
         }
         [JsonProperty("custom")]
@@ -128,6 +128,18 @@ namespace Statsig
                 throw new ArgumentException("Key cannot be empty.", "key");
             }
             privateAttributes[key] = value;
+        }
+
+        void SetProperty(string key, string? value)
+        {
+            if (value == null)
+            {
+                properties.Remove(key);
+            }
+            else
+            {
+                properties[key] = value;
+            }
         }
 
         internal StatsigUser GetCopyForLogging()
