@@ -552,6 +552,10 @@ namespace Statsig.Server.Evaluation
                         var substr = str.Substring(0, 8);
                         result = _store.IDListContainsValue(targetStr, substr);
                     }
+                    if (op == "not_in_segment_list")
+                    {
+                        result = !result;
+                    }
                     break;
                 default:
                     return EvaluationResult.FetchFromServer;
