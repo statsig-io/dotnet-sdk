@@ -35,9 +35,9 @@ namespace Statsig.Client
         Dictionary<string, FeatureGate> _gates;
         Dictionary<string, DynamicConfig> _configs;
         Dictionary<string, Layer> _layers;
-        Dictionary<string, string> _statsigMetadata;
+        Dictionary<string, string>? _statsigMetadata;
 
-        public ClientDriver(string clientKey, StatsigOptions options = null)
+        public ClientDriver(string clientKey, StatsigOptions? options = null)
         {
             if (string.IsNullOrWhiteSpace(clientKey))
             {
@@ -60,6 +60,7 @@ namespace Statsig.Client
                 Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH,
                 Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC
             );
+            _user = new StatsigUser();
 
             if (options.PersistentStorageFolder != null)
             {
@@ -71,7 +72,7 @@ namespace Statsig.Client
             _layers = PersistentStore.GetValue(layersStoreKey, new Dictionary<string, Layer>());
         }
 
-        public async Task Initialize(StatsigUser user)
+        public async Task Initialize(StatsigUser? user)
         {
             if (user == null)
             {
@@ -110,7 +111,7 @@ namespace Statsig.Client
         public bool CheckGate(string gateName)
         {
             var hashedName = GetNameHash(gateName);
-            FeatureGate gate;
+            FeatureGate? gate;
             if (!_gates.TryGetValue(hashedName, out gate))
             {
                 if (!_gates.TryGetValue(gateName, out gate))
@@ -125,7 +126,7 @@ namespace Statsig.Client
         public DynamicConfig GetConfig(string configName)
         {
             var hashedName = GetNameHash(configName);
-            DynamicConfig value;
+            DynamicConfig? value;
             if (!_configs.TryGetValue(hashedName, out value))
             {
                 if (!_configs.TryGetValue(configName, out value))
@@ -140,7 +141,7 @@ namespace Statsig.Client
         public Layer GetLayer(string layerName)
         {
             var hashedName = GetNameHash(layerName);
-            Layer value;
+            Layer? value;
             if (!_layers.TryGetValue(hashedName, out value))
             {
                 if (!_layers.TryGetValue(layerName, out value))
@@ -184,8 +185,8 @@ namespace Statsig.Client
 
         public void LogEvent(
             string eventName,
-            string value = null,
-            IReadOnlyDictionary<string, string> metadata = null)
+            string? value = null,
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             if (value != null && value.Length > Constants.MAX_SCALAR_LENGTH)
             {
@@ -198,7 +199,7 @@ namespace Statsig.Client
         public void LogEvent(
             string eventName,
             int value,
-            IReadOnlyDictionary<string, string> metadata = null)
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             LogEventHelper(eventName, value, metadata);
         }
@@ -206,7 +207,7 @@ namespace Statsig.Client
         public void LogEvent(
             string eventName,
             double value,
-            IReadOnlyDictionary<string, string> metadata = null)
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             LogEventHelper(eventName, value, metadata);
         }
@@ -241,8 +242,8 @@ namespace Statsig.Client
 
         void LogEventHelper(
             string eventName,
-            object value,
-            IReadOnlyDictionary<string, string> metadata = null)
+            object? value,
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             if (eventName == null)
             {
@@ -278,13 +279,20 @@ namespace Statsig.Client
         {
             try
             {
-                JToken objVal;
+                JToken? objVal;
                 if (response.TryGetValue("feature_gates", out objVal))
                 {
                     var gateMap = objVal.ToObject<Dictionary<string, object>>();
-                    foreach (var kv in gateMap)
+                    if (gateMap != null)
                     {
-                        _gates[kv.Key] = FeatureGate.FromJObject(kv.Key, kv.Value as JObject);
+                        foreach (var kv in gateMap)
+                        {
+                            var gate = FeatureGate.FromJObject(kv.Key, kv.Value as JObject);
+                            if (gate != null)
+                            {
+                                _gates[kv.Key] = gate;
+                            }
+                        }
                     }
                     PersistentStore.SetValue(gatesStoreKey, _gates);
                 }
@@ -296,13 +304,20 @@ namespace Statsig.Client
 
             try
             {
-                JToken objVal;
+                JToken? objVal;
                 if (response.TryGetValue("dynamic_configs", out objVal))
                 {
                     var configMap = objVal.ToObject<Dictionary<string, object>>();
-                    foreach (var kv in configMap)
+                    if (configMap != null)
                     {
-                        _configs[kv.Key] = DynamicConfig.FromJObject(kv.Key, kv.Value as JObject);
+                        foreach (var kv in configMap)
+                        {
+                            var config = DynamicConfig.FromJObject(kv.Key, kv.Value as JObject);
+                            if (config != null)
+                            {
+                                _configs[kv.Key] = config;
+                            }
+                        }
                     }
                     PersistentStore.SetValue(configsStoreKey, _configs);
                 }
@@ -314,13 +329,20 @@ namespace Statsig.Client
 
             try
             {
-                JToken objVal;
+                JToken? objVal;
                 if (response.TryGetValue("layer_configs", out objVal))
                 {
                     var configMap = objVal.ToObject<Dictionary<string, object>>();
-                    foreach (var kv in configMap)
+                    if (configMap != null)
                     {
-                        _layers[kv.Key] = Layer.FromJObject(kv.Key, kv.Value as JObject);
+                        foreach (var kv in configMap)
+                        {
+                            var layer = Layer.FromJObject(kv.Key, kv.Value as JObject);
+                            if (layer != null)
+                            {
+                                _layers[kv.Key] = layer;
+                            }
+                        }
                     }
                     PersistentStore.SetValue(layersStoreKey, _layers);
                 }
@@ -353,7 +375,7 @@ namespace Statsig.Client
                     ["sessionID"] = Guid.NewGuid().ToString(),
                     ["stableID"] = PersistentStore.StableID,
                     ["locale"] = CultureInfo.CurrentUICulture.Name,
-                    ["appVersion"] = Assembly.GetEntryAssembly().GetName().Version.ToString(),
+                    ["appVersion"] = Assembly.GetEntryAssembly()!.GetName()!.Version!.ToString()!,
                     ["systemVersion"] = Environment.OSVersion.Version.ToString(),
                     ["systemName"] = systemName,
                     ["sdkType"] = SDKDetails.GetClientSDKDetails().SDKType,

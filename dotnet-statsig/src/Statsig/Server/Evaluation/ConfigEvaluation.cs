@@ -17,16 +17,18 @@ namespace Statsig.Server.Evaluation
         internal DynamicConfig ConfigValue { get; set; }
         internal List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures { get; set; }
         internal List<string> ExplicitParameters { get; set; }
-        internal string ConfigDelegate { get; set; }
+        internal string? ConfigDelegate { get; set; }
 
         internal ConfigEvaluation(
             EvaluationResult result,
-            FeatureGate gate = null,
-            DynamicConfig config = null)
+            FeatureGate? gate = null,
+            DynamicConfig? config = null)
         {
             Result = result;
             GateValue = gate ?? new FeatureGate();
             ConfigValue = config ?? new DynamicConfig();
+            UndelegatedSecondaryExposures = new List<IReadOnlyDictionary<string, string>>();
+            ExplicitParameters = new List<string>();
         }
     }
 }

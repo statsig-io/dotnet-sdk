@@ -9,15 +9,15 @@ namespace Statsig.Server.Evaluation
 {
     static class Helpers
     {
-        internal static Parser _uaParser;
-        internal static object GetFromUser(StatsigUser user, string field)
+        internal static Parser? _uaParser;
+        internal static object? GetFromUser(StatsigUser? user, string field)
         {
             if (user == null)
             {
                 return null;
             }
-            string strVal;
-            object objVal;
+            string? strVal;
+            object? objVal;
             return
                 user.properties.TryGetValue(field, out strVal) ? strVal :
                 user.properties.TryGetValue(field.ToLowerInvariant(), out strVal) ? strVal :
@@ -27,7 +27,7 @@ namespace Statsig.Server.Evaluation
                 user.privateAttributes.TryGetValue(field.ToLowerInvariant(), out objVal) ? objVal : null;
         }
 
-        internal static string GetFromIP(StatsigUser user, string field)
+        internal static string? GetFromIP(StatsigUser user, string field)
         {
             var ip = GetFromUser(user, "ip");
             if (!(ip is string))
@@ -44,7 +44,7 @@ namespace Statsig.Server.Evaluation
             return CountryLookup.LookupIPStr(ipStr);
         }
 
-        internal static string GetFromUserAgent(StatsigUser user, string field)
+        internal static string? GetFromUserAgent(StatsigUser user, string field)
         {
             var ua = GetFromUser(user, "userAgent");
             if (!(ua is string))
@@ -70,7 +70,7 @@ namespace Statsig.Server.Evaluation
                     }.Where(v => !string.IsNullOrEmpty(v)).ToArray())
                 };
 
-                if (uaValues.TryGetValue(field, out string value))
+                if (uaValues.TryGetValue(field, out string? value))
                 {
                     return value;
                 }
@@ -82,16 +82,16 @@ namespace Statsig.Server.Evaluation
             return null;
         }
 
-        internal static string GetFromEnvironment(StatsigUser user, string field)
+        internal static string? GetFromEnvironment(StatsigUser user, string field)
         {
             if (user == null || user.statsigEnvironment == null)
             {
                 return null;
             }
-            return user.statsigEnvironment.TryGetValue(field.ToLowerInvariant(), out string strVal) ? strVal : null;
+            return user.statsigEnvironment.TryGetValue(field.ToLowerInvariant(), out string? strVal) ? strVal : null;
         }
 
-        internal static bool CompareNumbers(object val1, object val2, Func<double, double, bool> func)
+        internal static bool CompareNumbers(object? val1, object? val2, Func<double, double, bool> func)
         {
             if (val1 == null || val2 == null)
             {
@@ -104,7 +104,7 @@ namespace Statsig.Server.Evaluation
             return false;
         }
 
-        internal static bool CompareTimes(object val1, object val2, Func<DateTimeOffset, DateTimeOffset, bool> func)
+        internal static bool CompareTimes(object? val1, object? val2, Func<DateTimeOffset, DateTimeOffset, bool> func)
         {
             if (val1 == null || val2 == null)
             {
@@ -122,16 +122,16 @@ namespace Statsig.Server.Evaluation
             }
         }
 
-        internal static bool CompareVersions(object val1, object val2, Func<Version, Version, bool> func)
+        internal static bool CompareVersions(object? val1, object? val2, Func<Version, Version, bool> func)
         {
             if (val1 == null || val2 == null)
             {
                 return false;
             }
-            NormalizeVersionString(val1.ToString(), out string version1);
-            NormalizeVersionString(val2.ToString(), out string version2);
-            if (Version.TryParse(version1, out Version v1) &&
-                Version.TryParse(version2, out Version v2))
+            var version1 = NormalizeVersionString(val1.ToString()!);
+            var version2 = NormalizeVersionString(val2.ToString()!);
+            if (Version.TryParse(version1, out Version? v1) &&
+                Version.TryParse(version2, out Version? v2))
             {
                 return func(v1, v2);
             }
@@ -140,7 +140,7 @@ namespace Statsig.Server.Evaluation
 
         // Return true if the array contains the value, using case-insensitive comparison for strings
 
-        internal static bool MatchStringInArray(object[] array, object value, bool ignoreCase, Func<string, string, bool> func)
+        internal static bool MatchStringInArray(object[] array, object? value, bool ignoreCase, Func<string, string, bool> func)
         {
             if (value == null)
             {
@@ -155,11 +155,11 @@ namespace Statsig.Server.Evaluation
                         continue;
                     }
 
-                    if (ignoreCase && func(value.ToString().ToLowerInvariant(), t.ToString().ToLowerInvariant()))
+                    if (ignoreCase && func(value.ToString()!.ToLowerInvariant(), t.ToString()!.ToLowerInvariant()))
                     {
                         return true;
                     }
-                    if (func(value.ToString(), t.ToString()))
+                    if (func(value.ToString()!, t.ToString()!))
                     {
                         return true;
                     }
@@ -172,10 +172,10 @@ namespace Statsig.Server.Evaluation
             return false;
         }
 
-        private static void NormalizeVersionString(string version, out string normalized)
+        private static string NormalizeVersionString(string version)
         {
             int hyphenIndex = version.IndexOf('-');
-            normalized = version;
+            var normalized = version;
 
             if (hyphenIndex >= 0)
             {
@@ -185,6 +185,7 @@ namespace Statsig.Server.Evaluation
             {
                 normalized += ".0"; // normalize versions represented by a single number, e.g. 2 => 2.0
             }
+            return normalized;
         }
 
         private static DateTimeOffset ParseDateTimeOffset(object val)
@@ -201,7 +202,7 @@ namespace Statsig.Server.Evaluation
                     return DateTimeOffset.FromUnixTimeMilliseconds(epochTime);
                 }
             }
-            return DateTimeOffset.Parse(val.ToString());
+            return DateTimeOffset.Parse(val.ToString()!);
         }
     }
 }

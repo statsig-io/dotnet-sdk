@@ -8,30 +8,20 @@ namespace Statsig
     {
         public string ApiUrlBase { get; }
         public StatsigEnvironment StatsigEnvironment { get; }
-        public string PersistentStorageFolder { get; set; }
+        public string? PersistentStorageFolder { get; set; }
         public double RulesetsSyncInterval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC;
         public double IDListsSyncInterval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC;
         public int ClientRequestTimeoutMs = 0;
 
         private Dictionary<string, string> _additionalHeaders;
-        private Func<IIDStore> _idStoreFactory = null;
+        private Func<IIDStore>? _idStoreFactory = null;
         
-        public StatsigOptions(): this(null)
+        public StatsigOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null)
         {
-        }
-
-        public StatsigOptions(StatsigEnvironment environment = null)
-        {
-            ApiUrlBase = Constants.DEFAULT_API_URL_BASE;
+            ApiUrlBase = string.IsNullOrWhiteSpace(apiUrlBase) ? 
+                Constants.DEFAULT_API_URL_BASE : apiUrlBase!;
             StatsigEnvironment = environment ?? new StatsigEnvironment();
             _additionalHeaders = new Dictionary<string, string>();
-        }
-
-        public StatsigOptions(string apiUrlBase = null, StatsigEnvironment environment = null)
-        {
-            ApiUrlBase = string.IsNullOrWhiteSpace(apiUrlBase) ?
-                Constants.DEFAULT_API_URL_BASE : apiUrlBase;
-            StatsigEnvironment = environment ?? new StatsigEnvironment();
         }
 
         internal IReadOnlyDictionary<string, string> AdditionalHeaders
@@ -39,7 +29,7 @@ namespace Statsig
             get { return _additionalHeaders; }
         }
 
-        public Func<IIDStore> IDStoreFactory
+        public Func<IIDStore>? IDStoreFactory
         {
             get { return _idStoreFactory; }
             set { _idStoreFactory = value; }

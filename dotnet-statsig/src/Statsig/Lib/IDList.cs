@@ -22,12 +22,14 @@ namespace Statsig.Lib
 
         internal IIDStore Store { get; set; }
 
+#pragma warning disable CS8618 // Initializer for IDList takes care of properties init
         internal IDList()
         {
             Store = new InMemoryIDStore();
         }
+#pragma warning restore CS8618
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             //Check for null and compare run-time types.
             if ((obj == null) || !GetType().Equals(obj.GetType()))

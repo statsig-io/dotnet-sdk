@@ -12,18 +12,20 @@ namespace Statsig.Server
         internal string Salt { get; private set; }
         internal bool Enabled { get; private set; }
         internal bool IsActive { get; private set; }
-        internal string IDType { get; private set; }
+        internal string? IDType { get; private set; }
         internal string Entity { get; private set; }
         internal List<ConfigRule> Rules { get; private set; }
         internal DynamicConfig DynamicConfigDefault { get; private set; }
         internal FeatureGate FeatureGateDefault { get; private set; }
         internal List<string> ExplicitParameters { get; private set; }
 
+#pragma warning disable CS8618 // FromJObject below takes care of properties init
         ConfigSpec()
         {
         }
+#pragma warning restore CS8618
 
-        void SetDefaultValue(JToken defaultValue)
+        void SetDefaultValue(JToken? defaultValue)
         {
             DynamicConfigDefault = new DynamicConfig(Name);
             FeatureGateDefault = new FeatureGate(Name);
@@ -38,9 +40,9 @@ namespace Statsig.Server
             }
         }
 
-        internal static ConfigSpec FromJObject(JObject jobj)
+        internal static ConfigSpec? FromJObject(JObject jobj)
         {
-            JToken name, type, salt, entity, rules, enabled, 
+            JToken? name, type, salt, entity, rules, enabled, 
                 idType, explicitParameters, isActive;
 
             if (jobj == null ||
@@ -56,29 +58,36 @@ namespace Statsig.Server
             var rulesList = new List<ConfigRule>();
             if (jobj.TryGetValue("rules", out rules))
             {
-                foreach (JObject rule in rules.ToObject<JObject[]>())
+                foreach (JObject rule in rules.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>())
                 {
-                    rulesList.Add(ConfigRule.FromJObject(rule));
+                    var configRule = ConfigRule.FromJObject(rule);
+                    if (configRule != null)
+                    {
+                        rulesList.Add(configRule);
+                    }
                 }
             }
 
+            var explicitParamsList = new List<string>();
+            if (jobj.TryGetValue("explicitParameters", out explicitParameters))
+            {
+                var nonNullable = explicitParameters.Values<string>().Where(s => s != null).Select(s => s!);
+                explicitParamsList = new List<string>(nonNullable);
+            }
             var spec = new ConfigSpec()
             {
-                Name = name.Value<string>(),
-                Type = type.Value<string>(),
-                Salt = salt.Value<string>(),
-                Entity = entity.Value<string>(),                
+                Name = name.Value<string>() ?? "",
+                Type = type.Value<string>() ?? "",
+                Salt = salt.Value<string>() ?? "",
+                Entity = entity.Value<string>() ?? "",                
                 Enabled = enabled.Value<bool>(),
                 IsActive = jobj.TryGetValue("isActive", out isActive) ? isActive.Value<bool>() : false,
                 Rules = rulesList,
                 IDType = jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null,
-                ExplicitParameters = jobj.TryGetValue("explicitParameters", out explicitParameters)
-                    ? explicitParameters.Values<string>().ToList()
-                    : new List<string>(),
+                ExplicitParameters = explicitParamsList,
             };
 
-            JToken defaultValue = null;
-            jobj.TryGetValue("defaultValue", out defaultValue);
+            jobj.TryGetValue("defaultValue", out JToken? defaultValue);
             spec.SetDefaultValue(defaultValue);
             return spec;
         }

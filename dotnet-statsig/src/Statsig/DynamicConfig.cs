@@ -19,7 +19,7 @@ namespace Statsig
         [JsonProperty("secondary_exposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; internal set; }
 
-        static DynamicConfig _defaultConfig;
+        static DynamicConfig? _defaultConfig;
 
         public static DynamicConfig Default
         {
@@ -34,10 +34,10 @@ namespace Statsig
         }
 
         public DynamicConfig(
-            string configName = null,
-            IReadOnlyDictionary<string, JToken> value = null,
-            string ruleID = null,
-            List<IReadOnlyDictionary<string, string>> secondaryExposures = null)
+            string? configName = null,
+            IReadOnlyDictionary<string, JToken>? value = null,
+            string? ruleID = null,
+            List<IReadOnlyDictionary<string, string>>? secondaryExposures = null)
         {
             ConfigName = configName ?? "";
             Value = value ?? new Dictionary<string, JToken>();
@@ -45,9 +45,9 @@ namespace Statsig
             SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
         }
 
-        public T Get<T>(string key, T defaultValue = default(T))
+        public T? Get<T>(string key, T? defaultValue = default(T))
         {
-            JToken outVal;
+            JToken? outVal;
             if (!this.Value.TryGetValue(key, out outVal))
             {
                 return defaultValue;
@@ -66,18 +66,15 @@ namespace Statsig
             }
         }
 
-        internal static DynamicConfig FromJObject(string configName, JObject jobj)
+        internal static DynamicConfig? FromJObject(string configName, JObject? jobj)
         {
             if (jobj == null)
             {
                 return null;
             }
 
-            JToken ruleToken;
-            jobj.TryGetValue("rule_id", out ruleToken);
-
-            JToken valueToken;
-            jobj.TryGetValue("value", out valueToken);
+            jobj.TryGetValue("rule_id", out JToken? ruleToken);
+            jobj.TryGetValue("value", out JToken? valueToken);
 
             try
             {
@@ -87,7 +84,7 @@ namespace Statsig
                     configName,
                     value,
                     ruleToken == null ? null : ruleToken.Value<string>(),
-                    jobj.TryGetValue("secondary_exposures", out JToken exposures)
+                    jobj.TryGetValue("secondary_exposures", out JToken? exposures)
                         ? exposures.ToObject<List<IReadOnlyDictionary<string, string>>>()
                         : new List<IReadOnlyDictionary<string, string>>()
                 );

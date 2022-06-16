@@ -8,16 +8,17 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
+using System.Linq;
 
 namespace Statsig.Server
 {
     class SpecStore
     {
-        private readonly RequestDispatcher _requestDispatcher = null;
+        private readonly RequestDispatcher _requestDispatcher;
 
-        private Task _syncIDListsTask;
-        private Task _syncValuesTask;
-        private readonly CancellationTokenSource _cts = null;
+        private Task? _syncIDListsTask;
+        private Task? _syncValuesTask;
+        private readonly CancellationTokenSource _cts;
 
         internal long LastSyncTime { get; private set; }
         internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
@@ -27,7 +28,7 @@ namespace Statsig.Server
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
         private double _idListsSyncInterval;
         private double _rulesetsSyncInterval;
-        private Func<IIDStore> _idStoreFactory;
+        private Func<IIDStore>? _idStoreFactory;
 
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
@@ -152,7 +153,7 @@ namespace Statsig.Server
                                 var next = reader.Peek();
                                 if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
                                 {
-                                    IDList removed;
+                                    IDList? removed;
                                     if (_idLists.TryRemove(list.Name, out removed))
                                     {
                                         removed.Dispose();
@@ -160,7 +161,7 @@ namespace Statsig.Server
                                     return;
                                 }
 
-                                string line;
+                                string? line;
                                 while ((line = reader.ReadLine()) != null)
                                 {
                                     if (string.IsNullOrEmpty(line))
@@ -264,7 +265,7 @@ namespace Statsig.Server
             }
             foreach (var listName in deletedLists)
             {
-                IDList removed;
+                IDList? removed;
                 if (_idLists.TryRemove(listName, out removed))
                 {
                     removed.Dispose();
@@ -305,7 +306,7 @@ namespace Statsig.Server
 
         private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
         {
-            JToken time;
+            JToken? time;
             LastSyncTime = response.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
 
             if (!initialRequest)
@@ -320,16 +321,19 @@ namespace Statsig.Server
             var newConfigs = new Dictionary<string, ConfigSpec>();
             var newLayerConfigs = new Dictionary<string, ConfigSpec>();
             var newLayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
-            JToken objVal;
+            JToken? objVal;
             if (response.TryGetValue("feature_gates", out objVal))
             {
-                var gates = objVal.ToObject<JObject[]>();
+                var gates = objVal.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>();
                 foreach (JObject gate in gates)
                 {
                     try
                     {
                         var gateSpec = ConfigSpec.FromJObject(gate);
-                        newGates[gateSpec.Name.ToLowerInvariant()] = gateSpec;
+                        if (gateSpec != null)
+                        {
+                            newGates[gateSpec.Name.ToLowerInvariant()] = gateSpec;
+                        }
                     }
                     catch
                     {
@@ -340,13 +344,16 @@ namespace Statsig.Server
             
             if (response.TryGetValue("dynamic_configs", out objVal))
             {
-                var configs = objVal.ToObject<JObject[]>();
+                var configs = objVal.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>();
                 foreach (JObject config in configs)
                 {
                     try
                     {
                         var configSpec = ConfigSpec.FromJObject(config);
-                        newConfigs[configSpec.Name.ToLowerInvariant()] = configSpec;
+                        if (configSpec != null)
+                        {
+                            newConfigs[configSpec.Name.ToLowerInvariant()] = configSpec;
+                        }
                     }
                     catch
                     {
@@ -357,13 +364,16 @@ namespace Statsig.Server
             
             if (response.TryGetValue("layer_configs", out objVal))
             {
-                var configs = objVal.ToObject<JObject[]>();
+                var configs = objVal.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>();
                 foreach (JObject config in configs)
                 {
                     try
                     {
                         var configSpec = ConfigSpec.FromJObject(config);
-                        newLayerConfigs[configSpec.Name.ToLowerInvariant()] = configSpec;
+                        if (configSpec != null)
+                        {
+                            newLayerConfigs[configSpec.Name.ToLowerInvariant()] = configSpec;
+                        }
                     }
                     catch
                     {
@@ -376,16 +386,20 @@ namespace Statsig.Server
             {
                 try
                 {
-                    var jobj = objVal.Value<JObject>();
+                    var jobj = objVal.Value<JObject>() ?? new JObject();
                     foreach (var prop in jobj.Properties())
                     {
                         if (prop.Value.Type == JTokenType.Array)
                         {
-                            var array = prop.Value.Value<JArray>();
+                            var array = prop.Value.Value<JArray>() ?? new JArray();
                             var list = new List<string>();
                             foreach (var item in array)
                             {
-                                list.Add(item.Value<string>());
+                                var itemStr = item.Value<string>();
+                                if (itemStr != null)
+                                {
+                                    list.Add(itemStr);
+                                }
                             }
                             newLayersMap.Add(prop.Name, list);
                         }

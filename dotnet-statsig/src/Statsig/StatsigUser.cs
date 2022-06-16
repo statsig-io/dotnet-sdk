@@ -12,87 +12,87 @@ namespace Statsig
         internal Dictionary<string, object> privateAttributes;
 
         [JsonProperty("userID")]
-        public string UserID
+        public string? UserID
         {
             get
             {
-                return properties.TryGetValue("userID", out string value) ? value : null;
+                return properties.TryGetValue("userID", out string? value) ? value : null;
             }
             set
             {
-                properties["userID"] = value;
+                properties["userID"] = value!;
             }
         }
         [JsonProperty("email")]
-        public string Email
+        public string? Email
         {
             get
             {
-                return properties.TryGetValue("email", out string value) ? value : null;
+                return properties.TryGetValue("email", out string? value) ? value : null;
             }
             set
             {
-                properties["email"] = value;
+                properties["email"] = value!;
             }
         }
         [JsonProperty("ip")]
-        public string IPAddress
+        public string? IPAddress
         {
             get
             {
-                return properties.TryGetValue("ip", out string value) ? value : null;
+                return properties.TryGetValue("ip", out string? value) ? value : null;
             }
             set
             {
-                properties["ip"] = value;
+                properties["ip"] = value!;
             }
         }
         [JsonProperty("userAgent")]
-        public string UserAgent
+        public string? UserAgent
         {
             get
             {
-                return properties.TryGetValue("userAgent", out string value) ? value : null;
+                return properties.TryGetValue("userAgent", out string? value) ? value : null;
             }
             set
             {
-                properties["userAgent"] = value;
+                properties["userAgent"] = value!;
             }
         }
         [JsonProperty("country")]
-        public string Country
+        public string? Country
         {
             get
             {
-                return properties.TryGetValue("country", out string value) ? value : null;
+                return properties.TryGetValue("country", out string? value) ? value : null;
             }
             set
             {
-                properties["country"] = value;
+                properties["country"] = value!;
             }
         }
         [JsonProperty("locale")]
-        public string Locale
+        public string? Locale
         {
             get
             {
-                return properties.TryGetValue("locale", out string value) ? value : null;
+                return properties.TryGetValue("locale", out string? value) ? value : null;
             }
             set
             {
-                properties["locale"] = value;
+                properties["locale"] = value!;
             }
         }
         [JsonProperty("appVersion")]
-        public string AppVersion
+        public string? AppVersion
         {
             get
             {
-                return properties.TryGetValue("appVersion", out string value) ? value : null;
+                return properties.TryGetValue("appVersion", out string? value) ? value : null;
             }
             set
             {
-                properties["appVersion"] = value;
+                properties["appVersion"] = value!;
             }
         }
         [JsonProperty("custom")]
@@ -102,7 +102,7 @@ namespace Statsig
         [JsonProperty("statsigEnvironment")]
         internal IReadOnlyDictionary<string, string> statsigEnvironment;
         [JsonProperty("customIDs")]
-        internal IReadOnlyDictionary<string, string> CustomIDs;
+        internal IReadOnlyDictionary<string, string>? CustomIDs;
 
         public StatsigUser()
         {

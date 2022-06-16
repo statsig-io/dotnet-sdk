@@ -64,7 +64,7 @@ namespace Statsig.Server.Evaluation
             return Evaluate(user, _store.LayerConfigs[layerName]);
         }
 
-        internal Dictionary<string, Object> GetAllEvaluations(StatsigUser user)
+        internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user)
         {
             if (!_initialized)
             {
@@ -118,10 +118,10 @@ namespace Statsig.Server.Evaluation
                 if (!string.IsNullOrWhiteSpace(evaluation.ConfigDelegate))
                 {
                     entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate);
-                    ConfigSpec experimentSpec = null;
-                    _store.DynamicConfigs.TryGetValue(evaluation.ConfigDelegate, out experimentSpec);
+                    ConfigSpec? experimentSpec = null;
+                    _store.DynamicConfigs.TryGetValue(evaluation.ConfigDelegate!, out experimentSpec);
                     
-                    entry["is_experiment_active"] = experimentSpec.IsActive;
+                    entry["is_experiment_active"] = experimentSpec!.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
                     entry["explicit_parameters"] = experimentSpec.ExplicitParameters;
@@ -164,7 +164,7 @@ namespace Statsig.Server.Evaluation
                 }
                 seen.Add(key);
                 return exp;
-            }).Where((exp) => exp != null);
+            }).Where(exp => exp != null).Select(exp => exp!);
         }
 
         private bool IsExperimentInLayer(ConfigSpec spec)
@@ -214,18 +214,18 @@ namespace Statsig.Server.Evaluation
             return entry;
         }
 
-        private string HashName(string name)
+        private string HashName(string? name = "")
         {
             using (var sha = SHA256.Create())
             {
-                var buffer = sha.ComputeHash(Encoding.UTF8.GetBytes(name));
+                var buffer = sha.ComputeHash(Encoding.UTF8.GetBytes(name ?? ""));
                 return Convert.ToBase64String(buffer);
             }
         }
 
-        private ConfigEvaluation EvaluateDelegate(StatsigUser user, ConfigRule rule, List<IReadOnlyDictionary<string, string>> exposures)
+        private ConfigEvaluation? EvaluateDelegate(StatsigUser user, ConfigRule rule, List<IReadOnlyDictionary<string, string>> exposures)
         {
-            ConfigSpec config;
+            ConfigSpec? config;
             _store.DynamicConfigs.TryGetValue(rule.ConfigDelegate ?? "", out config);
             if (config == null)
             {
@@ -330,11 +330,11 @@ namespace Statsig.Server.Evaluation
             return (hash % 10000) < (rule.PassPercentage * 100);
         }
 
-        private string GetUnitID(StatsigUser user, string idType)
+        private string GetUnitID(StatsigUser user, string? idType)
         {
-            if (idType is string && idType.ToLowerInvariant() != "userid")
+            if (idType != null && idType.ToLowerInvariant() != "userid")
             {
-                string idVal;
+                string? idVal;
                 return user.CustomIDs != null ?
                 (user.CustomIDs.TryGetValue(idType, out idVal) ? idVal : user.CustomIDs.TryGetValue(idType.ToLowerInvariant(), out idVal) ? idVal : "")
                 : "";
@@ -373,14 +373,15 @@ namespace Statsig.Server.Evaluation
             var target = (condition.TargetValue == null || condition.TargetValue.Type == JTokenType.Null) ? null : condition.TargetValue?.Value<object>();
             var field = condition.Field ?? "";
             var idType = condition.IDType ?? "";
-            object value;
+            string targetStr = target?.ToString() ?? "";
+            object? value;
             switch (type)
             {
                 case "public":
                     return EvaluationResult.Pass;
                 case "fail_gate":
                 case "pass_gate":
-                    var otherGateResult = CheckGate(user, target.ToString().ToLowerInvariant());
+                    var otherGateResult = CheckGate(user, targetStr.ToLowerInvariant());
                     if (otherGateResult.Result == EvaluationResult.FetchFromServer)
                     {
                         return EvaluationResult.FetchFromServer;
@@ -388,7 +389,7 @@ namespace Statsig.Server.Evaluation
                     var pass = otherGateResult.Result == EvaluationResult.Pass;
                     var newExposure = new Dictionary<string, string>
                     {
-                        ["gate"] = target.ToString(),
+                        ["gate"] = targetStr,
                         ["gateValue"] = pass ? "true" : "false",
                         ["ruleID"] = otherGateResult.GateValue.RuleID
                     };
@@ -418,7 +419,7 @@ namespace Statsig.Server.Evaluation
                     value = DateTime.Now;
                     break;
                 case "user_bucket":
-                    object salt;
+                    object? salt;
                     if (condition.AdditionalValues.TryGetValue("salt", out salt))
                     {
                         var hash = ComputeUserHash(salt.ToString() + "." + GetUnitID(user, idType));
@@ -437,7 +438,7 @@ namespace Statsig.Server.Evaluation
             }
 
             bool result = false;
-            object[] targetArray = (condition.TargetValue as JArray)?.ToObject<object[]>();
+            object[] targetArray = (condition.TargetValue as JArray)?.ToObject<object[]>() ?? new Object[] {};
 
             switch (op)
             {
@@ -509,9 +510,13 @@ namespace Statsig.Server.Evaluation
                 case "str_matches":
                     try
                     {
-                        Regex r = new Regex(target.ToString(), RegexOptions.IgnoreCase);
-                        Match m = r.Match(value.ToString());
-                        result = !string.IsNullOrEmpty(m.Value);
+                        Regex r = new Regex(targetStr, RegexOptions.IgnoreCase);
+                        result = false;
+                        if (value != null)
+                        {
+                            Match m = r.Match(value.ToString()!);
+                            result = !string.IsNullOrEmpty(m.Value);
+                        }
                     }
                     catch
                     {
@@ -542,10 +547,10 @@ namespace Statsig.Server.Evaluation
                 case "not_in_segment_list":
                     using (var sha = SHA256.Create())
                     {
-                        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(value.ToString()));
+                        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(value?.ToString() ?? ""));
                         var str = Convert.ToBase64String(bytes);
                         var substr = str.Substring(0, 8);
-                        result = _store.IDListContainsValue(target.ToString(), substr);
+                        result = _store.IDListContainsValue(targetStr, substr);
                     }
                     break;
                 default:

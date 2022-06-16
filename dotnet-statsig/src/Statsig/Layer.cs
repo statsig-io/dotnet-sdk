@@ -31,7 +31,7 @@ namespace Statsig
 
         internal Action<Layer, string> OnExposure;
 
-        static Layer _default;
+        static Layer? _default;
 
         public static Layer Default
         {
@@ -45,17 +45,24 @@ namespace Statsig
             }
         }
 
-        public Layer(string name = null, IReadOnlyDictionary<string, JToken> value = null, string ruleID = null, Action<Layer, string> onExposure = null)
+        public Layer(string? name = null, 
+            IReadOnlyDictionary<string, JToken>? value = null, 
+            string? ruleID = null, 
+            Action<Layer, string>? onExposure = null)
         {
             Name = name ?? "";
             Value = value ?? new Dictionary<string, JToken>();
             RuleID = ruleID ?? "";
             OnExposure = onExposure ?? delegate { };
+            SecondaryExposures = new List<IReadOnlyDictionary<string, string>>();
+            UndelegatedSecondaryExposures = new List<IReadOnlyDictionary<string, string>>();
+            ExplicitParameters = new List<string>();
+            AllocatedExperimentName = "";
         }
 
-        public T Get<T>(string key, T defaultValue = default(T))
+        public T? Get<T>(string key, T? defaultValue = default(T))
         {
-            JToken outVal;
+            JToken? outVal;
             if (!this.Value.TryGetValue(key, out outVal))
             {
                 return defaultValue;
@@ -76,7 +83,7 @@ namespace Statsig
             }
         }
 
-        internal static Layer FromJObject(string configName, JObject jobj)
+        internal static Layer? FromJObject(string configName, JObject? jobj)
         {
             if (jobj == null)
             {
@@ -89,8 +96,8 @@ namespace Statsig
                 var layer = new Layer
                 (
                     configName,
-                    GetFromJSON<Dictionary<string, JToken>>(jobj, "value", null),
-                    GetFromJSON<string>(jobj, "rule_id", null)
+                    GetFromJSON<Dictionary<string, JToken>>(jobj, "value", new Dictionary<string, JToken>()),
+                    GetFromJSON<string>(jobj, "rule_id", "")
                 );
 
                 layer.AllocatedExperimentName = GetFromJSON(jobj, "allocated_experiment_name", "");
@@ -109,9 +116,12 @@ namespace Statsig
 
         private static T GetFromJSON<T>(JObject json, string key, T defaultValue)
         {
-            JToken token;
-            json.TryGetValue(key, out token);
-            return token == null ? defaultValue : token.ToObject<T>();
+            json.TryGetValue(key, out JToken? token);
+            if (token == null)
+            {
+                return defaultValue;
+            }
+            return token == null ? defaultValue : (token.ToObject<T>() ?? defaultValue);
         }
     }
 }
