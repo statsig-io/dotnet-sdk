@@ -164,7 +164,7 @@ namespace Statsig.Server.Evaluation
                 }
                 seen.Add(key);
                 return exp;
-            }).Where(exp => exp != null).Select(exp => exp!);
+            }).Where(exp => exp != null).Select(exp => exp!).ToArray();
         }
 
         private bool IsExperimentInLayer(ConfigSpec spec)
