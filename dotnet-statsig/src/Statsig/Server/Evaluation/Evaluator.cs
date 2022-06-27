@@ -106,6 +106,22 @@ namespace Statsig.Server.Evaluation
                     {
                         entry["is_in_layer"] = true;
                         entry["explicit_parameters"] = kv.Value.ExplicitParameters;
+
+                        var mergedValue = new Dictionary<string, object>();
+                        String? layerName;
+                        _store.ExperimentToLayer.TryGetValue(kv.Value.Name, out layerName);
+                        if (layerName != null)
+                        {
+                            ConfigSpec? layer;
+                            _store.LayerConfigs.TryGetValue(layerName, out layer);
+                            if (layer != null)
+                            {
+                                layer.DynamicConfigDefault.Value.ToList().ForEach(x => mergedValue.Add(x.Key, x.Value));
+                            }
+                        }
+
+                        kv.Value.DynamicConfigDefault.Value.ToList().ForEach(x => mergedValue.Add(x.Key, x.Value));
+                        entry["value"] = mergedValue;
                     }
                 }
                 dynamicConfigs.Add(hashedName, entry);
@@ -169,18 +185,6 @@ namespace Statsig.Server.Evaluation
                 seen.Add(key);
                 return exp;
             }).Where(exp => exp != null).Select(exp => exp!).ToArray();
-        }
-
-        private bool IsExperimentInLayer(ConfigSpec spec)
-        {
-            foreach (var kv in _store.LayersMap)
-            {
-                if (kv.Value.Contains(spec.Name))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
 
         private bool IsUserAllocatedToExperiment(

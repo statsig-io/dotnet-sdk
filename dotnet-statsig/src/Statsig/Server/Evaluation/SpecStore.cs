@@ -24,7 +24,7 @@ namespace Statsig.Server
         internal Dictionary<string, ConfigSpec> FeatureGates { get; private set; }
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
         internal Dictionary<string, ConfigSpec> LayerConfigs { get; private set; }
-        internal Dictionary<string, IReadOnlyCollection<string>> LayersMap { get; private set; }
+        internal Dictionary<string, string> ExperimentToLayer { get; private set; }
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
         private double _idListsSyncInterval;
         private double _rulesetsSyncInterval;
@@ -40,7 +40,7 @@ namespace Statsig.Server
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             LayerConfigs = new Dictionary<string, ConfigSpec>();
-            LayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
+            ExperimentToLayer = new Dictionary<string, string>();
             _idLists = new ConcurrentDictionary<string, IDList>();
 
             _syncIDListsTask = null;
@@ -321,6 +321,7 @@ namespace Statsig.Server
             var newConfigs = new Dictionary<string, ConfigSpec>();
             var newLayerConfigs = new Dictionary<string, ConfigSpec>();
             var newLayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
+            var newExperimentToLayer = new Dictionary<string, string>();
             JToken? objVal;
             if (response.TryGetValue("feature_gates", out objVal))
             {
@@ -398,10 +399,9 @@ namespace Statsig.Server
                                 var itemStr = item.Value<string>();
                                 if (itemStr != null)
                                 {
-                                    list.Add(itemStr);
+                                    newExperimentToLayer.Add(itemStr, prop.Name);
                                 }
                             }
-                            newLayersMap.Add(prop.Name, list);
                         }
                     }
                 }
@@ -410,11 +410,14 @@ namespace Statsig.Server
                     // Skip all layers
                 }
             }
+
+            if (response.TryGetValue("feature_gates", out objVal))
+            {
             
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
             LayerConfigs = newLayerConfigs;
-            LayersMap = newLayersMap;
+            ExperimentToLayer = newExperimentToLayer;
         }
     }
 }
