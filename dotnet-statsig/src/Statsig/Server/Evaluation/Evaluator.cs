@@ -107,7 +107,7 @@ namespace Statsig.Server.Evaluation
                         entry["is_in_layer"] = true;
                         entry["explicit_parameters"] = kv.Value.ExplicitParameters;
 
-                        var mergedValue = new Dictionary<string, object>();
+                        var mergedValue = config.Value;
                         String? layerName;
                         _store.ExperimentToLayer.TryGetValue(kv.Value.Name, out layerName);
                         if (layerName != null)
@@ -116,11 +116,15 @@ namespace Statsig.Server.Evaluation
                             _store.LayerConfigs.TryGetValue(layerName, out layer);
                             if (layer != null)
                             {
-                                layer.DynamicConfigDefault.Value.ToList().ForEach(x => mergedValue.Add(x.Key, x.Value));
+                                mergedValue = (new List<IReadOnlyDictionary<string, JToken>>() { layer.DynamicConfigDefault.Value, kv.Value.DynamicConfigDefault.Value }).SelectMany(x => x).Aggregate(new Dictionary<String, JToken>(),
+                                    (acc, x) =>
+                                    {
+                                        acc[x.Key] = x.Value;
+                                        return acc;
+                                    });
                             }
                         }
 
-                        kv.Value.DynamicConfigDefault.Value.ToList().ForEach(x => mergedValue.Add(x.Key, x.Value));
                         entry["value"] = mergedValue;
                     }
                 }
