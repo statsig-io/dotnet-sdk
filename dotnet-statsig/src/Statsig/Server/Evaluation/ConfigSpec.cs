@@ -18,6 +18,7 @@ namespace Statsig.Server
         internal DynamicConfig DynamicConfigDefault { get; private set; }
         internal FeatureGate FeatureGateDefault { get; private set; }
         internal List<string> ExplicitParameters { get; private set; }
+        internal bool HasSharedParams { get; private set; }
 
 #pragma warning disable CS8618 // FromJObject below takes care of properties init
         ConfigSpec()
@@ -74,6 +75,8 @@ namespace Statsig.Server
                 var nonNullable = explicitParameters.Values<string>().Where(s => s != null).Select(s => s!);
                 explicitParamsList = new List<string>(nonNullable);
             }
+            JToken? hasSharedParams;
+            jobj.TryGetValue("hasSharedParams", out hasSharedParams);
             var spec = new ConfigSpec()
             {
                 Name = name.Value<string>() ?? "",
@@ -85,6 +88,7 @@ namespace Statsig.Server
                 Rules = rulesList,
                 IDType = jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null,
                 ExplicitParameters = explicitParamsList,
+                HasSharedParams = hasSharedParams?.Value<bool>() ?? false,
             };
 
             jobj.TryGetValue("defaultValue", out JToken? defaultValue);

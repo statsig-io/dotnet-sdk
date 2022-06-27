@@ -102,7 +102,11 @@ namespace Statsig.Server.Evaluation
                     entry["is_experiment_active"] = kv.Value.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, kv.Value, config.RuleID);
-                    entry["is_in_layer"] = IsExperimentInLayer(kv.Value);
+                    if (kv.Value.HasSharedParams)
+                    {
+                        entry["is_in_layer"] = true;
+                        entry["explicit_parameters"] = kv.Value.ExplicitParameters;
+                    }
                 }
                 dynamicConfigs.Add(hashedName, entry);
             }
@@ -209,7 +213,6 @@ namespace Statsig.Server.Evaluation
                     spec.IDType.ToLowerInvariant() == "stableid"),
                 ["secondary_exposures"] = CleanExposures(config.SecondaryExposures),
             };
-            entry["explicit_parameters"] = spec.ExplicitParameters ?? new List<string>();
             
             return entry;
         }
