@@ -201,7 +201,8 @@ namespace dotnet_statsig_tests
                 'userID': 'dan',
                 'email': 'dan@theman.com',
                 'custom': {},
-                'privateAttributes': {}
+                'privateAttributes': {},
+                'customIDs': {},
             }"), _events[0]["user"]);
 
             Assert.Equal("statsig::layer_exposure", _events[0]["eventName"]);
