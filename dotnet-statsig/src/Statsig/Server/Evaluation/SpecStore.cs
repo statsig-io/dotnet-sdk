@@ -410,9 +410,6 @@ namespace Statsig.Server
                     // Skip all layers
                 }
             }
-
-            if (response.TryGetValue("feature_gates", out objVal))
-            {
             
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
