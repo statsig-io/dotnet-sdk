@@ -49,7 +49,7 @@ namespace dotnet_statsig_tests
             var user = new StatsigUser
             {
                 UserID = "123",
-                CustomIDs = new Dictionary<string, string> { { "random_id", "id123" } },
+                customIDs = new Dictionary<string, string> { { "random_id", "id123" } },
             };
             user.AddPrivateAttribute("value", "secret");
             user.AddCustomProperty("value", "public");
