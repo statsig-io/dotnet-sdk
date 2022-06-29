@@ -10,6 +10,7 @@ namespace Statsig
         internal Dictionary<string, string> properties;
         internal Dictionary<string, object> customProperties;
         internal Dictionary<string, object> privateAttributes;
+        internal Dictionary<string, string> customIDs;
 
         [JsonProperty("userID")]
         public string? UserID
@@ -102,7 +103,7 @@ namespace Statsig
         [JsonProperty("statsigEnvironment")]
         internal IReadOnlyDictionary<string, string> statsigEnvironment;
         [JsonProperty("customIDs")]
-        internal IReadOnlyDictionary<string, string>? CustomIDs;
+        public IReadOnlyDictionary<string, string> CustomIDs => customIDs;
 
         public StatsigUser()
         {
@@ -110,6 +111,7 @@ namespace Statsig
             customProperties = new Dictionary<string, object>();
             privateAttributes = new Dictionary<string, object>();
             statsigEnvironment = new Dictionary<string, string>();
+            customIDs = new Dictionary<string, string>();
         }
 
         public void AddCustomProperty(string key, object value)
@@ -128,6 +130,15 @@ namespace Statsig
                 throw new ArgumentException("Key cannot be empty.", "key");
             }
             privateAttributes[key] = value;
+        }
+
+        public void AddCustomID(string idType, string value)
+        {
+            if (string.IsNullOrWhiteSpace(idType))
+            {
+                throw new ArgumentException("idType cannot be empty.", "idType");
+            }
+            customIDs[idType] = value;
         }
 
         void SetProperty(string key, string? value)
@@ -153,7 +164,7 @@ namespace Statsig
                 Country = Country,
                 Locale = Locale,
                 AppVersion = AppVersion,
-                CustomIDs = CustomIDs,
+                customIDs = customIDs,
                 customProperties = customProperties,
                 statsigEnvironment = statsigEnvironment,
                 // Do NOT add private attributes here
