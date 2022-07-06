@@ -60,6 +60,7 @@ namespace Statsig
             set
             {
                 SetProperty("userAgent", value);
+                parsedUA = null;
             }
         }
         [JsonProperty("country")]
