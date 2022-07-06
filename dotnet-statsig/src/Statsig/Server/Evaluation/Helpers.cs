@@ -46,37 +46,16 @@ namespace Statsig.Server.Evaluation
 
         internal static string? GetFromUserAgent(StatsigUser user, string field)
         {
-            var ua = GetFromUser(user, "userAgent");
-            if (!(ua is string))
+            var parsedUA = user.parsedUA;
+            if (parsedUA == null)
             {
-                return null;
+                ParseUserUA(user);
             }
-            try
-            {
-                if (_uaParser == null)
-                {
-                    _uaParser = Parser.GetDefault();
-                }
-                ClientInfo c = _uaParser.Parse((string)ua);
-                Dictionary<string, string> uaValues = new Dictionary<string, string>
-                {
-                    ["os_name"] = c.OS.Family,
-                    ["os_version"] = string.Join(".", new string[] {
-                        c.OS.Major, c.OS.Minor, c.OS.Patch
-                    }.Where(v => !string.IsNullOrEmpty(v)).ToArray()),
-                    ["browser_name"] = c.UA.Family,
-                    ["browser_version"] = string.Join(".", new string[] {
-                        c.UA.Major, c.UA.Minor, c.UA.Patch
-                    }.Where(v => !string.IsNullOrEmpty(v)).ToArray())
-                };
 
-                if (uaValues.TryGetValue(field, out string? value))
-                {
-                    return value;
-                }
-            }
-            catch (Exception)
+            if (user.parsedUA != null && 
+                user.parsedUA.TryGetValue(field, out string? value))
             {
+                return value;
             }
 
             return null;
@@ -203,6 +182,37 @@ namespace Statsig.Server.Evaluation
                 }
             }
             return DateTimeOffset.Parse(val.ToString()!);
+        }
+
+        private static void ParseUserUA(StatsigUser user)
+        {
+            var ua = GetFromUser(user, "userAgent");
+            if (!(ua is string))
+            {
+                return;
+            }
+            try
+            {
+                if (_uaParser == null)
+                {
+                    _uaParser = Parser.GetDefault();
+                }
+                ClientInfo c = _uaParser.Parse((string)ua);
+                user.parsedUA = new Dictionary<string, string>
+                {
+                    ["os_name"] = c.OS.Family,
+                    ["os_version"] = string.Join(".", new string[] {
+                        c.OS.Major, c.OS.Minor, c.OS.Patch
+                    }.Where(v => !string.IsNullOrEmpty(v)).ToArray()),
+                    ["browser_name"] = c.UA.Family,
+                    ["browser_version"] = string.Join(".", new string[] {
+                        c.UA.Major, c.UA.Minor, c.UA.Patch
+                    }.Where(v => !string.IsNullOrEmpty(v)).ToArray())
+                };
+            }
+            catch (Exception)
+            {
+            }
         }
     }
 }

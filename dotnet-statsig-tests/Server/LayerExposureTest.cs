@@ -197,11 +197,11 @@ namespace dotnet_statsig_tests
             await StatsigServer.Shutdown();
 
             Assert.Equal(JObject.Parse(@"{
-                'statsigEnvironment': {},
                 'userID': 'dan',
                 'email': 'dan@theman.com',
                 'custom': {},
                 'privateAttributes': {},
+                'statsigEnvironment': {},
                 'customIDs': {},
             }"), _events[0]["user"]);
 
