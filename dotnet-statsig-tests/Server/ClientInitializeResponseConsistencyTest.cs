@@ -89,7 +89,7 @@ namespace dotnet_statsig_tests
             var sdkJToken = JToken.Parse(sdkResponse);
 
             Assert.True(JToken.DeepEquals(serverJToken, sdkJToken),
-                string.Format("Mismatched initialize response. Expected {0} but got {1}", serverJToken.ToString(), sdkJToken.ToString());
+                string.Format("Mismatched initialize response. Expected {0} but got {1}", serverJToken.ToString(), sdkJToken.ToString()));
 
             await driver.Shutdown();
         }
