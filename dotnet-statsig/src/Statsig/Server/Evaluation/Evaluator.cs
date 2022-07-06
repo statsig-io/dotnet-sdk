@@ -116,7 +116,7 @@ namespace Statsig.Server.Evaluation
                             _store.LayerConfigs.TryGetValue(layerName, out layer);
                             if (layer != null)
                             {
-                                mergedValue = (new List<IReadOnlyDictionary<string, JToken>>() { layer.DynamicConfigDefault.Value, kv.Value.DynamicConfigDefault.Value }).SelectMany(x => x).Aggregate(new Dictionary<String, JToken>(),
+                                mergedValue = (new List<IReadOnlyDictionary<string, JToken>>() { layer.DynamicConfigDefault.Value, config.Value }).SelectMany(x => x).Aggregate(new Dictionary<String, JToken>(),
                                     (acc, x) =>
                                     {
                                         acc[x.Key] = x.Value;
@@ -148,7 +148,7 @@ namespace Statsig.Server.Evaluation
                     entry["is_experiment_active"] = experimentSpec!.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
-                    entry["explicit_parameters"] = experimentSpec.ExplicitParameters;
+                    entry["explicit_parameters"] = experimentSpec.ExplicitParameters ?? [];
                 }
                 entry["undelegated_secondary_exposures"] = 
                     CleanExposures(evaluation.UndelegatedSecondaryExposures);
