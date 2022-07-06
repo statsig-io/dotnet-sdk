@@ -103,8 +103,6 @@ namespace dotnet_statsig_tests
         {
             RemoveGateExposureFields(ref response);
             RemoveGeneratorField(ref response);
-            RemoveEmptyExplicitParamsFields(ref response);
-            RemoveIsInLayerFields(ref response);
         }
 
         private static void RemoveGateExposureFields(ref string input)
