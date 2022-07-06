@@ -47,12 +47,6 @@ namespace dotnet_statsig_tests
             await TestConsistency("https://statsigapi.net/v1");
         }
 
-        [Fact]
-        public async void TestStaging()
-        {
-            await TestConsistency("https://staging.statsigapi.net/v1");
-        }
-
         private async Task<string> FetchTestData(string apiUrlBase)
         {
             using var client = new HttpClient();
