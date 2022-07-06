@@ -116,15 +116,5 @@ namespace dotnet_statsig_tests
         {
             input = Regex.Replace(input, "\"generator\":\".+?\",*", "");
         }
-
-        private static void RemoveEmptyExplicitParamsFields(ref string input)
-        {
-            input = Regex.Replace(input, "\"explicit_parameters\":\\[\\],*", "");
-        }
-
-        private static void RemoveIsInLayerFields(ref string input)
-        {
-            input = Regex.Replace(input, "\"is_in_layer\":true,*", "");
-        }
     }
 }
