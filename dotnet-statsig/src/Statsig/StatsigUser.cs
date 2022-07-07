@@ -11,6 +11,8 @@ namespace Statsig
         internal Dictionary<string, object> customProperties;
         internal Dictionary<string, object> privateAttributes;
         internal Dictionary<string, string> customIDs;
+        internal Dictionary<string, string> statsigEnvironment;
+        internal Dictionary<string, string>? parsedUA;
 
         [JsonProperty("userID")]
         public string? UserID
@@ -58,6 +60,7 @@ namespace Statsig
             set
             {
                 SetProperty("userAgent", value);
+                parsedUA = null;
             }
         }
         [JsonProperty("country")]
@@ -101,7 +104,7 @@ namespace Statsig
         [JsonProperty("privateAttributes")]
         public IReadOnlyDictionary<string, object> PrivateAttributes => privateAttributes;
         [JsonProperty("statsigEnvironment")]
-        internal IReadOnlyDictionary<string, string> statsigEnvironment;
+        internal IReadOnlyDictionary<string, string> StatsigEnvironment => statsigEnvironment;
         [JsonProperty("customIDs")]
         public IReadOnlyDictionary<string, string> CustomIDs => customIDs;
 
@@ -139,6 +142,15 @@ namespace Statsig
                 throw new ArgumentException("idType cannot be empty.", "idType");
             }
             customIDs[idType] = value;
+        }
+
+        public void SetEnvironment(string environment)
+        {
+            if (string.IsNullOrWhiteSpace(environment))
+            {
+                return;
+            }
+            statsigEnvironment["tier"] = environment;
         }
 
         void SetProperty(string key, string? value)
