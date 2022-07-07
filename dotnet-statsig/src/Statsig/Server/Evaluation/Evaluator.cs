@@ -102,7 +102,31 @@ namespace Statsig.Server.Evaluation
                     entry["is_experiment_active"] = kv.Value.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, kv.Value, config.RuleID);
-                    entry["is_in_layer"] = IsExperimentInLayer(kv.Value);
+                    if (kv.Value.HasSharedParams)
+                    {
+                        entry["is_in_layer"] = true;
+                        entry["explicit_parameters"] = kv.Value.ExplicitParameters;
+
+                        var mergedValue = config.Value;
+                        String? layerName;
+                        _store.ExperimentToLayer.TryGetValue(kv.Value.Name, out layerName);
+                        if (layerName != null)
+                        {
+                            ConfigSpec? layer;
+                            _store.LayerConfigs.TryGetValue(layerName, out layer);
+                            if (layer != null)
+                            {
+                                mergedValue = (new List<IReadOnlyDictionary<string, JToken>>() { layer.DynamicConfigDefault.Value, config.Value }).SelectMany(x => x).Aggregate(new Dictionary<String, JToken>(),
+                                    (acc, x) =>
+                                    {
+                                        acc[x.Key] = x.Value;
+                                        return acc;
+                                    });
+                            }
+                        }
+
+                        entry["value"] = mergedValue;
+                    }
                 }
                 dynamicConfigs.Add(hashedName, entry);
             }
@@ -114,7 +138,7 @@ namespace Statsig.Server.Evaluation
                 var evaluation = Evaluate(user, kv.Value);
                 var config = evaluation.ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
-
+                entry["explicit_parameters"] = kv.Value.ExplicitParameters ?? new List<string>();
                 if (!string.IsNullOrWhiteSpace(evaluation.ConfigDelegate))
                 {
                     entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate);
@@ -124,7 +148,8 @@ namespace Statsig.Server.Evaluation
                     entry["is_experiment_active"] = experimentSpec!.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
-                    entry["explicit_parameters"] = experimentSpec.ExplicitParameters;
+                    entry["explicit_parameters"] = experimentSpec.ExplicitParameters ?? new List<string>();
+                } else {
                 }
                 entry["undelegated_secondary_exposures"] = 
                     CleanExposures(evaluation.UndelegatedSecondaryExposures);
@@ -167,18 +192,6 @@ namespace Statsig.Server.Evaluation
             }).Where(exp => exp != null).Select(exp => exp!).ToArray();
         }
 
-        private bool IsExperimentInLayer(ConfigSpec spec)
-        {
-            foreach (var kv in _store.LayersMap)
-            {
-                if (kv.Value.Contains(spec.Name))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         private bool IsUserAllocatedToExperiment(
             StatsigUser user, 
             ConfigSpec spec,
@@ -209,7 +222,6 @@ namespace Statsig.Server.Evaluation
                     spec.IDType.ToLowerInvariant() == "stableid"),
                 ["secondary_exposures"] = CleanExposures(config.SecondaryExposures),
             };
-            entry["explicit_parameters"] = spec.ExplicitParameters ?? new List<string>();
             
             return entry;
         }

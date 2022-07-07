@@ -47,12 +47,6 @@ namespace dotnet_statsig_tests
             await TestConsistency("https://statsigapi.net/v1");
         }
 
-        [Fact]
-        public async void TestStaging()
-        {
-            await TestConsistency("https://staging.statsigapi.net/v1");
-        }
-
         private async Task<string> FetchTestData(string apiUrlBase)
         {
             using var client = new HttpClient();
@@ -94,7 +88,8 @@ namespace dotnet_statsig_tests
             var serverJToken = JToken.Parse(serverResponse);
             var sdkJToken = JToken.Parse(sdkResponse);
 
-            Assert.True(JToken.DeepEquals(serverJToken, sdkJToken));
+            Assert.True(JToken.DeepEquals(serverJToken, sdkJToken),
+                string.Format("Mismatched initialize response. Expected {0} but got {1}", serverJToken.ToString(), sdkJToken.ToString()));
 
             await driver.Shutdown();
         }
@@ -103,8 +98,6 @@ namespace dotnet_statsig_tests
         {
             RemoveGateExposureFields(ref response);
             RemoveGeneratorField(ref response);
-            RemoveEmptyExplicitParamsFields(ref response);
-            RemoveIsInLayerFields(ref response);
         }
 
         private static void RemoveGateExposureFields(ref string input)
@@ -115,16 +108,6 @@ namespace dotnet_statsig_tests
         private static void RemoveGeneratorField(ref string input)
         {
             input = Regex.Replace(input, "\"generator\":\".+?\",*", "");
-        }
-
-        private static void RemoveEmptyExplicitParamsFields(ref string input)
-        {
-            input = Regex.Replace(input, "\"explicit_parameters\":\\[\\],*", "");
-        }
-
-        private static void RemoveIsInLayerFields(ref string input)
-        {
-            input = Regex.Replace(input, "\"is_in_layer\":true,*", "");
         }
     }
 }
