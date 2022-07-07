@@ -138,7 +138,7 @@ namespace Statsig.Server.Evaluation
                 var evaluation = Evaluate(user, kv.Value);
                 var config = evaluation.ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
-
+                entry["explicit_parameters"] = kv.Value.ExplicitParameters ?? new List<string>();
                 if (!string.IsNullOrWhiteSpace(evaluation.ConfigDelegate))
                 {
                     entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate);
@@ -148,7 +148,8 @@ namespace Statsig.Server.Evaluation
                     entry["is_experiment_active"] = experimentSpec!.IsActive;
                     entry["is_user_in_experiment"] = 
                         IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
-                    entry["explicit_parameters"] = experimentSpec.ExplicitParameters ?? new string[];
+                    entry["explicit_parameters"] = experimentSpec.ExplicitParameters ?? new List<string>();
+                } else {
                 }
                 entry["undelegated_secondary_exposures"] = 
                     CleanExposures(evaluation.UndelegatedSecondaryExposures);
