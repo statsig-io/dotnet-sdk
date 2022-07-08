@@ -40,7 +40,6 @@ namespace Statsig.Server
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             LayerConfigs = new Dictionary<string, ConfigSpec>();
-            ExperimentToLayer = new Dictionary<string, string>();
             _idLists = new ConcurrentDictionary<string, IDList>();
 
             _syncIDListsTask = null;
@@ -321,7 +320,7 @@ namespace Statsig.Server
             var newConfigs = new Dictionary<string, ConfigSpec>();
             var newLayerConfigs = new Dictionary<string, ConfigSpec>();
             var newLayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
-            var newExperimentToLayer = new Dictionary<string, string>();
+            
             JToken? objVal;
             if (response.TryGetValue("feature_gates", out objVal))
             {
@@ -383,38 +382,9 @@ namespace Statsig.Server
                 }
             }
             
-            if (response.TryGetValue("layers", out objVal) && objVal.Type == JTokenType.Object)
-            {
-                try
-                {
-                    var jobj = objVal.Value<JObject>() ?? new JObject();
-                    foreach (var prop in jobj.Properties())
-                    {
-                        if (prop.Value.Type == JTokenType.Array)
-                        {
-                            var array = prop.Value.Value<JArray>() ?? new JArray();
-                            var list = new List<string>();
-                            foreach (var item in array)
-                            {
-                                var itemStr = item.Value<string>();
-                                if (itemStr != null)
-                                {
-                                    newExperimentToLayer.Add(itemStr, prop.Name);
-                                }
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    // Skip all layers
-                }
-            }
-            
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
             LayerConfigs = newLayerConfigs;
-            ExperimentToLayer = newExperimentToLayer;
         }
     }
 }
