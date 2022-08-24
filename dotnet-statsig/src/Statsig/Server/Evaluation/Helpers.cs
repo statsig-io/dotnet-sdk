@@ -160,10 +160,12 @@ namespace Statsig.Server.Evaluation
             {
                 normalized = version.Substring(0, hyphenIndex);
             }
-            if (int.TryParse(normalized, out _))
+            var components = new List<string>(normalized.Split('.'));
+            while (components.Count < 4) 
             {
-                normalized += ".0"; // normalize versions represented by a single number, e.g. 2 => 2.0
+                components.Add("0");
             }
+            normalized = string.Join(".", components.ToArray());
             return normalized;
         }
 
