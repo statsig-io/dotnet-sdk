@@ -74,7 +74,7 @@ namespace Statsig.Server.Evaluation
             var gates = new Dictionary<string, Dictionary<string, object>>();
             foreach (var kv in _store.FeatureGates)
             {
-                if (kv.Value.Entity == "segment") 
+                if (kv.Value.Entity == "segment" || kv.Value.Entity == "holdout") 
                 {
                     continue;
                 }
