@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd kong/bridges/dotnet-server
-          ./pull-and-build-sdk.sh $GITHUB_REPOSITORY $GITHUB_BASE_REF
+          ./pull-and-build-sdk.sh $GITHUB_REPOSITORY $GITHUB_HEAD_REF
           dotnet restore
         env:
           repo_pat: ${{ secrets.KONG_REPO_PAT }}
