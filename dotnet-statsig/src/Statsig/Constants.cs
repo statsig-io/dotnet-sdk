@@ -9,7 +9,7 @@ namespace Statsig
 
         public static int SERVER_MAX_LOGGER_QUEUE_LENGTH = 1000;
         public static int SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC = 60;
-        public static double SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC = 60;
+        public static double SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC = 10;
         public static double SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC = 60;
         public static string DYNAMIC_CONFIG_SPEC_TYPE = "dynamic_config";
         public static string DEFAULT_RULE_ID = "default";
