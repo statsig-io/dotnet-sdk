@@ -12,12 +12,17 @@ using Newtonsoft.Json.Linq;
 using Statsig;
 using System.Threading.Tasks;
 
+
 namespace dotnet_statsig_tests
 {
+
     [Collection("Statsig Singleton Tests")]
     public class StatsigTest : IAsyncLifetime
     {
         WireMockServer _server;
+
+        private const String ExpectedSdkVersion = "1.13.0.0";
+
         Task IAsyncLifetime.InitializeAsync()
         {
             _server = WireMockServer.Start();
@@ -82,7 +87,7 @@ namespace dotnet_statsig_tests
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
 
             Assert.True(metadata["sdkType"].Equals("dotnet-client"));
-            Assert.True(metadata["sdkVersion"].Equals("1.12.0.0"));
+            Assert.True(metadata["sdkVersion"].Equals(ExpectedSdkVersion));
 
             Assert.True(StatsigClient.CheckGate("test_gate"));
             var exp = StatsigClient.GetExperiment("test_config");
@@ -324,7 +329,7 @@ namespace dotnet_statsig_tests
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
 
             Assert.True(metadata["sdkType"].Equals("dotnet-server"));
-            Assert.True(metadata["sdkVersion"].Equals("1.12.0.0"));
+            Assert.True(metadata["sdkVersion"].Equals(ExpectedSdkVersion));
 
             var gate = await StatsigServer.CheckGate(user, "test_gate");
             Assert.True(gate);
