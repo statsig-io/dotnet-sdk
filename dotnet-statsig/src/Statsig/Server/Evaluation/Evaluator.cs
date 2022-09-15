@@ -97,7 +97,7 @@ namespace Statsig.Server.Evaluation
                 var hashedName = HashName(kv.Value.Name);
                 var config = Evaluate(user, kv.Value).ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
-                if (kv.Value.Entity != "dynamic_config")
+                if (kv.Value.Entity != "dynamic_config" && kv.Value.Entity != "autotune")
                 {
                     entry["is_experiment_active"] = kv.Value.IsActive;
                     entry["is_user_in_experiment"] = 
@@ -267,7 +267,8 @@ namespace Statsig.Server.Evaluation
                                 spec.Name,
                                 passPercentage ? rule.DynamicConfigValue.Value : spec.DynamicConfigDefault.Value,
                                 rule.ID,
-                                secondaryExposures
+                                secondaryExposures,
+                                spec.ExplicitParameters
                             );
                             return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail, gateV, configV);
                         case EvaluationResult.Fail:
@@ -284,7 +285,7 @@ namespace Statsig.Server.Evaluation
             (
                 EvaluationResult.Fail,
                 new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, defaultRuleID, secondaryExposures),
-                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, defaultRuleID, secondaryExposures)
+                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, defaultRuleID, secondaryExposures, spec.ExplicitParameters)
             );
         }
 

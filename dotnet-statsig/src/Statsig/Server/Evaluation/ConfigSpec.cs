@@ -33,7 +33,7 @@ namespace Statsig.Server
             if (Type.ToLower().Equals(Constants.DYNAMIC_CONFIG_SPEC_TYPE))
             {
                 var configVal = defaultValue != null ? defaultValue.ToObject<Dictionary<string, JToken>>() : null;
-                DynamicConfigDefault = new DynamicConfig(Name, configVal, Constants.DEFAULT_RULE_ID);
+                DynamicConfigDefault = new DynamicConfig(Name, configVal, Constants.DEFAULT_RULE_ID, null, ExplicitParameters);
             }
             else
             {

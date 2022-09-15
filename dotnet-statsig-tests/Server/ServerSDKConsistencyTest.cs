@@ -72,7 +72,6 @@ namespace dotnet_statsig_tests
             await TestConsistency("https://staging.statsigapi.net/v1");
         }
 
-
         private async Task<TestData[]> FetchTestData(string apiURLBase)
         {
             using (HttpClient client = new HttpClient())
@@ -89,7 +88,7 @@ namespace dotnet_statsig_tests
                 };
 
                 var response = client.SendAsync(httpRequestMessage).Result;
-                string result = await response.Content.ReadAsStringAsync();
+                var result = await response.Content.ReadAsStringAsync();
                 var testData = JsonConvert.DeserializeObject<Dictionary<string, TestData[]>>(result);
                 return testData["data"];
             }
@@ -126,6 +125,7 @@ namespace dotnet_statsig_tests
                     Assert.True(sdkConfigResult.RuleID == serverResult.RuleID, string.Format("Rule IDs are different for config {0}. Expected {1} but got {2}", config.Key, serverResult.RuleID, sdkConfigResult.RuleID));
                     Assert.True(compareSecondaryExposures(sdkConfigResult.SecondaryExposures, serverResult.SecondaryExposures),
                         string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", config.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkConfigResult.SecondaryExposures)));
+                    Assert.Equal(serverResult.ExplicitParameters, sdkConfigResult.ExplicitParameters);
                 }
 
                 foreach (var layer in data.layer_configs)
@@ -143,6 +143,7 @@ namespace dotnet_statsig_tests
                         string.Format("Secondary exposures are different for config {0}. Expected {1} but got {2}", layer.Key, stringifyExposures(serverResult.SecondaryExposures), stringifyExposures(sdkConfigResult.SecondaryExposures)));
                     Assert.True(compareSecondaryExposures(sdkResult.UndelegatedSecondaryExposures, serverResult.UndelegatedSecondaryExposures),
                         string.Format("Undelegated Secondary exposures are different for config {0}. Expected {1} but got {2}", layer.Key, stringifyExposures(serverResult.UndelegatedSecondaryExposures), stringifyExposures(sdkResult.UndelegatedSecondaryExposures)));
+                    Assert.Equal(serverResult.ExplicitParameters, sdkConfigResult.ExplicitParameters);
                 }
             }
             await driver.Shutdown();

@@ -3,28 +3,24 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Linq;
+using Statsig.Server;
 
 namespace Statsig
 {
     public class Layer
     {
-        [JsonProperty("name")]
-        public string Name { get; }
+        [JsonProperty("name")] public string Name { get; }
 
-        [JsonProperty("rule_id")]
-        public string RuleID { get; }
+        [JsonProperty("rule_id")] public string RuleID { get; }
 
-        [JsonProperty("value")]
-        internal IReadOnlyDictionary<string, JToken> Value { get; }
+        [JsonProperty("explicit_parameters")] public List<string> ExplicitParameters { get; private set; }
 
-        [JsonProperty("secondary_exposures")]
-        internal List<IReadOnlyDictionary<string, string>> SecondaryExposures;
+        [JsonProperty("value")] internal IReadOnlyDictionary<string, JToken> Value { get; }
+
+        [JsonProperty("secondary_exposures")] internal List<IReadOnlyDictionary<string, string>> SecondaryExposures;
 
         [JsonProperty("undelegated_secondary_exposures")]
         internal List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures;
-
-        [JsonProperty("explicit_parameters")]
-        internal List<string> ExplicitParameters;
 
         [JsonProperty("allocated_experiment_name")]
         internal string AllocatedExperimentName;
@@ -41,13 +37,14 @@ namespace Statsig
                 {
                     _default = new Layer();
                 }
+
                 return _default;
             }
         }
 
-        public Layer(string? name = null, 
-            IReadOnlyDictionary<string, JToken>? value = null, 
-            string? ruleID = null, 
+        public Layer(string? name = null,
+            IReadOnlyDictionary<string, JToken>? value = null,
+            string? ruleID = null,
             Action<Layer, string>? onExposure = null)
         {
             Name = name ?? "";
@@ -96,14 +93,17 @@ namespace Statsig
                 var layer = new Layer
                 (
                     configName,
-                    GetFromJSON<Dictionary<string, JToken>>(jobj, "value", new Dictionary<string, JToken>()),
-                    GetFromJSON<string>(jobj, "rule_id", "")
+                    JsonHelpers.GetFromJSON<Dictionary<string, JToken>>(jobj, "value",
+                        new Dictionary<string, JToken>()),
+                    JsonHelpers.GetFromJSON<string>(jobj, "rule_id", "")
                 );
 
-                layer.AllocatedExperimentName = GetFromJSON(jobj, "allocated_experiment_name", "");
-                layer.SecondaryExposures = GetFromJSON(jobj, "secondary_exposures", new List<IReadOnlyDictionary<string, string>>());
-                layer.UndelegatedSecondaryExposures = GetFromJSON(jobj, "undelegated_secondary_exposures", new List<IReadOnlyDictionary<string, string>>());
-                layer.ExplicitParameters = GetFromJSON(jobj, "explicit_parameters", new List<string>());
+                layer.AllocatedExperimentName = JsonHelpers.GetFromJSON(jobj, "allocated_experiment_name", "");
+                layer.SecondaryExposures = JsonHelpers.GetFromJSON(jobj, "secondary_exposures",
+                    new List<IReadOnlyDictionary<string, string>>());
+                layer.UndelegatedSecondaryExposures = JsonHelpers.GetFromJSON(jobj, "undelegated_secondary_exposures",
+                    new List<IReadOnlyDictionary<string, string>>());
+                layer.ExplicitParameters = JsonHelpers.GetFromJSON(jobj, "explicit_parameters", new List<string>());
 
                 return layer;
             }
@@ -112,16 +112,6 @@ namespace Statsig
                 // Failed to parse config.  TODO: Log this
                 return null;
             }
-        }
-
-        private static T GetFromJSON<T>(JObject json, string key, T defaultValue)
-        {
-            json.TryGetValue(key, out JToken? token);
-            if (token == null)
-            {
-                return defaultValue;
-            }
-            return token == null ? defaultValue : (token.ToObject<T>() ?? defaultValue);
         }
     }
 }
