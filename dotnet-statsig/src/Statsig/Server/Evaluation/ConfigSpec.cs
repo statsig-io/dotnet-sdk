@@ -33,7 +33,8 @@ namespace Statsig.Server
             if (Type.ToLower().Equals(Constants.DYNAMIC_CONFIG_SPEC_TYPE))
             {
                 var configVal = defaultValue != null ? defaultValue.ToObject<Dictionary<string, JToken>>() : null;
-                DynamicConfigDefault = new DynamicConfig(Name, configVal, Constants.DEFAULT_RULE_ID, null, ExplicitParameters);
+                DynamicConfigDefault = new DynamicConfig(Name, configVal, Constants.DEFAULT_RULE_ID, null,
+                    ExplicitParameters, HasSharedParams);
             }
             else
             {
@@ -43,8 +44,15 @@ namespace Statsig.Server
 
         internal static ConfigSpec? FromJObject(JObject jobj)
         {
-            JToken? name, type, salt, entity, rules, enabled, 
-                idType, explicitParameters, isActive;
+            JToken? name,
+                type,
+                salt,
+                entity,
+                rules,
+                enabled,
+                idType,
+                explicitParameters,
+                isActive;
 
             if (jobj == null ||
                 !jobj.TryGetValue("name", out name) ||
@@ -75,6 +83,7 @@ namespace Statsig.Server
                 var nonNullable = explicitParameters.Values<string>().Where(s => s != null).Select(s => s!);
                 explicitParamsList = new List<string>(nonNullable);
             }
+
             JToken? hasSharedParams;
             jobj.TryGetValue("hasSharedParams", out hasSharedParams);
             var spec = new ConfigSpec()
@@ -82,7 +91,7 @@ namespace Statsig.Server
                 Name = name.Value<string>() ?? "",
                 Type = type.Value<string>() ?? "",
                 Salt = salt.Value<string>() ?? "",
-                Entity = entity.Value<string>() ?? "",                
+                Entity = entity.Value<string>() ?? "",
                 Enabled = enabled.Value<bool>(),
                 IsActive = jobj.TryGetValue("isActive", out isActive) ? isActive.Value<bool>() : false,
                 Rules = rulesList,

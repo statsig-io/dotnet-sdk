@@ -18,6 +18,8 @@ namespace Statsig
 
         [JsonProperty("secondary_exposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; internal set; }
+        
+        [JsonProperty("is_in_layer")] public bool IsInLayer { get; }
 
         static DynamicConfig? _defaultConfig;
 
@@ -39,7 +41,8 @@ namespace Statsig
             IReadOnlyDictionary<string, JToken>? value = null,
             string? ruleID = null,
             List<IReadOnlyDictionary<string, string>>? secondaryExposures = null,
-            List<string>? explicitParameters = null
+            List<string>? explicitParameters = null,
+            bool isInLayer = false
         )
         {
             ConfigName = configName ?? "";
@@ -47,6 +50,7 @@ namespace Statsig
             RuleID = ruleID ?? "";
             SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
             ExplicitParameters = explicitParameters ?? new List<string>();
+            IsInLayer = isInLayer;
         }
 
         public T? Get<T>(string key, T? defaultValue = default(T))
@@ -91,7 +95,8 @@ namespace Statsig
                     jobj.TryGetValue("secondary_exposures", out JToken? exposures)
                         ? exposures.ToObject<List<IReadOnlyDictionary<string, string>>>()
                         : new List<IReadOnlyDictionary<string, string>>(),
-                    JsonHelpers.GetFromJSON(jobj, "explicit_parameters", new List<string>())
+                    JsonHelpers.GetFromJSON(jobj, "explicit_parameters", new List<string>()),
+                    JsonHelpers.GetFromJSON(jobj, "is_in_layer", false)
                 );
 
                 return config;

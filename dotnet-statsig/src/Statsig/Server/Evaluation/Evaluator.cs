@@ -268,7 +268,8 @@ namespace Statsig.Server.Evaluation
                                 passPercentage ? rule.DynamicConfigValue.Value : spec.DynamicConfigDefault.Value,
                                 rule.ID,
                                 secondaryExposures,
-                                spec.ExplicitParameters
+                                spec.ExplicitParameters,
+                                spec.HasSharedParams
                             );
                             return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail, gateV, configV);
                         case EvaluationResult.Fail:
