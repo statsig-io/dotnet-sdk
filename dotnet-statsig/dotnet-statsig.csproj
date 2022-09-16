@@ -7,7 +7,7 @@
     <RootNamespace>statsig_dotnet</RootNamespace>
     <PackOnBuild>true</PackOnBuild>
     <PackageId>Statsig</PackageId>
-    <Version>1.13.0</Version>
+    <Version>1.13.1</Version>
     <Authors>Statsig Inc.</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Owners>Statsig Inc.,</Owners>
@@ -23,14 +23,25 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../LICENSE" Pack="true" PackagePath="" />
+    <None
+        Include="../LICENSE"
+        Pack="true"
+        PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="UAParser" Version="3.1.47" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="IP3Country" Version="1.1.0" />
+    <PackageReference
+        Include="System.Net.Http"
+        Version="4.3.4" />
+    <PackageReference
+        Include="UAParser"
+        Version="3.1.47" />
+    <PackageReference
+        Include="Newtonsoft.Json"
+        Version="13.0.1" />
+    <PackageReference
+        Include="IP3Country"
+        Version="1.1.0" />
   </ItemGroup>
 
   <ItemGroup>
