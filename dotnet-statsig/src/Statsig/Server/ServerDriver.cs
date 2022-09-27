@@ -224,6 +224,19 @@ namespace Statsig.Server
 
             var allEvals = evaluator.GetAllEvaluations(user) ?? new Dictionary<string, object>();
             allEvals.Add("generator", "Dotnet Server");
+
+            var evaluatedKeys = new Dictionary<string, object>();
+            if (user.UserID != null)
+            {
+                evaluatedKeys["userID"] = user.UserID;
+            }
+
+            if (user.CustomIDs.Count != 0)
+            {
+                evaluatedKeys["customIDs"] = user.customIDs;
+            }
+            allEvals.Add("evaluated_keys", evaluatedKeys);
+
             return allEvals;
         }
 
