@@ -11,15 +11,12 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    strategy:
-      matrix:
-        dotnet-version: ["6.x.x"]
     steps:
       - uses: actions/checkout@v2
-      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+      - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: "6.x.x"
       - name: Install dependencies
         run: dotnet restore
       - name: Build
