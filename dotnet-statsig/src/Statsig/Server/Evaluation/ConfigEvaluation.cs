@@ -27,7 +27,7 @@ namespace Statsig.Server.Evaluation
             Result = result;
             GateValue = gate ?? new FeatureGate();
             ConfigValue = config ?? new DynamicConfig();
-            UndelegatedSecondaryExposures = new List<IReadOnlyDictionary<string, string>>();
+            UndelegatedSecondaryExposures = ConfigValue.SecondaryExposures;
             ExplicitParameters = new List<string>();
         }
     }
