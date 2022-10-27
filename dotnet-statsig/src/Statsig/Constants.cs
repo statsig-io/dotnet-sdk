@@ -3,7 +3,7 @@ namespace Statsig
 {
     internal static class Constants
     {
-        public static string DEFAULT_API_URL_BASE = "https://api.statsig.com/v1";
+        public static string DEFAULT_API_URL_BASE = "https://statsigapi.net/v1";
         public static int MAX_SCALAR_LENGTH = 64;
         public static int MAX_METADATA_LENGTH = 1024;
 
