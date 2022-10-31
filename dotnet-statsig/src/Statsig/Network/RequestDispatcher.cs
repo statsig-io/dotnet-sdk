@@ -57,6 +57,12 @@ namespace Statsig.Network
                     request.Headers.Add("STATSIG-API-KEY", Key);
                     request.Headers.Add("STATSIG-CLIENT-TIME",
                         (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds.ToString());
+                 
+                    var sdkVersion = SDKDetails.GetServerSDKDetails().StatsigMetadata["sdkVersion"];
+                    var sdkType = SDKDetails.GetServerSDKDetails().StatsigMetadata["sdkType"];
+                    request.Headers.Add("STATSIG-SDK-TYPE", sdkVersion);
+                    request.Headers.Add("STATSIG-SDK-VERSION", sdkType);
+                    
                     foreach (var kv in AdditionalHeaders)
                     {
                         request.Headers.Add(kv.Key, kv.Value);
