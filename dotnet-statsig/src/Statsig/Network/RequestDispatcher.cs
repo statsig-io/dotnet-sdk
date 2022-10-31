@@ -42,6 +42,7 @@ namespace Statsig.Network
         public async Task<IReadOnlyDictionary<string, JToken>?> Fetch(
             string endpoint,
             IReadOnlyDictionary<string, object> body,
+            IReadOnlyDictionary<string, string> metadata,
             int retries = 0,
             int backoff = 1,
             int timeoutInMs = 0)
@@ -57,8 +58,6 @@ namespace Statsig.Network
                     request.Headers.Add("STATSIG-API-KEY", Key);
                     request.Headers.Add("STATSIG-CLIENT-TIME",
                         (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds.ToString());
-                    
-                    var metadata = (endpoint.Equals("initialize")) ? SDKDetails.GetClientSDKDetails().StatsigMetadata: SDKDetails.GetServerSDKDetails().StatsigMetadata;
                     request.Headers.Add("STATSIG-SDK-VERSION", metadata["sdkVersion"]);
                     request.Headers.Add("STATSIG-SDK-TYPE", metadata["sdkType"]);
                     
@@ -87,7 +86,7 @@ namespace Statsig.Network
                     }
                     else if (retries > 0 && retryCodes.Contains((int)response.StatusCode))
                     {
-                        return await retry(endpoint, body, retries, backoff);
+                        return await retry(endpoint, body, metadata, retries, backoff);
                     }
                 }
             }
@@ -95,7 +94,7 @@ namespace Statsig.Network
             {
                 if (retries > 0)
                 {
-                    return await retry(endpoint, body, retries, backoff);
+                    return await retry(endpoint, body, metadata, retries, backoff);
                 }
             }
             return null;
@@ -104,11 +103,12 @@ namespace Statsig.Network
         private async Task<IReadOnlyDictionary<string, JToken>?> retry(
             string endpoint,
             IReadOnlyDictionary<string, object> body,
+            IReadOnlyDictionary<string, string> metadata, 
             int retries = 0,
             int backoff = 1)
         {
             await Task.Delay(backoff * 1000);
-            return await Fetch(endpoint, body, retries - 1, backoff * backoffMultiplier);
+            return await Fetch(endpoint, body, metadata, retries - 1, backoff * backoffMultiplier);
         }
     }
 }

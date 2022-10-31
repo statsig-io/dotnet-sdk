@@ -118,6 +118,8 @@ namespace dotnet_statsig_tests
             requestDict = JObject.Parse(requestBody);
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
+            Assert.True(requestHeaders["STATSIG-SDK-VERSION"].ToString().Equals(ExpectedSdkVersion));
+            Assert.True(requestHeaders["STATSIG-SDK-TYPE"].ToString().Equals("dotnet-client"));
 
             JToken e;
             requestDict.TryGetValue("events", out e);
