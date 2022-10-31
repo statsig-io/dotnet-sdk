@@ -88,6 +88,7 @@ namespace Statsig.Client
                     ["user"] = _user,
                     ["statsigMetadata"] = GetStatsigMetadata(),
                 },
+                SDKDetails.GetClientSDKDetails().StatsigMetadata,
                 timeoutInMs: _options.ClientRequestTimeoutMs
             );
             if (response == null)

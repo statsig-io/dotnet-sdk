@@ -277,7 +277,8 @@ namespace Statsig.Server
             var response = await _requestDispatcher.Fetch("get_id_lists", new Dictionary<string, object>
             {
                 ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-            });
+            }, 
+                SDKDetails.GetServerSDKDetails().StatsigMetadata);
             if (response == null || response.Count == 0)
             {
                 return;
@@ -294,7 +295,8 @@ namespace Statsig.Server
                 {
                     ["sinceTime"] = LastSyncTime,
                     ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-                }
+                },
+                SDKDetails.GetServerSDKDetails().StatsigMetadata
             );
 
             if (response != null)
