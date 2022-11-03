@@ -93,7 +93,7 @@ namespace Statsig.Server
                 {
                     ["user"] = user,
                     ["gateName"] = gateName
-                });
+                }, SDKDetails.GetServerSDKDetails().StatsigMetadata);
 
                 if (response != null)
                 {
@@ -197,7 +197,7 @@ namespace Statsig.Server
             {
                 ["user"] = user,
                 ["configName"] = name
-            });
+            }, SDKDetails.GetServerSDKDetails().StatsigMetadata);
             if (response != null)
             {
                 JToken? outVal;

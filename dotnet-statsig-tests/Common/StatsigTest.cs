@@ -85,6 +85,8 @@ namespace dotnet_statsig_tests
             Assert.Single(requestUser.PrivateAttributes);
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
+            Assert.True(requestHeaders["STATSIG-SDK-VERSION"].ToString().Equals(ExpectedSdkVersion));
+            Assert.True(requestHeaders["STATSIG-SDK-TYPE"].ToString().Equals("dotnet-client"));
 
             Assert.True(metadata["sdkType"].Equals("dotnet-client"));
             Assert.True(metadata["sdkVersion"].Equals(ExpectedSdkVersion));
@@ -116,6 +118,8 @@ namespace dotnet_statsig_tests
             requestDict = JObject.Parse(requestBody);
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("client-fake-key"));
+            Assert.True(requestHeaders["STATSIG-SDK-VERSION"].ToString().Equals(ExpectedSdkVersion));
+            Assert.True(requestHeaders["STATSIG-SDK-TYPE"].ToString().Equals("dotnet-client"));
 
             JToken e;
             requestDict.TryGetValue("events", out e);
@@ -327,7 +331,9 @@ namespace dotnet_statsig_tests
             var metadata = m.ToObject<Dictionary<string, string>>();
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
-
+            Assert.True(requestHeaders["STATSIG-SDK-VERSION"].ToString().Equals(ExpectedSdkVersion));
+            Assert.True(requestHeaders["STATSIG-SDK-TYPE"].ToString().Equals("dotnet-server"));
+            
             Assert.True(metadata["sdkType"].Equals("dotnet-server"));
             Assert.True(metadata["sdkVersion"].Equals(ExpectedSdkVersion));
 
