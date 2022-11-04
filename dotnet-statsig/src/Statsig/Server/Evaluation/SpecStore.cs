@@ -33,7 +33,7 @@ namespace Statsig.Server
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
             _idStoreFactory = options.IDStoreFactory;
-            _requestDispatcher = new RequestDispatcher(serverSecret, options.ApiUrlBase, options.AdditionalHeaders);
+            _requestDispatcher = new RequestDispatcher(serverSecret, options);
             _idListsSyncInterval = options.IDListsSyncInterval;
             _rulesetsSyncInterval = options.RulesetsSyncInterval;
             LastSyncTime = 0;

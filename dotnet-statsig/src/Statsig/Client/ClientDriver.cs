@@ -53,7 +53,7 @@ namespace Statsig.Client
             }
             _clientKey = clientKey;
             _options = options;
-            _requestDispatcher = new RequestDispatcher(_clientKey, _options.ApiUrlBase);
+            _requestDispatcher = new RequestDispatcher(_clientKey, _options);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
                 SDKDetails.GetClientSDKDetails(),

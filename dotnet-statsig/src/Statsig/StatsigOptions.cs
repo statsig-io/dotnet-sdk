@@ -4,6 +4,22 @@ using Statsig.Lib;
 
 namespace Statsig
 {
+    /// <summary>
+    /// Configuration options for the Statsig Server SDK
+    /// </summary>
+    public class StatsigServerOptions : StatsigOptions
+    {
+        /// <summary>
+        /// Restricts the SDK to not issue any network requests and only respond with default values (or local overrides)
+        /// </summary>
+        public bool LocalMode;
+
+        public StatsigServerOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null) : base(
+            apiUrlBase, environment)
+        {
+        }
+    }
+
     public class StatsigOptions
     {
         public string ApiUrlBase { get; }
@@ -15,11 +31,10 @@ namespace Statsig
 
         private Dictionary<string, string> _additionalHeaders;
         private Func<IIDStore>? _idStoreFactory = null;
-        
+
         public StatsigOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null)
         {
-            ApiUrlBase = string.IsNullOrWhiteSpace(apiUrlBase) ? 
-                Constants.DEFAULT_API_URL_BASE : apiUrlBase!;
+            ApiUrlBase = string.IsNullOrWhiteSpace(apiUrlBase) ? Constants.DEFAULT_API_URL_BASE : apiUrlBase!;
             StatsigEnvironment = environment ?? new StatsigEnvironment();
             _additionalHeaders = new Dictionary<string, string>();
         }
@@ -37,10 +52,11 @@ namespace Statsig
 
         public void AddRequestHeader(string key, string value)
         {
-            if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value)) 
+            if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
             {
                 throw new ArgumentException("Both Key and Value need to be non-empty");
             }
+
             _additionalHeaders.Add(key, value);
         }
     }

@@ -29,26 +29,25 @@ namespace Statsig.Server
         {
             if (string.IsNullOrWhiteSpace(serverSecret))
             {
-                throw new ArgumentException("serverSecret cannot be empty.", "serverSecret");
+                throw new ArgumentException("serverSecret cannot be empty.", nameof(serverSecret));
             }
-            if (options == null)
-            {
-                options = new StatsigOptions();
-            }
+            
+            options ??= new StatsigOptions();
+            
             if (!serverSecret.StartsWith("secret-"))
             {
                 if (options.AdditionalHeaders.Count == 0) 
                 {
                     throw new ArgumentException(
                         "Invalid key provided. Please check your Statsig console to get the right server key.", 
-                        "serverSecret"
+                        nameof(serverSecret)
                     );
                 }
             }
             _serverSecret = serverSecret;
             _options = options;
 
-            _requestDispatcher = new RequestDispatcher(_serverSecret, _options.ApiUrlBase);
+            _requestDispatcher = new RequestDispatcher(_serverSecret, _options);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
                 SDKDetails.GetServerSDKDetails(),
