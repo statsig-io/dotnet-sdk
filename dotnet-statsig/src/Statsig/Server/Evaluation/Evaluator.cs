@@ -269,7 +269,8 @@ namespace Statsig.Server.Evaluation
                                 rule.ID,
                                 secondaryExposures,
                                 spec.ExplicitParameters,
-                                spec.HasSharedParams
+                                spec.HasSharedParams,
+                                IsUserAllocatedToExperiment(user, spec, rule.ID)
                             );
                             return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail, gateV, configV);
                         case EvaluationResult.Fail:
