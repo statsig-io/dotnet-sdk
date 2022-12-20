@@ -54,6 +54,18 @@ namespace Statsig.Network
             int backoff = 1,
             int timeoutInMs = 0)
         {
+            var result = await FetchAsString(endpoint, body, metadata, retries, backoff, timeoutInMs);
+            return JsonConvert.DeserializeObject<IReadOnlyDictionary<string, JToken>>(result ?? "");
+        }
+
+        public async Task<string?> FetchAsString(
+            string endpoint,
+            IReadOnlyDictionary<string, object> body,
+            IReadOnlyDictionary<string, string> metadata,
+            int retries = 0,
+            int backoff = 1,
+            int timeoutInMs = 0)
+        {
             if (_options is StatsigServerOptions { LocalMode: true })
             {
                 return null;
@@ -91,14 +103,11 @@ namespace Statsig.Network
 
                     if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
                     {
-                        var stream = await response.Content.ReadAsStreamAsync();
-                        using (var reader = new StreamReader(stream))
-                        {
-                            var jsonReader = new JsonTextReader(reader);
-                            return _defaultSerializer.Deserialize<Dictionary<string, JToken>>(jsonReader);
-                        }
+                        var result = await response.Content.ReadAsStringAsync();
+                        return result;
                     }
-                    else if (retries > 0 && RetryCodes.Contains((int)response.StatusCode))
+
+                    if (retries > 0 && RetryCodes.Contains((int)response.StatusCode))
                     {
                         return await retry(endpoint, body, metadata, retries, backoff);
                     }
@@ -115,7 +124,7 @@ namespace Statsig.Network
             return null;
         }
 
-        private async Task<IReadOnlyDictionary<string, JToken>?> retry(
+        private async Task<string?> retry(
             string endpoint,
             IReadOnlyDictionary<string, object> body,
             IReadOnlyDictionary<string, string> metadata,
@@ -123,7 +132,7 @@ namespace Statsig.Network
             int backoff = 1)
         {
             await Task.Delay(backoff * 1000);
-            return await Fetch(endpoint, body, metadata, retries - 1, backoff * BackoffMultiplier);
+            return await FetchAsString(endpoint, body, metadata, retries - 1, backoff * BackoffMultiplier);
         }
     }
 }

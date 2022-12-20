@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Statsig.Lib;
+using Statsig.Server.Interfaces;
 
 namespace Statsig
 {
@@ -13,6 +14,12 @@ namespace Statsig
         /// Restricts the SDK to not issue any network requests and only respond with default values (or local overrides)
         /// </summary>
         public bool LocalMode;
+        
+        /// <summary>
+        /// A class that extends IDataStore. Can be used to provide values from a
+        /// common data store (like Redis) to initialize the Statsig SDK.
+        /// </summary>
+        public IDataStore DataStore;
 
         public StatsigServerOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null) : base(
             apiUrlBase, environment)

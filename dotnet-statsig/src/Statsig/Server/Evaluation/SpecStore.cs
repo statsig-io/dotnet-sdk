@@ -9,6 +9,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Linq;
+using Newtonsoft.Json;
+using Statsig.Server.Interfaces;
 
 namespace Statsig.Server
 {
@@ -29,7 +31,8 @@ namespace Statsig.Server
         private double _idListsSyncInterval;
         private double _rulesetsSyncInterval;
         private Func<IIDStore>? _idStoreFactory;
-
+        private IDataStore? _dataStore;
+        
         internal SpecStore(string serverSecret, StatsigOptions options)
         {
             _idStoreFactory = options.IDStoreFactory;
@@ -45,12 +48,21 @@ namespace Statsig.Server
             _syncIDListsTask = null;
             _syncValuesTask = null;
             _cts = new CancellationTokenSource();
+            
+            if (options is StatsigServerOptions o)
+            {
+                _dataStore = o.DataStore;
+            }
         }
 
         internal async Task Initialize()
         {
-            // Execute and wait for the initial syncs
-            await SyncValues(true);
+            var bootedFromDataStore = await SyncValuesFromDataStore();
+            if (!bootedFromDataStore)
+            {
+                await SyncValuesFromNetwork();
+            }
+            
             await SyncIDLists();
 
             // Start background tasks to periodically refresh the store
@@ -87,7 +99,7 @@ namespace Statsig.Server
             {
                 try
                 {
-                    await Task.Delay(delayInterval, cancellationToken);
+                    await Delay.Wait(delayInterval, cancellationToken);
                     await SyncIDLists();
                 }
                 catch (TaskCanceledException)
@@ -109,9 +121,8 @@ namespace Statsig.Server
             {
                 try
                 {
-                    await Task.Delay(delayInterval, cancellationToken);
-
-                    await SyncValues(initialRequest: false);
+                    await Delay.Wait(delayInterval, cancellationToken);
+                    await SyncValuesFromNetwork();
                 }
                 catch (TaskCanceledException)
                 {
@@ -287,9 +298,9 @@ namespace Statsig.Server
             await SyncIDLists(response);
         }
 
-        private async Task SyncValues(bool initialRequest)
+        private async Task SyncValuesFromNetwork()
         {
-            var response = await _requestDispatcher.Fetch(
+            var response = await _requestDispatcher.FetchAsString(
                 "download_config_specs",
                 new Dictionary<string, object>
                 {
@@ -299,32 +310,46 @@ namespace Statsig.Server
                 SDKDetails.GetServerSDKDetails().StatsigMetadata
             );
 
-            if (response != null)
+            var hasUpdates = ParseResponse(response);
+            if (hasUpdates && _dataStore != null && response != null)
             {
-                ParseResponse(response, initialRequest);
+                await _dataStore.Set(DataStoreKey.Rulesets, response);
             }
         }
-
-        private void ParseResponse(IReadOnlyDictionary<string, JToken> response, bool initialRequest)
+        
+        private async Task<bool> SyncValuesFromDataStore()
         {
-            JToken? time;
-            LastSyncTime = response.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
-
-            if (!initialRequest)
+            if (_dataStore == null)
             {
-                if (!response.TryGetValue("has_updates", out var hasUpdates) || !hasUpdates.Value<bool>())
-                {
-                    return;
-                }
+                return false;
+            }
+
+            var response = await _dataStore.Get(DataStoreKey.Rulesets);
+            return ParseResponse(response);
+        }
+
+        private bool ParseResponse(string? response)
+        {
+            var json = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(response ?? "");
+            if (json == null)
+            {
+                return false;
+            } 
+            
+            JToken? time;
+            LastSyncTime = json.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
+
+            if (!json.TryGetValue("has_updates", out var hasUpdates) || !hasUpdates.Value<bool>())
+            {
+                return false;
             }
 
             var newGates = new Dictionary<string, ConfigSpec>();
             var newConfigs = new Dictionary<string, ConfigSpec>();
             var newLayerConfigs = new Dictionary<string, ConfigSpec>();
-            var newLayersMap = new Dictionary<string, IReadOnlyCollection<string>>();
             
             JToken? objVal;
-            if (response.TryGetValue("feature_gates", out objVal))
+            if (json.TryGetValue("feature_gates", out objVal))
             {
                 var gates = objVal.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>();
                 foreach (JObject gate in gates)
@@ -344,7 +369,7 @@ namespace Statsig.Server
                 }
             }
             
-            if (response.TryGetValue("dynamic_configs", out objVal))
+            if (json.TryGetValue("dynamic_configs", out objVal))
             {
                 var configs = objVal.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>();
                 foreach (JObject config in configs)
@@ -364,7 +389,7 @@ namespace Statsig.Server
                 }
             }
             
-            if (response.TryGetValue("layer_configs", out objVal))
+            if (json.TryGetValue("layer_configs", out objVal))
             {
                 var configs = objVal.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>();
                 foreach (JObject config in configs)
@@ -387,6 +412,8 @@ namespace Statsig.Server
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
             LayerConfigs = newLayerConfigs;
+
+            return true;
         }
     }
 }

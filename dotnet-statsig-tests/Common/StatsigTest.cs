@@ -225,6 +225,7 @@ namespace dotnet_statsig_tests
                 Response.Create().WithStatusCode(200).WithBodyAsJson(
                     new Dictionary<string, object>
                     {
+                        { "has_updates", true},
                         {
                             "feature_gates", new List<Dictionary<string, object>>
                             {
