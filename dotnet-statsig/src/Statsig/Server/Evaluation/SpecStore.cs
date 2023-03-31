@@ -57,6 +57,11 @@ namespace Statsig.Server
 
         internal async Task Initialize()
         {
+            if (_dataStore != null)
+            {
+                await _dataStore.Init();
+            }
+            
             var bootedFromDataStore = await SyncValuesFromDataStore();
             if (!bootedFromDataStore)
             {
@@ -72,6 +77,11 @@ namespace Statsig.Server
 
         internal async Task Shutdown()
         {
+            if (_dataStore != null)
+            {
+                await _dataStore.Shutdown();
+            }
+            
             // Signal that the periodic task should exit, and then wait for them to finish
             if (_cts != null)
             {
@@ -122,6 +132,16 @@ namespace Statsig.Server
                 try
                 {
                     await Delay.Wait(delayInterval, cancellationToken);
+
+                    if (_dataStore != null && _dataStore.SupportsPollingUpdates(DataStoreKey.Rulesets))
+                    {
+                        var didSync = await SyncValuesFromDataStore();
+                        if (didSync)
+                        {
+                            continue;
+                        }
+                    }
+                    
                     await SyncValuesFromNetwork();
                 }
                 catch (TaskCanceledException)

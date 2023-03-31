@@ -9,9 +9,9 @@ public abstract class DataStoreKey
 
 public interface IDataStore
 {
+    bool SupportsPollingUpdates(string key);
     Task Init();
     Task Shutdown();
-
     Task<string?> Get(string key);
     Task Set(string key, string value);
 }
