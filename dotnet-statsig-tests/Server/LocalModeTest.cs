@@ -11,6 +11,7 @@ using Xunit;
 
 namespace dotnet_statsig_tests.Server;
 
+[Collection("Statsig Singleton Tests")]
 public class LocalModeTest : IAsyncLifetime, IResponseProvider
 {
     private WireMockServer _server;
@@ -22,7 +23,7 @@ public class LocalModeTest : IAsyncLifetime, IResponseProvider
         _networkCalls = 0;
         _server = WireMockServer.Start();
         _server.Given(Request.Create().WithPath("*").UsingAnyMethod()).RespondWith(this);
-        
+
         return Task.CompletedTask;
     }
 

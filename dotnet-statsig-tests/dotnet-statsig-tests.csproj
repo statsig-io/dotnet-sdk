@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>dotnet_statsig_tests</RootNamespace>
-
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -21,13 +20,17 @@
     <Folder Include="Common\" />
     <Folder Include="Client\" />
   </ItemGroup>
+
   <ItemGroup>
+    <ProjectReference Include="..\StatsigRedis\StatsigRedis.csproj" />
     <ProjectReference Include="..\dotnet-statsig\dotnet-statsig.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <None Remove="Common\" />
     <None Remove="Moq" />
     <None Remove="WireMock.Net" />
     <None Remove="Client\" />
   </ItemGroup>
+  
 </Project>

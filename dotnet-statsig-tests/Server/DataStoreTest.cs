@@ -15,6 +15,7 @@ using Xunit;
 
 namespace dotnet_statsig_tests;
 
+[Collection("Statsig Singleton Tests")]
 public class DataStoreTest : IAsyncLifetime, IResponseProvider
 {
     private WireMockServer _server;
