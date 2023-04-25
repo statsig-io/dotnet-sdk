@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using IP3Country;
 using UAParser;
 
@@ -10,12 +9,14 @@ namespace Statsig.Server.Evaluation
     static class Helpers
     {
         internal static Parser? _uaParser;
+
         internal static object? GetFromUser(StatsigUser? user, string field)
         {
             if (user == null)
             {
                 return null;
             }
+
             string? strVal;
             object? objVal;
             return
@@ -34,6 +35,7 @@ namespace Statsig.Server.Evaluation
             {
                 return null;
             }
+
             string ipStr = (string)ip;
 
             if (string.IsNullOrEmpty(ipStr) || string.IsNullOrEmpty(field) || field.ToLowerInvariant() != "country")
@@ -44,19 +46,73 @@ namespace Statsig.Server.Evaluation
             return CountryLookup.LookupIPStr(ipStr);
         }
 
-        internal static string? GetFromUserAgent(StatsigUser user, string field)
+        internal static Parser GetUserAgentParser()
         {
-            var parsedUA = user.parsedUA;
-            if (parsedUA == null)
+            if (_uaParser == null)
             {
-                ParseUserUA(user);
+                _uaParser = Parser.GetDefault();
             }
 
-            if (user.parsedUA != null && 
-                user.parsedUA.TryGetValue(field, out string? value))
+            return _uaParser;
+        }
+
+        internal static string? GetFromUserAgent(StatsigUser user, string field)
+        {
+            var alreadyParsed = user.GetParsedUserAgent();
+            if (alreadyParsed.TryGetValue(field, out var value))
             {
                 return value;
             }
+
+            if (GetFromUser(user, "userAgent") is not string agentString)
+            {
+                return null;
+            }
+
+            try
+            {
+                var parser = GetUserAgentParser();
+                switch (field)
+                {
+                    case "os_name":
+                    {
+                        var os = parser.ParseOS(agentString);
+                        alreadyParsed[field] = os.Family;
+                        return os.Family;
+                    }
+                    case "os_version":
+                    {
+                        var os = parser.ParseOS(agentString);
+                        var version = string.Join(".", new []
+                        {
+                            os.Major, os.Minor, os.Patch
+                        }.Where(v => !string.IsNullOrEmpty(v)).ToArray());
+                        alreadyParsed[field] = version;
+                        return version;
+                    }
+                    case "browser_name":
+                    {
+                        var userAgent = parser.ParseUserAgent(agentString);
+                        alreadyParsed[field] = userAgent.Family;
+                        return userAgent.Family;
+                    }
+                    case "browser_version":
+                    {
+                        var userAgent = parser.ParseUserAgent(agentString);
+                        var version = string.Join(".", new[]
+                        {
+                            userAgent.Major, userAgent.Minor, userAgent.Patch
+                        }.Where(v => !string.IsNullOrEmpty(v)).ToArray());
+                        alreadyParsed[field] = version;
+                        return version;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
+
 
             return null;
         }
@@ -67,6 +123,7 @@ namespace Statsig.Server.Evaluation
             {
                 return null;
             }
+
             return user.statsigEnvironment.TryGetValue(field.ToLowerInvariant(), out string? strVal) ? strVal : null;
         }
 
@@ -76,10 +133,13 @@ namespace Statsig.Server.Evaluation
             {
                 return false;
             }
-            if (double.TryParse(val1.ToString(), out double double1) && double.TryParse(val2.ToString(), out double double2))
+
+            if (double.TryParse(val1.ToString(), out double double1) &&
+                double.TryParse(val2.ToString(), out double double2))
             {
                 return func(double1, double2);
             }
+
             return false;
         }
 
@@ -89,6 +149,7 @@ namespace Statsig.Server.Evaluation
             {
                 return false;
             }
+
             try
             {
                 var t1 = ParseDateTimeOffset(val1);
@@ -107,6 +168,7 @@ namespace Statsig.Server.Evaluation
             {
                 return false;
             }
+
             var version1 = NormalizeVersionString(val1.ToString()!);
             var version2 = NormalizeVersionString(val2.ToString()!);
             if (Version.TryParse(version1, out Version? v1) &&
@@ -114,17 +176,20 @@ namespace Statsig.Server.Evaluation
             {
                 return func(v1, v2);
             }
+
             return false;
         }
 
         // Return true if the array contains the value, using case-insensitive comparison for strings
 
-        internal static bool MatchStringInArray(object[] array, object? value, bool ignoreCase, Func<string, string, bool> func)
+        internal static bool MatchStringInArray(object[] array, object? value, bool ignoreCase,
+            Func<string, string, bool> func)
         {
             if (value == null)
             {
                 return false;
             }
+
             try
             {
                 foreach (var t in array)
@@ -138,6 +203,7 @@ namespace Statsig.Server.Evaluation
                     {
                         return true;
                     }
+
                     if (func(value.ToString()!, t.ToString()!))
                     {
                         return true;
@@ -148,6 +214,7 @@ namespace Statsig.Server.Evaluation
             {
                 // User error, return false if we cannot toString() the values for this string operators.
             }
+
             return false;
         }
 
@@ -160,11 +227,13 @@ namespace Statsig.Server.Evaluation
             {
                 normalized = version.Substring(0, hyphenIndex);
             }
+
             var components = new List<string>(normalized.Split('.'));
-            while (components.Count < 4) 
+            while (components.Count < 4)
             {
                 components.Add("0");
             }
+
             normalized = string.Join(".", components.ToArray());
             return normalized;
         }
@@ -183,38 +252,8 @@ namespace Statsig.Server.Evaluation
                     return DateTimeOffset.FromUnixTimeMilliseconds(epochTime);
                 }
             }
-            return DateTimeOffset.Parse(val.ToString()!);
-        }
 
-        private static void ParseUserUA(StatsigUser user)
-        {
-            var ua = GetFromUser(user, "userAgent");
-            if (!(ua is string))
-            {
-                return;
-            }
-            try
-            {
-                if (_uaParser == null)
-                {
-                    _uaParser = Parser.GetDefault();
-                }
-                ClientInfo c = _uaParser.Parse((string)ua);
-                user.parsedUA = new Dictionary<string, string>
-                {
-                    ["os_name"] = c.OS.Family,
-                    ["os_version"] = string.Join(".", new string[] {
-                        c.OS.Major, c.OS.Minor, c.OS.Patch
-                    }.Where(v => !string.IsNullOrEmpty(v)).ToArray()),
-                    ["browser_name"] = c.UA.Family,
-                    ["browser_version"] = string.Join(".", new string[] {
-                        c.UA.Major, c.UA.Minor, c.UA.Patch
-                    }.Where(v => !string.IsNullOrEmpty(v)).ToArray())
-                };
-            }
-            catch (Exception)
-            {
-            }
+            return DateTimeOffset.Parse(val.ToString()!);
         }
     }
 }

@@ -12,7 +12,8 @@ namespace Statsig
         internal Dictionary<string, object> privateAttributes;
         internal Dictionary<string, string> customIDs;
         internal Dictionary<string, string> statsigEnvironment;
-        internal Dictionary<string, string>? parsedUA;
+        
+        private Dictionary<string, string>? _parsedUserAgent;
 
         [JsonProperty("userID")]
         public string? UserID
@@ -60,7 +61,7 @@ namespace Statsig
             set
             {
                 SetProperty("userAgent", value);
-                parsedUA = null;
+                _parsedUserAgent = null;
             }
         }
         [JsonProperty("country")]
@@ -153,16 +154,12 @@ namespace Statsig
             statsigEnvironment["tier"] = environment;
         }
 
-        void SetProperty(string key, string? value)
+        public int GetDedupeKey()
         {
-            if (value == null)
-            {
-                properties.Remove(key);
-            }
-            else
-            {
-                properties[key] = value;
-            }
+            return (
+                UserID,
+                CustomIDs
+            ).GetHashCode();
         }
 
         internal StatsigUser GetCopyForLogging()
@@ -184,12 +181,25 @@ namespace Statsig
             return copy;
         }
 
-        public int GetDedupeKey()
+        internal Dictionary<string, string> GetParsedUserAgent()
         {
-            return (
-                UserID,
-                CustomIDs
-            ).GetHashCode();
+            if (_parsedUserAgent == null)
+            {
+                _parsedUserAgent = new Dictionary<string, string>();
+            }
+            return _parsedUserAgent;
+        }
+
+        private void SetProperty(string key, string? value)
+        {
+            if (value == null)
+            {
+                properties.Remove(key);
+            }
+            else
+            {
+                properties[key] = value;
+            }
         }
     }
 }
