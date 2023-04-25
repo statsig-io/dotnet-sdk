@@ -7,6 +7,8 @@ namespace Statsig.Network
 {
     public class EventLogger
     {
+        private int _dedupeInterval = 60 * 1000;
+
         private readonly int _maxQueueLength;
         private readonly SDKDetails _sdkDetails;
         private readonly RequestDispatcher _dispatcher;
@@ -16,11 +18,14 @@ namespace Statsig.Network
         private readonly CancellationTokenSource _shutdownCTS;
         private DateTime _lastFlushTime = DateTime.UtcNow;
 
-        private List<EventLog> _eventLogQueue;
+        internal List<EventLog> _eventLogQueue;
         private readonly HashSet<string> _errorsLogged;
+        private readonly HashSet<int> _eventDedupeSet;
         private readonly object _queueLock;
 
-        public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60)
+        private DateTime _dedupeStartTime;
+
+        public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60, int dedupeInterval = 60 * 1000)
         {
             _sdkDetails = sdkDetails;
             _maxQueueLength = maxQueueLength;
@@ -33,7 +38,11 @@ namespace Statsig.Network
 
             _eventLogQueue = new List<EventLog>();
             _errorsLogged = new HashSet<string>();
+            _eventDedupeSet = new HashSet<int>();
             _queueLock = new object();
+
+            _dedupeInterval = dedupeInterval;
+            ResetDedupeSet();
 
             _shutdownCTS = new CancellationTokenSource();
             _backgroundPeriodicFlushTask = BackgroundPeriodicFlushTask(maxThresholdSecs, _shutdownCTS.Token);
@@ -41,7 +50,7 @@ namespace Statsig.Network
 
         public void Enqueue(EventLog entry)
         {
-            bool flushNeeded;
+            bool flushNeeded = false;
 
             lock (_queueLock)
             {
@@ -55,10 +64,13 @@ namespace Statsig.Network
                     }
                 }
 
-                _eventLogQueue.Add(entry);
-
-                // Determine if a flush is needed
-                flushNeeded = _eventLogQueue.Count >= _maxQueueLength;
+                if (ShouldAddEventAfterDeduping(entry))
+                {
+                    _eventLogQueue.Add(entry);
+                
+                    // Determine if a flush is needed
+                    flushNeeded = _eventLogQueue.Count >= _maxQueueLength;
+                }
             }
 
             // If a flush is needed, then fire-and-forget a call to FlushEvents()
@@ -148,6 +160,30 @@ namespace Statsig.Network
             // Signal that the periodic flush task should exit, and then wait for it finish
             _shutdownCTS.Cancel();
             await _backgroundPeriodicFlushTask;
+        }
+
+        private bool ShouldAddEventAfterDeduping(EventLog entry)
+        {
+            if ((DateTime.Now - _dedupeStartTime).TotalMilliseconds > _dedupeInterval)
+            {
+                ResetDedupeSet();
+                return true;
+            }
+
+            var hash = entry.GetDedupeKey();
+            if (_eventDedupeSet.Contains(hash)) 
+            {
+                return false;
+            }
+            
+            _eventDedupeSet.Add(hash);
+            return true;
+        }
+
+        private void ResetDedupeSet() 
+        {
+            _dedupeStartTime = DateTime.Now;
+            _eventDedupeSet.Clear();
         }
     }
 }

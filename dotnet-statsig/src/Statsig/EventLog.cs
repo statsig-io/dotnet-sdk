@@ -142,5 +142,18 @@ namespace Statsig
 
             return metadata;
         }
+
+        readonly List<string> ignoredMetadataKeys = new List<string> {
+            "serverTime", "configSyncTime", "initTime", "reason"
+        };
+        public int GetDedupeKey()
+        {
+            return string.Join(
+                ":",
+                User.GetDedupeKey(),
+                EventName,
+                Metadata == null ? "" : string.Join(":", Metadata?.Where(kv => !ignoredMetadataKeys.Contains(kv.Key)).Select(kv => kv.Value))
+            ).GetHashCode();
+        }
     }
 }
