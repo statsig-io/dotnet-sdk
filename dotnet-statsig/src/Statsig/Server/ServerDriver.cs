@@ -22,7 +22,7 @@ namespace Statsig.Server
         bool _initialized;
         bool _disposed;
         RequestDispatcher _requestDispatcher;
-        EventLogger _eventLogger;
+        internal EventLogger _eventLogger;
         internal Evaluator evaluator;
 
         public ServerDriver(string serverSecret, StatsigOptions? options = null)
@@ -52,7 +52,8 @@ namespace Statsig.Server
                 _requestDispatcher,
                 SDKDetails.GetServerSDKDetails(),
                 Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
-                Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC
+                Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC,
+                Constants.SERVER_DEDUPE_INTERVAL
             );
             evaluator = new Evaluator(serverSecret, options);
         }

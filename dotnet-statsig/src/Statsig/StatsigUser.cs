@@ -183,5 +183,13 @@ namespace Statsig
             };
             return copy;
         }
+
+        public int GetDedupeKey()
+        {
+            return (
+                UserID,
+                CustomIDs
+            ).GetHashCode();
+        }
     }
 }

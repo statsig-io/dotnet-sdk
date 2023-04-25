@@ -35,6 +35,8 @@ namespace Statsig
         internal bool IsErrorLog { get; set; }
         [JsonIgnore]
         internal string ErrorKey { get; set; }
+        [JsonIgnore]
+        internal bool IsExposureLog { get; set; }
 
 #pragma warning disable CS8618 // Creation helpers below take care of properties init
         internal EventLog()
@@ -60,6 +62,7 @@ namespace Statsig
                     ["ruleID"] = ruleID
                 },
                 SecondaryExposures = secondaryExposures,
+                IsExposureLog = true
             };
         }
 
@@ -79,6 +82,7 @@ namespace Statsig
                     ["ruleID"] = ruleID,
                 },
                 SecondaryExposures = secondaryExposures,
+                IsExposureLog = true
             };
         }
 
@@ -104,6 +108,7 @@ namespace Statsig
                     ["isExplicitParameter"] = isExplicitParameter ? "true" : "false",
                 },
                 SecondaryExposures = exposures,
+                IsExposureLog = true
             };
         }
 
@@ -141,6 +146,19 @@ namespace Statsig
             }
 
             return metadata;
+        }
+
+        readonly List<string> ignoredMetadataKeys = new List<string> {
+            "serverTime", "configSyncTime", "initTime", "reason"
+        };
+        public int GetDedupeKey()
+        {
+            return string.Join(
+                ":",
+                User.GetDedupeKey(),
+                EventName,
+                Metadata == null ? "" : string.Join(":", Metadata?.Where(kv => !ignoredMetadataKeys.Contains(kv.Key)).Select(kv => kv.Value))
+            ).GetHashCode();
         }
     }
 }

@@ -30,7 +30,7 @@ namespace Statsig.Client
         internal readonly string _clientKey;
         bool _disposed;
         RequestDispatcher _requestDispatcher;
-        EventLogger _eventLogger;
+        internal EventLogger _eventLogger;
         StatsigUser _user;
         Dictionary<string, FeatureGate> _gates;
         Dictionary<string, DynamicConfig> _configs;
@@ -58,7 +58,8 @@ namespace Statsig.Client
                 _requestDispatcher,
                 SDKDetails.GetClientSDKDetails(),
                 Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH,
-                Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC
+                Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC,
+                Constants.CLIENT_DEDUPE_INTERVAL
             );
             _user = new StatsigUser();
 
