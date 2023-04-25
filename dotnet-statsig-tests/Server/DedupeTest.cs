@@ -13,7 +13,6 @@ using WireMock.ResponseProviders;
 
 namespace dotnet_statsig_tests
 {
-    [Collection("Statsig Singleton Tests")]
     public class DedupeTest : IAsyncLifetime, IResponseProvider
     {
         WireMockServer _server;
