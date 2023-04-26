@@ -140,6 +140,11 @@ namespace Statsig.Client
             return value;
         }
 
+        public DynamicConfig GetExperiment(string experimentName)
+        {
+            return GetConfig(experimentName);
+        }
+
         public Layer GetLayer(string layerName)
         {
             var hashedName = GetNameHash(layerName);

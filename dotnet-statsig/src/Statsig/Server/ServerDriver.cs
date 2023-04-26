@@ -150,6 +150,11 @@ namespace Statsig.Server
             return result;
         }
 
+        public async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
+        {
+            return await GetConfig(user, experimentName);
+        }
+
         public async Task<Layer> GetLayer(StatsigUser user, string layerName)
         {
             EnsureInitialized();

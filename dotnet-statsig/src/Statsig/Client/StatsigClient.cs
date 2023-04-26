@@ -41,7 +41,7 @@ namespace Statsig.Client
         public static DynamicConfig GetExperiment(string experimentName)
         {
             EnsureInitialized();
-            return _singleDriver!.GetConfig(experimentName);
+            return _singleDriver!.GetExperiment(experimentName);
         }
 
         public static Layer GetLayer(string layerName)

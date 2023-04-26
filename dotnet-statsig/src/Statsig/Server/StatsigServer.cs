@@ -48,7 +48,7 @@ namespace Statsig.Server
         public static async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
         {
             EnsureInitialized();
-            return await _singleDriver!.GetConfig(user, experimentName);
+            return await _singleDriver!.GetExperiment(user, experimentName);
         }
 
         public static async Task<Layer> GetLayer(StatsigUser user, string layerName)
