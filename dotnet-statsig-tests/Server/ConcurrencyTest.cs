@@ -115,7 +115,7 @@ namespace dotnet_statsig_tests
             var tasks = new List<Task>();
             for (int i = 0; i < 10; i++)
             {
-                tasks.Add(RunChecks(10, 20));
+                tasks.Add(RunChecks(i, 10, 20));
             }
             await Task.WhenAll(tasks);
 
@@ -124,13 +124,13 @@ namespace dotnet_statsig_tests
             Assert.Equal(1800, _flushedEventCount);
         }
 
-        private async Task RunChecks(int delay, int times)
+        private async Task RunChecks(int taskId, int delay, int times)
         {
             for (int i = 0; i < times; i++)
             {
                 var user = new StatsigUser
                 {
-                    UserID = $"user_id_{i}",
+                    UserID = $"user_id_{i}_{taskId}",
                     Email = "testuser@statsig.com",
                 };
                 user.AddCustomProperty("key", "value");
@@ -142,7 +142,7 @@ namespace dotnet_statsig_tests
                 Assert.True(await StatsigServer.CheckGate(user, "always_on_gate"));
 
                 // check id list gate for a user that should be in the id list
-                Assert.True(await StatsigServer.CheckGate(new StatsigUser { UserID = "regular_user_id" }, "on_for_id_list"));
+                Assert.True(await StatsigServer.CheckGate(new StatsigUser { UserID = "regular_user_id", customIDs = {{"unique_id", $"{i}_{taskId}"}}}, "on_for_id_list"));
 
                 StatsigServer.LogEvent(user, "test_event_2", 1, new Dictionary<string, string>() { { "Key", "Value" } });
 

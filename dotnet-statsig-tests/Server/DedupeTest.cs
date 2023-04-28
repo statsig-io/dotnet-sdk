@@ -132,7 +132,7 @@ namespace dotnet_statsig_tests
             var tasks = new List<Task>();
             for (var i = 0; i < NUM_THREADS; i++)
             {
-                tasks.Add(RunChecksWithoutAssert());
+                tasks.Add(RunChecksWithoutAssert(i));
             }
 
             await Task.WhenAll(tasks);
@@ -181,13 +181,13 @@ namespace dotnet_statsig_tests
             }
         }
 
-        private async Task RunChecksWithoutAssert()
+        private async Task RunChecksWithoutAssert(int taskId)
         {
             for (var i = 0; i < NUM_LOOOPS; i++)
             {
                 var user = new StatsigUser
                 {
-                    UserID = $"user_id_{i}",
+                    UserID = $"user_id_{i}_{taskId}",
                     Email = "testuser@statsig.com",
                 };
                 user.AddCustomProperty("key", "value");
