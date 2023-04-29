@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Newtonsoft.Json;
 
 namespace Statsig
@@ -158,9 +159,17 @@ namespace Statsig
         public int GetDedupeKey()
         {
             var sorted = CustomIDs.OrderBy(kvp => kvp.Key);
-            var joined = string.Join("", sorted.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
-
-            return $"{UserID}{joined}".GetHashCode();
+            var sb = new StringBuilder();
+            sb.Append(UserID);
+            
+            foreach (var kvp in sorted)
+            {
+                sb.Append("|");
+                sb.Append(kvp.Key);
+                sb.Append(":");
+                sb.Append(kvp.Value);
+            }
+            return sb.ToString().GetHashCode();
         }
 
         internal StatsigUser GetCopyForLogging()

@@ -2,16 +2,22 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using Newtonsoft.Json;
 
 namespace Statsig
 {
     public class EventLog
     {
+        private static readonly List<string> IgnoredMetadataKeys = new()
+        {
+            "serverTime", "configSyncTime", "initTime", "reason"
+        };
+        
         private StatsigUser _user;
 
-        [JsonProperty("eventName")]
-        public string EventName { get; set; }
+        [JsonProperty("eventName")] public string EventName { get; set; }
+
         [JsonProperty("user")]
         public StatsigUser User
         {
@@ -22,25 +28,23 @@ namespace Statsig
                 _user = value.GetCopyForLogging();
             }
         }
-        [JsonProperty("metadata")]
-        public IReadOnlyDictionary<string, string>? Metadata { get; set; }
-        [JsonProperty("value")]
-        public object? Value { get; set; }
+
+        [JsonProperty("metadata")] public IReadOnlyDictionary<string, string>? Metadata { get; set; }
+        [JsonProperty("value")] public object? Value { get; set; }
+
         [JsonProperty("time")]
         public double Time { get; } = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
+
         [JsonProperty("secondaryExposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; set; }
 
-        [JsonIgnore]
-        internal bool IsErrorLog { get; set; }
-        [JsonIgnore]
-        internal string ErrorKey { get; set; }
-        [JsonIgnore]
-        internal bool IsExposureLog { get; set; }
+        [JsonIgnore] internal bool IsErrorLog { get; set; }
+        [JsonIgnore] internal string ErrorKey { get; set; }
+        [JsonIgnore] internal bool IsExposureLog { get; set; }
 
 #pragma warning disable CS8618 // Creation helpers below take care of properties init
         internal EventLog()
-        {            
+        {
         }
 #pragma warning restore CS8618
 
@@ -131,7 +135,8 @@ namespace Statsig
             };
         }
 
-        internal static IReadOnlyDictionary<string, string>? TrimMetadataAsNeeded(IReadOnlyDictionary<string, string>? metadata = null)
+        internal static IReadOnlyDictionary<string, string>? TrimMetadataAsNeeded(
+            IReadOnlyDictionary<string, string>? metadata = null)
         {
             if (metadata == null)
             {
@@ -148,17 +153,35 @@ namespace Statsig
             return metadata;
         }
 
-        readonly List<string> ignoredMetadataKeys = new List<string> {
-            "serverTime", "configSyncTime", "initTime", "reason"
-        };
+
+
         public int GetDedupeKey()
         {
-            return string.Join(
-                ":",
-                User.GetDedupeKey(),
-                EventName,
-                Metadata == null ? "" : string.Join(":", Metadata?.Where(kv => !ignoredMetadataKeys.Contains(kv.Key)).Select(kv => kv.Value))
-            ).GetHashCode();
+            var sb = new StringBuilder();
+            sb.Append(User.GetDedupeKey());
+            sb.Append("|");
+            sb.Append(EventName);
+
+            if (Metadata == null)
+            {
+                return sb.ToString().GetHashCode();
+            }
+
+
+            foreach (var kvp in Metadata)
+            {
+                if (IgnoredMetadataKeys.Contains(kvp.Key))
+                {
+                    continue;
+                }
+                
+                sb.Append("|");
+                sb.Append(kvp.Key);
+                sb.Append(":");
+                sb.Append(kvp.Value);
+            }
+            
+            return sb.ToString().GetHashCode();
         }
     }
 }

@@ -8,7 +8,6 @@ using Xunit;
 
 namespace dotnet_statsig_tests.Server;
 
-[Collection("Statsig Singleton Tests")]
 public class RedisDataStoreTest : IAsyncLifetime
 {
     private RedisDataStore _store;
