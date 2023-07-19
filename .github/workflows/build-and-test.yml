@@ -10,6 +10,7 @@ on:
 
 jobs:
   build:
+    if: github.event_name != 'schedule' || github.repository.private
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
