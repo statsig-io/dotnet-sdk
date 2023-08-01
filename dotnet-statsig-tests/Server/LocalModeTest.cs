@@ -29,6 +29,7 @@ public class LocalModeTest : IAsyncLifetime, IResponseProvider
 
     public async Task DisposeAsync()
     {
+        _server.Stop();
         if (_driver == null)
         {
             return;

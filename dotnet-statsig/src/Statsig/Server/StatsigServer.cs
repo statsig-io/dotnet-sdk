@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Statsig.Lib;
 
 namespace Statsig.Server
 {
@@ -14,7 +15,7 @@ namespace Statsig.Server
             {
                 if (_singleDriver._serverSecret != serverSecret)
                 {
-                    throw new InvalidOperationException("Cannot reinitialize SDK with a different serverSecret");
+                    throw new StatsigInvalidOperationException("Cannot reinitialize SDK with a different serverSecret");
                 }
                 else
                 {
@@ -91,7 +92,7 @@ namespace Statsig.Server
         {
             if (_singleDriver == null)
             {
-                throw new InvalidOperationException("Must call Initialize() first.");
+                throw new StatsigUninitializedException();
             }
         }
     }

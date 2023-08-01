@@ -14,19 +14,19 @@ using Xunit;
 namespace dotnet_statsig_tests
 {
     [Collection("Statsig Singleton Tests")]
-    public class ClientOptionsTest: IAsyncLifetime
+    public class ClientOptionsTest : IAsyncLifetime
     {
         WireMockServer _server;
 
         Task IAsyncLifetime.InitializeAsync()
         {
-            
             _server = WireMockServer.Start();
             _server.ResetLogEntries();
             _server.Given(
                 Request.Create().WithPath("/v1/initialize").UsingPost()
             ).RespondWith(
-                Response.Create().WithStatusCode(200).WithBodyAsJson(TestData.ClientInitializeResponse).WithDelay(TimeSpan.FromSeconds(3))
+                Response.Create().WithStatusCode(200).WithBodyAsJson(TestData.ClientInitializeResponse)
+                    .WithDelay(TimeSpan.FromSeconds(1))
             );
             _server.Given(
                 Request.Create().WithPath("/v1/log_event").UsingPost()
@@ -35,11 +35,11 @@ namespace dotnet_statsig_tests
             );
             return Task.CompletedTask;
         }
-        
-        Task IAsyncLifetime.DisposeAsync()
+
+        async Task IAsyncLifetime.DisposeAsync()
         {
+            await TestUtil.EnsureShutdown();
             _server.Stop();
-            return Task.CompletedTask;
         }
 
         [Fact]
@@ -58,27 +58,31 @@ namespace dotnet_statsig_tests
                 "client-fake-key",
                 user,
                 // use a fake persistent store path to disable local storage
-                new StatsigOptions(_server.Urls[0] + "/v1") { ClientRequestTimeoutMs = 100, PersistentStorageFolder = "abc/def"}
+                new StatsigOptions(_server.Urls[0] + "/v1")
+                    { ClientRequestTimeoutMs = 10, PersistentStorageFolder = "abc/def" }
             );
 
             Assert.False(StatsigClient.CheckGate("test_gate"));
             var endTime = DateTime.Now;
+            
+            
             Assert.True(endTime.Subtract(TimeSpan.FromMilliseconds(200)) < startTime); // make sure it took less than 200 ms to complete
             await StatsigClient.Shutdown();
-            
 
-            startTime = DateTime.Now;;
+            startTime = DateTime.Now;
+            ;
             await StatsigClient.Initialize
             (
                 "client-fake-key",
                 user,
                 // use a fake persistent store path to disable local storage
-                new StatsigOptions(_server.Urls[0] + "/v1") { PersistentStorageFolder = "abc/def"}
+                new StatsigOptions(_server.Urls[0] + "/v1") { PersistentStorageFolder = "abc/def" }
             );
 
             Assert.True(StatsigClient.CheckGate("test_gate"));
             endTime = DateTime.Now;
-            Assert.True(endTime.Subtract(TimeSpan.FromSeconds(3)) >= startTime); // should've taken >= 3 seconds given the artificial delay setup above
+            Assert.True(endTime.Subtract(TimeSpan.FromSeconds(1)) >=
+                        startTime); // should've taken >= 3 seconds given the artificial delay setup above
             await StatsigClient.Shutdown();
         }
     }

@@ -91,6 +91,7 @@ public class DataStoreTest : IAsyncLifetime, IResponseProvider
 
     public async Task DisposeAsync()
     {
+        _server.Stop();
         await StatsigServer.Shutdown();
         Delay.Reset();
     }
