@@ -5,17 +5,23 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
 using Newtonsoft.Json.Linq;
-
 using static Statsig.Server.Evaluation.Helpers;
 
 namespace Statsig.Server.Evaluation
 {
-    class Evaluator
+    internal class Evaluator
     {
-        SpecStore _store;
-        bool _initialized;
+        private const int MaxRecursiveDepth = 300;
+        private enum SpecType
+        {
+            Gate,
+            Config,
+            Layer
+        }
+
+        private readonly SpecStore _store;
+        private bool _initialized;
 
         internal Evaluator(string serverSecret, StatsigOptions options)
         {
@@ -36,32 +42,17 @@ namespace Statsig.Server.Evaluation
 
         internal ConfigEvaluation CheckGate(StatsigUser user, string gateName)
         {
-            gateName = gateName.ToLowerInvariant();
-            if (!_initialized || string.IsNullOrWhiteSpace(gateName) || !_store.FeatureGates.ContainsKey(gateName))
-            {
-                return new ConfigEvaluation(EvaluationResult.Fail);
-            }
-            return Evaluate(user, _store.FeatureGates[gateName]);
+            return EvaluateSpec(user, gateName, SpecType.Gate);
         }
 
         internal ConfigEvaluation GetConfig(StatsigUser user, string configName)
         {
-            configName = configName.ToLowerInvariant();
-            if (!_initialized || string.IsNullOrWhiteSpace(configName) || !_store.DynamicConfigs.ContainsKey(configName))
-            {
-                return new ConfigEvaluation(EvaluationResult.Fail);
-            }
-            return Evaluate(user, _store.DynamicConfigs[configName]);
+            return EvaluateSpec(user, configName, SpecType.Config);
         }
 
         internal ConfigEvaluation GetLayer(StatsigUser user, string layerName)
         {
-            layerName = layerName.ToLowerInvariant();
-            if (!_initialized || string.IsNullOrWhiteSpace(layerName) || !_store.LayerConfigs.ContainsKey(layerName))
-            {
-                return new ConfigEvaluation(EvaluationResult.Fail);
-            }
-            return Evaluate(user, _store.LayerConfigs[layerName]);
+            return EvaluateSpec(user, layerName, SpecType.Layer);
         }
 
         internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user)
@@ -74,13 +65,13 @@ namespace Statsig.Server.Evaluation
             var gates = new Dictionary<string, Dictionary<string, object>>();
             foreach (var kv in _store.FeatureGates)
             {
-                if (kv.Value.Entity == "segment" || kv.Value.Entity == "holdout") 
+                if (kv.Value.Entity == "segment" || kv.Value.Entity == "holdout")
                 {
                     continue;
                 }
 
                 var hashedName = HashName(kv.Value.Name);
-                var gate = Evaluate(user, kv.Value).GateValue;
+                var gate = Evaluate(user, kv.Value, 0).GateValue;
                 var entry = new Dictionary<string, object>
                 {
                     ["name"] = hashedName,
@@ -90,17 +81,17 @@ namespace Statsig.Server.Evaluation
                 };
                 gates.Add(hashedName, entry);
             }
-            
+
             var dynamicConfigs = new Dictionary<string, Dictionary<string, object>>();
             foreach (var kv in _store.DynamicConfigs)
             {
                 var hashedName = HashName(kv.Value.Name);
-                var config = Evaluate(user, kv.Value).ConfigValue;
+                var config = Evaluate(user, kv.Value, 0).ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
                 if (kv.Value.Entity != "dynamic_config" && kv.Value.Entity != "autotune")
                 {
                     entry["is_experiment_active"] = kv.Value.IsActive;
-                    entry["is_user_in_experiment"] = 
+                    entry["is_user_in_experiment"] =
                         IsUserAllocatedToExperiment(user, kv.Value, config.RuleID);
                     if (kv.Value.HasSharedParams)
                     {
@@ -108,6 +99,7 @@ namespace Statsig.Server.Evaluation
                         entry["explicit_parameters"] = kv.Value.ExplicitParameters;
                     }
                 }
+
                 dynamicConfigs.Add(hashedName, entry);
             }
 
@@ -115,7 +107,7 @@ namespace Statsig.Server.Evaluation
             foreach (var kv in _store.LayerConfigs)
             {
                 var hashedName = HashName(kv.Value.Name);
-                var evaluation = Evaluate(user, kv.Value);
+                var evaluation = Evaluate(user, kv.Value, 0);
                 var config = evaluation.ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
                 entry["explicit_parameters"] = kv.Value.ExplicitParameters ?? new List<string>();
@@ -124,13 +116,14 @@ namespace Statsig.Server.Evaluation
                     entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate);
                     ConfigSpec? experimentSpec = null;
                     _store.DynamicConfigs.TryGetValue(evaluation.ConfigDelegate!, out experimentSpec);
-                    
+
                     entry["is_experiment_active"] = experimentSpec!.IsActive;
-                    entry["is_user_in_experiment"] = 
+                    entry["is_user_in_experiment"] =
                         IsUserAllocatedToExperiment(user, experimentSpec, config.RuleID);
                     entry["explicit_parameters"] = experimentSpec.ExplicitParameters ?? new List<string>();
                 }
-                entry["undelegated_secondary_exposures"] = 
+
+                entry["undelegated_secondary_exposures"] =
                     CleanExposures(evaluation.UndelegatedSecondaryExposures);
                 layerConfigs.Add(hashedName, entry);
             }
@@ -147,32 +140,58 @@ namespace Statsig.Server.Evaluation
             return result;
         }
 
+        private ConfigEvaluation EvaluateSpec(StatsigUser user, string specName, SpecType type)
+        {
+            if (!_initialized || string.IsNullOrWhiteSpace(specName))
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail);
+            }
+
+            var name = specName.ToLowerInvariant();
+            var lookup = type switch
+            {
+                SpecType.Gate => _store.FeatureGates,
+                SpecType.Config => _store.DynamicConfigs,
+                SpecType.Layer => _store.LayerConfigs,
+                _ => null
+            };
+
+            if (lookup == null || !lookup.ContainsKey(name))
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail);
+            }
+
+            return Evaluate(user, lookup[name], 0);
+        }
+
         private IEnumerable<IReadOnlyDictionary<string, string>> CleanExposures(
             IEnumerable<IReadOnlyDictionary<string, string>> exposures
         )
         {
-            if (exposures == null) 
+            if (exposures == null)
             {
                 return new List<IReadOnlyDictionary<string, string>>();
             }
 
             var seen = new HashSet<string>();
-            return exposures.Select((exp) => {
+            return exposures.Select((exp) =>
+            {
                 var gate = exp["gate"];
                 var gateValue = exp["gateValue"];
                 var ruleID = exp["ruleID"];
                 var key = $"{gate}|{gateValue}|{ruleID}";
-                if (seen.Contains(key)) 
+                if (seen.Contains(key))
                 {
                     return null;
                 }
+
                 seen.Add(key);
                 return exp;
             }).Where(exp => exp != null).Select(exp => exp!).ToArray();
         }
 
         private bool IsUserAllocatedToExperiment(
-            StatsigUser user, 
+            StatsigUser user,
             ConfigSpec spec,
             string evaluatedRuleID
         )
@@ -182,12 +201,13 @@ namespace Statsig.Server.Evaluation
             {
                 return evaluatedRule.IsExperimentGroup;
             }
+
             return false;
         }
 
         private Dictionary<string, object> ConfigSpecToInitResponse(
             string hashedName,
-            ConfigSpec spec, 
+            ConfigSpec spec,
             DynamicConfig config
         )
         {
@@ -197,11 +217,11 @@ namespace Statsig.Server.Evaluation
                 ["value"] = config.Value,
                 ["rule_id"] = config.RuleID,
                 ["group"] = config.RuleID,
-                ["is_device_based"] = (spec.IDType != null && 
-                    spec.IDType.ToLowerInvariant() == "stableid"),
+                ["is_device_based"] = (spec.IDType != null &&
+                                       spec.IDType.ToLowerInvariant() == "stableid"),
                 ["secondary_exposures"] = CleanExposures(config.SecondaryExposures),
             };
-            
+
             return entry;
         }
 
@@ -214,7 +234,8 @@ namespace Statsig.Server.Evaluation
             }
         }
 
-        private ConfigEvaluation? EvaluateDelegate(StatsigUser user, ConfigRule rule, List<IReadOnlyDictionary<string, string>> exposures)
+        private ConfigEvaluation? EvaluateDelegate(StatsigUser user, ConfigRule rule,
+            List<IReadOnlyDictionary<string, string>> exposures, int depth)
         {
             ConfigSpec? config;
             _store.DynamicConfigs.TryGetValue(rule.ConfigDelegate ?? "", out config);
@@ -223,71 +244,84 @@ namespace Statsig.Server.Evaluation
                 return null;
             }
 
-            var delegatedResult = Evaluate(user, config);
-            var result = new ConfigEvaluation(delegatedResult.Result, delegatedResult.GateValue, delegatedResult.ConfigValue);
+            var delegatedResult = Evaluate(user, config, depth + 1);
+            var result = new ConfigEvaluation(delegatedResult.Result, delegatedResult.GateValue,
+                delegatedResult.ConfigValue);
             result.ExplicitParameters = config.ExplicitParameters;
             result.UndelegatedSecondaryExposures = exposures;
-            result.ConfigValue.SecondaryExposures = exposures.Concat(delegatedResult.ConfigValue.SecondaryExposures).ToList();
+            result.ConfigValue.SecondaryExposures =
+                exposures.Concat(delegatedResult.ConfigValue.SecondaryExposures).ToList();
             result.ConfigDelegate = rule.ConfigDelegate;
             return result;
         }
 
-        private ConfigEvaluation Evaluate(StatsigUser user, ConfigSpec spec)
+        private ConfigEvaluation Evaluate(StatsigUser user, ConfigSpec spec, int depth)
         {
-            var secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
-            var defaultRuleID = "default";
-            if (spec.Enabled)
+            if (depth > MaxRecursiveDepth)
             {
-                foreach (ConfigRule rule in spec.Rules)
-                {
-                    var result = EvaluateRule(user, rule, out List<IReadOnlyDictionary<string, string>> ruleExposures);
-                    secondaryExposures.AddRange(ruleExposures);
-                    switch (result)
-                    {
-                        case EvaluationResult.FetchFromServer:
-                            return new ConfigEvaluation(EvaluationResult.FetchFromServer);
-                        case EvaluationResult.Pass:
-                            var delegatedResult = EvaluateDelegate(user, rule, secondaryExposures);
-                            if (delegatedResult != null)
-                            {
-                                return delegatedResult;
-                            }
+                throw new StackOverflowException("Statsig Evaluation Depth Exceeded");
+            }
+            
+            if (!spec.Enabled)
+            {
+                return new ConfigEvaluation
+                (
+                    EvaluationResult.Fail,
+                    new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "disabled"),
+                    new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "disabled", null,
+                        spec.ExplicitParameters)
+                );
+            }
 
-                            // return the value of the first rule that the user passes.
-                            var passPercentage = EvaluatePassPercentage(user, rule, spec);
-                            var gateV = new FeatureGate
-                            (
-                                spec.Name,
-                                passPercentage ? rule.FeatureGateValue.Value : spec.FeatureGateDefault.Value,
-                                rule.ID,
-                                secondaryExposures
-                            );
-                            var configV = new DynamicConfig
-                            (
-                                spec.Name,
-                                passPercentage ? rule.DynamicConfigValue.Value : spec.DynamicConfigDefault.Value,
-                                rule.ID,
-                                secondaryExposures,
-                                spec.ExplicitParameters,
-                                spec.HasSharedParams,
-                                IsUserAllocatedToExperiment(user, spec, rule.ID)
-                            );
-                            return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail, gateV, configV);
-                        case EvaluationResult.Fail:
-                        default:
-                            break;
-                    }
+            var secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
+            foreach (var rule in spec.Rules)
+            {
+                var result = EvaluateRule(user, rule, out var ruleExposures, depth + 1);
+                secondaryExposures.AddRange(ruleExposures);
+                switch (result)
+                {
+                    case EvaluationResult.FetchFromServer:
+                        return new ConfigEvaluation(EvaluationResult.FetchFromServer);
+                    case EvaluationResult.Pass:
+                        var delegatedResult = EvaluateDelegate(user, rule, secondaryExposures, depth + 1);
+                        if (delegatedResult != null)
+                        {
+                            return delegatedResult;
+                        }
+
+                        // return the value of the first rule that the user passes.
+                        var passPercentage = EvaluatePassPercentage(user, rule, spec);
+                        var gateV = new FeatureGate
+                        (
+                            spec.Name,
+                            passPercentage ? rule.FeatureGateValue.Value : spec.FeatureGateDefault.Value,
+                            rule.ID,
+                            secondaryExposures
+                        );
+                        var configV = new DynamicConfig
+                        (
+                            spec.Name,
+                            passPercentage ? rule.DynamicConfigValue.Value : spec.DynamicConfigDefault.Value,
+                            rule.ID,
+                            secondaryExposures,
+                            spec.ExplicitParameters,
+                            spec.HasSharedParams,
+                            IsUserAllocatedToExperiment(user, spec, rule.ID)
+                        );
+                        return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail,
+                            gateV, configV);
+                    case EvaluationResult.Fail:
+                    default:
+                        break;
                 }
             }
-            else
-            {
-                defaultRuleID = "disabled";
-            }
+
             return new ConfigEvaluation
             (
                 EvaluationResult.Fail,
-                new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, defaultRuleID, secondaryExposures),
-                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, defaultRuleID, secondaryExposures, spec.ExplicitParameters)
+                new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "default", secondaryExposures),
+                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "default", secondaryExposures,
+                    spec.ExplicitParameters)
             );
         }
 
@@ -302,6 +336,7 @@ namespace Statsig.Server.Evaluation
                     // we use big endian in the backend so need to be consistent here.
                     result = SwapBytes(result);
                 }
+
                 return result;
             }
         }
@@ -320,7 +355,8 @@ namespace Statsig.Server.Evaluation
 
         private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, ConfigSpec spec)
         {
-            var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", spec.Salt, rule.Salt ?? rule.ID, GetUnitID(user, rule.IDType)));
+            var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", spec.Salt, rule.Salt ?? rule.ID,
+                GetUnitID(user, rule.IDType)));
             return (hash % 10000) < (rule.PassPercentage * 100);
         }
 
@@ -329,20 +365,24 @@ namespace Statsig.Server.Evaluation
             if (idType != null && idType.ToLowerInvariant() != "userid")
             {
                 string? idVal;
-                return user.CustomIDs != null ?
-                (user.CustomIDs.TryGetValue(idType, out idVal) ? idVal : user.CustomIDs.TryGetValue(idType.ToLowerInvariant(), out idVal) ? idVal : "")
-                : "";
+                return user.CustomIDs != null
+                    ? (user.CustomIDs.TryGetValue(idType, out idVal) ? idVal :
+                        user.CustomIDs.TryGetValue(idType.ToLowerInvariant(), out idVal) ? idVal : "")
+                    : "";
             }
+
             return user.UserID ?? "";
         }
 
-        private EvaluationResult EvaluateRule(StatsigUser user, ConfigRule rule, out List<IReadOnlyDictionary<string, string>> secondaryExposures)
+        private EvaluationResult EvaluateRule(StatsigUser user, ConfigRule rule,
+            out List<IReadOnlyDictionary<string, string>> secondaryExposures, int depth)
         {
             var passResult = EvaluationResult.Pass;
             secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
-            foreach (ConfigCondition condition in rule.Conditions)
+            foreach (var condition in rule.Conditions)
             {
-                var result = EvaluateCondition(user, condition, out List<IReadOnlyDictionary<string, string>> conditionExposures);
+                var result = EvaluateCondition(user, condition,
+                    out var conditionExposures, depth + 1);
                 if (result == EvaluationResult.FetchFromServer)
                 {
                     return result;
@@ -355,16 +395,20 @@ namespace Statsig.Server.Evaluation
                     passResult = EvaluationResult.Fail;
                 }
             }
+
             return passResult;
         }
 
-        private EvaluationResult EvaluateCondition(StatsigUser user, ConfigCondition condition, out List<IReadOnlyDictionary<string, string>> secondaryExposures)
+        private EvaluationResult EvaluateCondition(StatsigUser user, ConfigCondition condition,
+            out List<IReadOnlyDictionary<string, string>> secondaryExposures, int depth)
         {
             secondaryExposures = new List<IReadOnlyDictionary<string, string>>();
 
             var type = condition.Type.ToLowerInvariant();
             var op = condition.Operator?.ToLowerInvariant();
-            var target = (condition.TargetValue == null || condition.TargetValue.Type == JTokenType.Null) ? null : condition.TargetValue?.Value<object>();
+            var target = (condition.TargetValue == null || condition.TargetValue.Type == JTokenType.Null)
+                ? null
+                : condition.TargetValue?.Value<object>();
             var field = condition.Field ?? "";
             var idType = condition.IDType ?? "";
             string targetStr = target?.ToString() ?? "";
@@ -375,11 +419,13 @@ namespace Statsig.Server.Evaluation
                     return EvaluationResult.Pass;
                 case "fail_gate":
                 case "pass_gate":
-                    var otherGateResult = CheckGate(user, targetStr.ToLowerInvariant());
+                    _store.FeatureGates.TryGetValue(targetStr.ToLowerInvariant(), out var spec);
+                    var otherGateResult = Evaluate(user, spec, depth + 1);
                     if (otherGateResult.Result == EvaluationResult.FetchFromServer)
                     {
                         return EvaluationResult.FetchFromServer;
                     }
+
                     var pass = otherGateResult.Result == EvaluationResult.Pass;
                     var newExposure = new Dictionary<string, string>
                     {
@@ -387,7 +433,8 @@ namespace Statsig.Server.Evaluation
                         ["gateValue"] = pass ? "true" : "false",
                         ["ruleID"] = otherGateResult.GateValue.RuleID
                     };
-                    secondaryExposures = new List<IReadOnlyDictionary<string, string>>(otherGateResult.GateValue.SecondaryExposures);
+                    secondaryExposures =
+                        new List<IReadOnlyDictionary<string, string>>(otherGateResult.GateValue.SecondaryExposures);
                     secondaryExposures.Add(newExposure);
                     if ((type == "pass_gate" && pass) || (type == "fail_gate" && !pass))
                     {
@@ -417,12 +464,14 @@ namespace Statsig.Server.Evaluation
                     if (condition.AdditionalValues.TryGetValue("salt", out salt))
                     {
                         var hash = ComputeUserHash(salt.ToString() + "." + GetUnitID(user, idType));
-                        value = Convert.ToInt64(hash % 1000); // user bucket condition only has 1k segments as opposed to 10k for condition pass %
+                        value = Convert.ToInt64(hash %
+                                                1000); // user bucket condition only has 1k segments as opposed to 10k for condition pass %
                     }
                     else
                     {
                         return EvaluationResult.Fail;
                     }
+
                     break;
                 case "unit_id":
                     value = GetUnitID(user, idType);
@@ -432,7 +481,7 @@ namespace Statsig.Server.Evaluation
             }
 
             bool result = false;
-            object[] targetArray = (condition.TargetValue as JArray)?.ToObject<object[]>() ?? new Object[] {};
+            object[] targetArray = (condition.TargetValue as JArray)?.ToObject<object[]>() ?? new Object[] { };
 
             switch (op)
             {
@@ -517,6 +566,7 @@ namespace Statsig.Server.Evaluation
                         // If any of the input is invalid
                         result = false;
                     }
+
                     break;
 
                 // strictly equals
@@ -535,7 +585,8 @@ namespace Statsig.Server.Evaluation
                     result = CompareTimes(value, target, (DateTimeOffset t1, DateTimeOffset t2) => (t1 > t2));
                     break;
                 case "on":
-                    result = CompareTimes(value, target, (DateTimeOffset t1, DateTimeOffset t2) => (t1.Date == t2.Date));
+                    result = CompareTimes(value, target,
+                        (DateTimeOffset t1, DateTimeOffset t2) => (t1.Date == t2.Date));
                     break;
                 case "in_segment_list":
                 case "not_in_segment_list":
@@ -546,10 +597,12 @@ namespace Statsig.Server.Evaluation
                         var substr = str.Substring(0, 8);
                         result = _store.IDListContainsValue(targetStr, substr);
                     }
+
                     if (op == "not_in_segment_list")
                     {
                         result = !result;
                     }
+
                     break;
                 default:
                     return EvaluationResult.FetchFromServer;
