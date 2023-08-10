@@ -9,11 +9,17 @@ namespace Statsig
 {
     public class EventLog
     {
+        internal enum ExposureCause
+        {
+            Manual,
+            Automatic
+        }
+
         private static readonly List<string> IgnoredMetadataKeys = new()
         {
             "serverTime", "configSyncTime", "initTime", "reason"
         };
-        
+
         private StatsigUser _user;
 
         [JsonProperty("eventName")] public string EventName { get; set; }
@@ -53,18 +59,26 @@ namespace Statsig
             string gateName,
             bool gateValue,
             string ruleID,
-            List<IReadOnlyDictionary<string, string>> secondaryExposures)
+            List<IReadOnlyDictionary<string, string>> secondaryExposures,
+            ExposureCause cause)
         {
+            var metadata = new Dictionary<string, string>
+            {
+                ["gate"] = gateName,
+                ["gateValue"] = gateValue ? "true" : "false",
+                ["ruleID"] = ruleID
+            };
+
+            if (cause == ExposureCause.Manual)
+            {
+                metadata["isManualExposure"] = "true";
+            }
+
             return new EventLog
             {
                 User = user,
                 EventName = Constants.GATE_EXPOSURE_EVENT,
-                Metadata = new Dictionary<string, string>
-                {
-                    ["gate"] = gateName,
-                    ["gateValue"] = gateValue ? "true" : "false",
-                    ["ruleID"] = ruleID
-                },
+                Metadata = metadata,
                 SecondaryExposures = secondaryExposures,
                 IsExposureLog = true
             };
@@ -74,17 +88,26 @@ namespace Statsig
             StatsigUser user,
             string configName,
             string ruleID,
-            List<IReadOnlyDictionary<string, string>> secondaryExposures)
+            List<IReadOnlyDictionary<string, string>> secondaryExposures,
+            ExposureCause cause
+        )
         {
+            var metadata = new Dictionary<string, string>
+            {
+                ["config"] = configName,
+                ["ruleID"] = ruleID,
+            };
+
+            if (cause == ExposureCause.Manual)
+            {
+                metadata["isManualExposure"] = "true";
+            }
+
             return new EventLog
             {
                 User = user,
                 EventName = Constants.CONFIG_EXPOSURE_EVENT,
-                Metadata = new Dictionary<string, string>
-                {
-                    ["config"] = configName,
-                    ["ruleID"] = ruleID,
-                },
+                Metadata = metadata,
                 SecondaryExposures = secondaryExposures,
                 IsExposureLog = true
             };
@@ -97,20 +120,29 @@ namespace Statsig
             string allocatedExperiment,
             string parameterName,
             bool isExplicitParameter,
-            List<IReadOnlyDictionary<string, string>> exposures)
+            List<IReadOnlyDictionary<string, string>> exposures,
+            ExposureCause cause
+        )
         {
+            var metadata = new Dictionary<string, string>
+            {
+                ["config"] = layerName,
+                ["ruleID"] = ruleID,
+                ["allocatedExperiment"] = allocatedExperiment,
+                ["parameterName"] = parameterName,
+                ["isExplicitParameter"] = isExplicitParameter ? "true" : "false",
+            };
+
+            if (cause == ExposureCause.Manual)
+            {
+                metadata["isManualExposure"] = "true";
+            }
+
             return new EventLog
             {
                 User = user,
                 EventName = Constants.LAYER_EXPOSURE_EVENT,
-                Metadata = new Dictionary<string, string>
-                {
-                    ["config"] = layerName,
-                    ["ruleID"] = ruleID,
-                    ["allocatedExperiment"] = allocatedExperiment,
-                    ["parameterName"] = parameterName,
-                    ["isExplicitParameter"] = isExplicitParameter ? "true" : "false",
-                },
+                Metadata = metadata,
                 SecondaryExposures = exposures,
                 IsExposureLog = true
             };
@@ -154,7 +186,6 @@ namespace Statsig
         }
 
 
-
         public int GetDedupeKey()
         {
             var sb = new StringBuilder();
@@ -174,13 +205,13 @@ namespace Statsig
                 {
                     continue;
                 }
-                
+
                 sb.Append("|");
                 sb.Append(kvp.Key);
                 sb.Append(":");
                 sb.Append(kvp.Value);
             }
-            
+
             return sb.ToString().GetHashCode();
         }
     }

@@ -3,11 +3,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Statsig;
 using Xunit;
+using ExposureCause = Statsig.EventLog.ExposureCause;
 
 namespace dotnet_statsig_tests
 {
     public class UserEventDedupeKeyTest : IAsyncLifetime
     {
+        private static readonly List<IReadOnlyDictionary<string, string>> EmptyList = new();
+
         private readonly StatsigUser _constantUserWithId = new() { UserID = "user-id" };
         private StatsigUser _dynamicUserWithId;
 
@@ -40,9 +43,9 @@ namespace dotnet_statsig_tests
         public void TestSameGateExposureEventSameKey()
         {
             var eventA = EventLog.CreateGateExposureLog(_constantUserWithId, "a_gate", true, "a-rule-id",
-                new List<IReadOnlyDictionary<string, string>>());
+                EmptyList, ExposureCause.Automatic);
             var eventB = EventLog.CreateGateExposureLog(_dynamicUserWithId, "a_gate", true, "a-rule-id",
-                new List<IReadOnlyDictionary<string, string>>());
+                EmptyList, ExposureCause.Automatic);
 
             Assert.Equal(eventA.GetDedupeKey(), eventB.GetDedupeKey());
         }
@@ -51,9 +54,9 @@ namespace dotnet_statsig_tests
         public void TestSameConfigExposureEventSameKey()
         {
             var eventA = EventLog.CreateGateExposureLog(_constantUserWithId, "a_gate", true, "a-rule-id",
-                new List<IReadOnlyDictionary<string, string>>());
+                EmptyList, ExposureCause.Automatic);
             var eventB = EventLog.CreateGateExposureLog(_dynamicUserWithId, "a_gate", true, "a-rule-id",
-                new List<IReadOnlyDictionary<string, string>>());
+                EmptyList, ExposureCause.Automatic);
 
             Assert.Equal(eventA.GetDedupeKey(), eventB.GetDedupeKey());
         }
@@ -62,9 +65,9 @@ namespace dotnet_statsig_tests
         public void TestSameLayerExposureEventSameKey()
         {
             var eventA = EventLog.CreateGateExposureLog(_constantUserWithId, "a_gate", true, "a-rule-id",
-                new List<IReadOnlyDictionary<string, string>>());
+                EmptyList, ExposureCause.Automatic);
             var eventB = EventLog.CreateGateExposureLog(_dynamicUserWithId, "a_gate", true, "a-rule-id",
-                new List<IReadOnlyDictionary<string, string>>());
+                EmptyList, ExposureCause.Automatic);
 
             Assert.Equal(eventA.GetDedupeKey(), eventB.GetDedupeKey());
         }

@@ -43,14 +43,19 @@ namespace Statsig.Client
             {
                 throw new ArgumentException("clientKey cannot be empty.", "clientKey");
             }
+
             if (!clientKey.StartsWith("client-") && !clientKey.StartsWith("test-"))
             {
-                throw new ArgumentException("Invalid key provided. Please check your Statsig console to get the right server key.", "serverSecret");
+                throw new ArgumentException(
+                    "Invalid key provided. Please check your Statsig console to get the right server key.",
+                    "serverSecret");
             }
+
             if (options == null)
             {
                 options = new StatsigOptions();
             }
+
             _clientKey = clientKey;
             _options = options;
             _requestDispatcher = new RequestDispatcher(_clientKey, _options);
@@ -67,6 +72,7 @@ namespace Statsig.Client
             {
                 PersistentStore.SetStorageFolder(options.PersistentStorageFolder);
             }
+
             PersistentStore.Deserialize();
             _gates = PersistentStore.GetValue(gatesStoreKey, new Dictionary<string, FeatureGate>());
             _configs = PersistentStore.GetValue(configsStoreKey, new Dictionary<string, DynamicConfig>());
@@ -121,7 +127,13 @@ namespace Statsig.Client
                     gate = new FeatureGate(gateName, false, "");
                 }
             }
-            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName, gate.Value, gate.RuleID, gate.SecondaryExposures));
+
+            _eventLogger.Enqueue(EventLog.CreateGateExposureLog(_user, gateName,
+                gate.Value,
+                gate.RuleID,
+                gate.SecondaryExposures,
+                EventLog.ExposureCause.Automatic
+            ));
             return gate.Value;
         }
 
@@ -136,7 +148,12 @@ namespace Statsig.Client
                     value = new DynamicConfig(configName);
                 }
             }
-            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(_user, configName, value.RuleID, value.SecondaryExposures));
+
+            _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(_user, configName,
+                value.RuleID,
+                value.SecondaryExposures,
+                EventLog.ExposureCause.Automatic
+            ));
             return value;
         }
 
@@ -157,7 +174,7 @@ namespace Statsig.Client
                 }
             }
 
-            value.OnExposure = delegate (Layer layer, string parameterName)
+            value.OnExposure = delegate(Layer layer, string parameterName)
             {
                 var allocatedExperiment = "";
                 var isExplicit = layer.ExplicitParameters.Contains(parameterName);
@@ -177,8 +194,9 @@ namespace Statsig.Client
                         allocatedExperiment,
                         parameterName,
                         isExplicit,
-                        exposures ?? new List<IReadOnlyDictionary<string, string>>())
-                    );
+                        exposures ?? new List<IReadOnlyDictionary<string, string>>(),
+                        EventLog.ExposureCause.Automatic)
+                );
             };
 
             return value;
@@ -301,6 +319,7 @@ namespace Statsig.Client
                             }
                         }
                     }
+
                     PersistentStore.SetValue(gatesStoreKey, _gates);
                 }
             }
@@ -326,6 +345,7 @@ namespace Statsig.Client
                             }
                         }
                     }
+
                     PersistentStore.SetValue(configsStoreKey, _configs);
                 }
             }
@@ -351,6 +371,7 @@ namespace Statsig.Client
                             }
                         }
                     }
+
                     PersistentStore.SetValue(layersStoreKey, _layers);
                 }
             }
@@ -377,6 +398,7 @@ namespace Statsig.Client
                 {
                     systemName = "Linux";
                 }
+
                 _statsigMetadata = new Dictionary<string, string>
                 {
                     ["sessionID"] = Guid.NewGuid().ToString(),
@@ -389,6 +411,7 @@ namespace Statsig.Client
                     ["sdkVersion"] = SDKDetails.GetClientSDKDetails().SDKVersion,
                 };
             }
+
             return _statsigMetadata;
         }
 

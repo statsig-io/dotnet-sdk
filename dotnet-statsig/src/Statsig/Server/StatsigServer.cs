@@ -29,33 +29,83 @@ namespace Statsig.Server
 
         public static async Task Shutdown()
         {
-            EnsureInitialized();
-            await _singleDriver!.Shutdown();
+            await EnforceInitialized().Shutdown();
             _singleDriver = null;
         }
 
         public static async Task<bool> CheckGate(StatsigUser user, string gateName)
         {
-            EnsureInitialized();
-            return await _singleDriver!.CheckGate(user, gateName);
+            return await EnforceInitialized().CheckGate(user, gateName);
+        }
+
+        public static async Task<bool> CheckGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
+        {
+            return await EnforceInitialized().CheckGateWithExposureLoggingDisabled(user, gateName);
+        }
+
+        public static void ManuallyLogGateExposure(StatsigUser user, string gateName)
+        {
+            EnforceInitialized().LogGateExposure(user, gateName);
         }
 
         public static async Task<DynamicConfig> GetConfig(StatsigUser user, string configName)
         {
-            EnsureInitialized();
-            return await _singleDriver!.GetConfig(user, configName);
+            return await EnforceInitialized().GetConfig(user, configName);
+        }
+
+        public static async Task<DynamicConfig> GetConfigWithExposureLoggingDisabled(
+            StatsigUser user,
+            string configName
+        )
+        {
+            return await EnforceInitialized().GetConfigWithExposureLoggingDisabled(user, configName);
+        }
+
+        public static void ManuallyLogConfigExposure(StatsigUser user, string configName)
+        {
+            EnforceInitialized().LogConfigExposure(user, configName);
         }
 
         public static async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
         {
-            EnsureInitialized();
-            return await _singleDriver!.GetExperiment(user, experimentName);
+            return await EnforceInitialized().GetExperiment(user, experimentName);
+        }
+
+        public static async Task<DynamicConfig> GetExperimentWithExposureLoggingDisabled(
+            StatsigUser user,
+            string experimentName
+        )
+        {
+            return await EnforceInitialized().GetConfigWithExposureLoggingDisabled(user, experimentName);
+        }
+
+        public static void ManuallyLogExperimentExposure(StatsigUser user, string experimentName)
+        {
+            EnforceInitialized().LogExperimentExposure(user, experimentName);
         }
 
         public static async Task<Layer> GetLayer(StatsigUser user, string layerName)
         {
-            EnsureInitialized();
-            return await _singleDriver!.GetLayer(user, layerName);
+            return await EnforceInitialized().GetLayer(user, layerName);
+        }
+
+        public static async Task<Layer> GetLayerWithExposureLoggingDisabled(StatsigUser user, string layerName)
+        {
+            return await EnforceInitialized().GetLayerWithExposureLoggingDisabled(user, layerName);
+        }
+
+        public static async void ManuallyLogLayerParameterExposure(
+            StatsigUser user,
+            string layerName,
+            string parameterName
+        )
+        {
+            EnforceInitialized().LogLayerParameterExposure(user, layerName, parameterName);
+        }
+
+        public static Dictionary<string, object> GetClientInitializeResponse(StatsigUser user)
+        {
+            return EnforceInitialized().GenerateInitializeResponse(user);
         }
 
         public static void LogEvent(
@@ -64,8 +114,7 @@ namespace Statsig.Server
             string? value = null,
             IReadOnlyDictionary<string, string>? metadata = null)
         {
-            EnsureInitialized();
-            _singleDriver!.LogEvent(user, eventName, value, metadata);
+            EnforceInitialized().LogEvent(user, eventName, value, metadata);
         }
 
         public static void LogEvent(
@@ -74,8 +123,7 @@ namespace Statsig.Server
             int value,
             IReadOnlyDictionary<string, string>? metadata = null)
         {
-            EnsureInitialized();
-            _singleDriver!.LogEvent(user, eventName, value, metadata);
+            EnforceInitialized().LogEvent(user, eventName, value, metadata);
         }
 
         public static void LogEvent(
@@ -84,16 +132,17 @@ namespace Statsig.Server
             double value,
             IReadOnlyDictionary<string, string>? metadata = null)
         {
-            EnsureInitialized();
-            _singleDriver!.LogEvent(user, eventName, value, metadata);
+            EnforceInitialized().LogEvent(user, eventName, value, metadata);
         }
 
-        static void EnsureInitialized()
+        private static ServerDriver EnforceInitialized()
         {
             if (_singleDriver == null)
             {
                 throw new StatsigUninitializedException();
             }
+
+            return _singleDriver;
         }
     }
 }
