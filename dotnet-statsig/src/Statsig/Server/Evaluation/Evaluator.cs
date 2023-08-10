@@ -13,6 +13,7 @@ namespace Statsig.Server.Evaluation
     internal class Evaluator
     {
         private const int MaxRecursiveDepth = 300;
+
         private enum SpecType
         {
             Gate,
@@ -53,6 +54,11 @@ namespace Statsig.Server.Evaluation
         internal ConfigEvaluation GetLayer(StatsigUser user, string layerName)
         {
             return EvaluateSpec(user, layerName, SpecType.Layer);
+        }
+
+        internal List<string> GetSpecNames(string type)
+        {
+            return _store.GetSpecNames(type);
         }
 
         internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user)
@@ -261,7 +267,7 @@ namespace Statsig.Server.Evaluation
             {
                 throw new StackOverflowException("Statsig Evaluation Depth Exceeded");
             }
-            
+
             if (!spec.Enabled)
             {
                 return new ConfigEvaluation

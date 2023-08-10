@@ -135,6 +135,16 @@ namespace Statsig.Server
             EnforceInitialized().LogEvent(user, eventName, value, metadata);
         }
 
+        public static List<string> GetFeatureGateList()
+        {
+            return EnforceInitialized().GetFeatureGateList();
+        }
+
+        public static List<string> GetExperimentList()
+        {
+            return EnforceInitialized().GetExperimentList();
+        }
+
         private static ServerDriver EnforceInitialized()
         {
             if (_singleDriver == null)

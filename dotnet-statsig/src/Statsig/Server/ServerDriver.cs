@@ -84,7 +84,7 @@ namespace Statsig.Server
                     _eventLogger.Shutdown());
 
 #if SUPPORTS_ASYNC_DISPOSAL
-            await ((IAsyncDisposable)this).DisposeAsync();
+                await ((IAsyncDisposable)this).DisposeAsync();
 #else
                 ((IDisposable)this).Dispose();
 #endif
@@ -251,6 +251,22 @@ namespace Statsig.Server
             IReadOnlyDictionary<string, string>? metadata = null)
         {
             _errorBoundary.Swallow("LogEvent:Double", () => LogEventHelper(user, eventName, value, metadata));
+        }
+
+        public List<string> GetFeatureGateList()
+        {
+            return _errorBoundary.Capture("GetFeatureGateList",
+                () => evaluator.GetSpecNames("gate"),
+                () => new List<string>()
+            );
+        }
+
+        public List<string> GetExperimentList()
+        {
+            return _errorBoundary.Capture("GetExperimentList",
+                () => evaluator.GetSpecNames("config"),
+                () => new List<string>()
+            );
         }
 
         void IDisposable.Dispose()

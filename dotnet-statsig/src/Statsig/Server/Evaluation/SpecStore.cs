@@ -101,6 +101,22 @@ namespace Statsig.Server
         {
             return _idLists.TryGetValue(listName, out var list) && list.Store.Contains(value);
         }
+        
+        internal List<string> GetSpecNames(string type)
+        {
+            return type switch
+            {
+                "gate" => FeatureGates.Values
+                    .Where(x => x.Entity == "feature_gate")
+                    .Select(x => x.Name)
+                    .ToList(),
+                "config" => DynamicConfigs.Values
+                    .Where(x => x.Entity == "experiment")
+                    .Select(x => x.Name)
+                    .ToList(),
+                _ => new List<string>()
+            };
+        }
 
         private async Task BackgroundPeriodicSyncIDListsTask(CancellationToken cancellationToken)
         {
