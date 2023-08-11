@@ -51,10 +51,8 @@ namespace Statsig.Client
                     "serverSecret");
             }
 
-            if (options == null)
-            {
-                options = new StatsigOptions();
-            }
+            options ??= new StatsigOptions();
+            var clientOpts = options as StatsigClientOptions ?? null;
 
             _clientKey = clientKey;
             _options = options;
@@ -62,8 +60,8 @@ namespace Statsig.Client
             _eventLogger = new EventLogger(
                 _requestDispatcher,
                 SDKDetails.GetClientSDKDetails(),
-                Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH,
-                Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC,
+                clientOpts?.LoggingBufferMaxSize ?? Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH,
+                clientOpts?.LoggingIntervalSeconds ?? Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC,
                 Constants.CLIENT_DEDUPE_INTERVAL
             );
             _user = new StatsigUser();

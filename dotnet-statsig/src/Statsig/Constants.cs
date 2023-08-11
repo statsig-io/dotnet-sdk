@@ -16,7 +16,7 @@ namespace Statsig
         public static string DYNAMIC_CONFIG_SPEC_TYPE = "dynamic_config";
         public static string DEFAULT_RULE_ID = "default";
 
-        public static int CLIENT_MAX_LOGGER_QUEUE_LENGTH = 10;
+        public static int CLIENT_MAX_LOGGER_QUEUE_LENGTH = 100;
         public static int CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC = 10;
         public static int CLIENT_DEDUPE_INTERVAL = 60 * 60 * 1000;
 

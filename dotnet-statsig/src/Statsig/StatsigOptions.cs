@@ -20,8 +20,43 @@ namespace Statsig
         /// common data store (like Redis) to initialize the Statsig SDK.
         /// </summary>
         public IDataStore DataStore;
+        
+        /// <summary>
+        /// The maximum number of events to batch before flushing logs to the server
+        /// default: 1000
+        /// </summary>
+        public int LoggingBufferMaxSize = Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH;
+        
+        /// <summary>
+        /// How often to flush logs to Statsig
+        /// default: 60
+        /// </summary>
+        public int LoggingIntervalSeconds = Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC;
 
         public StatsigServerOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null) : base(
+            apiUrlBase, environment)
+        {
+        }
+    }
+    
+    /// <summary>
+    /// Configuration options for the Statsig Client SDK
+    /// </summary>
+    public class StatsigClientOptions : StatsigOptions
+    {
+        /// <summary>
+        /// The maximum number of events to batch before flushing logs to the server
+        /// default: 100
+        /// </summary>
+        public int LoggingBufferMaxSize = Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH;
+        
+        /// <summary>
+        /// How often to flush logs to Statsig
+        /// default: 10
+        /// </summary>
+        public int LoggingIntervalSeconds = Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC;
+
+        public StatsigClientOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null) : base(
             apiUrlBase, environment)
         {
         }

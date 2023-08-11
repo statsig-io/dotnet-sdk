@@ -50,6 +50,7 @@ namespace Statsig.Server
 
             _serverSecret = serverSecret;
             _options = options;
+            var serverOpts = _options as StatsigServerOptions ?? null;
 
             _errorBoundary = new ErrorBoundary(serverSecret, SDKDetails.GetServerSDKDetails());
             _errorBoundary.Swallow("Constructor", () =>
@@ -58,8 +59,8 @@ namespace Statsig.Server
                 _eventLogger = new EventLogger(
                     _requestDispatcher,
                     SDKDetails.GetServerSDKDetails(),
-                    Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
-                    Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC,
+                    serverOpts?.LoggingBufferMaxSize ?? Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
+                    serverOpts?.LoggingIntervalSeconds ?? Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC,
                     Constants.SERVER_DEDUPE_INTERVAL
                 );
                 evaluator = new Evaluator(serverSecret, options);

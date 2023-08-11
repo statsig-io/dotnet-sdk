@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,10 +23,12 @@ namespace Statsig.Network
         private readonly HashSet<string> _errorsLogged;
         private readonly HashSet<int> _eventDedupeSet;
         private readonly object _queueLock;
+        private ConcurrentDictionary<Task, bool> _tasks;
 
         private DateTime _dedupeStartTime;
 
-        public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength = 100, int maxThresholdSecs = 60, int dedupeInterval = 60 * 1000)
+        public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength,
+            int maxThresholdSecs, int dedupeInterval = 60 * 1000)
         {
             _sdkDetails = sdkDetails;
             _maxQueueLength = maxQueueLength;
@@ -39,6 +42,7 @@ namespace Statsig.Network
             _eventLogQueue = new List<EventLog>();
             _errorsLogged = new HashSet<string>();
             _eventDedupeSet = new HashSet<int>();
+            _tasks = new ConcurrentDictionary<Task, bool>();
             _queueLock = new object();
 
             _dedupeInterval = dedupeInterval;
@@ -67,26 +71,27 @@ namespace Statsig.Network
                 if (ShouldAddEventAfterDeduping(entry))
                 {
                     _eventLogQueue.Add(entry);
-                
+
                     // Determine if a flush is needed
                     flushNeeded = _eventLogQueue.Count >= _maxQueueLength;
                 }
             }
 
-            // If a flush is needed, then fire-and-forget a call to FlushEvents()
-            if (flushNeeded)
+            if (!flushNeeded)
             {
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        await FlushEvents();
-                    }
-                    catch
-                    {
-                        // TODO: Log this
-                    }
-                });
+                return;
+            }
+
+            // If a flush is needed, then fire-and-forget a call to FlushEvents()
+            try
+            {
+                var task = FlushEvents();
+                _tasks[task] = true;
+                task.ContinueWith(t => { _tasks.TryRemove(task, out _); });
+            }
+            catch
+            {
+                // TODO: Log this
             }
         }
 
@@ -159,7 +164,11 @@ namespace Statsig.Network
         {
             // Signal that the periodic flush task should exit, and then wait for it finish
             _shutdownCTS.Cancel();
-            await _backgroundPeriodicFlushTask;
+            await Task.WhenAll(
+                _backgroundPeriodicFlushTask,
+                FlushEvents(),
+                Task.WhenAll(_tasks.Keys)
+            );
         }
 
         private bool ShouldAddEventAfterDeduping(EventLog entry)
@@ -168,7 +177,7 @@ namespace Statsig.Network
             {
                 return true;
             }
-            
+
             if ((DateTime.Now - _dedupeStartTime).TotalMilliseconds > _dedupeInterval)
             {
                 ResetDedupeSet();
@@ -176,16 +185,16 @@ namespace Statsig.Network
             }
 
             var hash = entry.GetDedupeKey();
-            if (_eventDedupeSet.Contains(hash)) 
+            if (_eventDedupeSet.Contains(hash))
             {
                 return false;
             }
-            
+
             _eventDedupeSet.Add(hash);
             return true;
         }
 
-        private void ResetDedupeSet() 
+        private void ResetDedupeSet()
         {
             _dedupeStartTime = DateTime.Now;
             _eventDedupeSet.Clear();
