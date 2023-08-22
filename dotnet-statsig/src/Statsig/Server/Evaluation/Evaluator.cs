@@ -274,7 +274,7 @@ namespace Statsig.Server.Evaluation
                 (
                     EvaluationResult.Fail,
                     new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "disabled"),
-                    new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "disabled", null,
+                    new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "disabled", null, null,
                         spec.ExplicitParameters)
                 );
             }
@@ -309,6 +309,7 @@ namespace Statsig.Server.Evaluation
                             spec.Name,
                             passPercentage ? rule.DynamicConfigValue.Value : spec.DynamicConfigDefault.Value,
                             rule.ID,
+                            rule.GroupName,
                             secondaryExposures,
                             spec.ExplicitParameters,
                             spec.HasSharedParams,
@@ -326,7 +327,7 @@ namespace Statsig.Server.Evaluation
             (
                 EvaluationResult.Fail,
                 new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "default", secondaryExposures),
-                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "default", secondaryExposures,
+                new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "default", null, secondaryExposures,
                     spec.ExplicitParameters)
             );
         }
