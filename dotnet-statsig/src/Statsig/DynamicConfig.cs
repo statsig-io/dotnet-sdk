@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using Statsig.Lib;
 using Statsig.Server;
 
 namespace Statsig
@@ -15,13 +16,16 @@ namespace Statsig
         [JsonProperty("explicit_parameters")] public List<string> ExplicitParameters { get; private set; }
 
         [JsonProperty("rule_id")] public string RuleID { get; }
+        [JsonProperty("group_name")] public string? GroupName { get; private set; }
 
         [JsonProperty("secondary_exposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; internal set; }
-        
+
         [JsonProperty("is_in_layer")] public bool IsInLayer { get; private set; }
-        
-        [JsonProperty("is_user_in_experiment")] public bool IsUserInExperiment { get; private set; }
+
+        [JsonProperty("is_user_in_experiment")]
+        public bool IsUserInExperiment { get; private set; }
+
 
         static DynamicConfig? _defaultConfig;
 
@@ -42,6 +46,7 @@ namespace Statsig
             string? configName = null,
             IReadOnlyDictionary<string, JToken>? value = null,
             string? ruleID = null,
+            string? groupName = null,
             List<IReadOnlyDictionary<string, string>>? secondaryExposures = null,
             List<string>? explicitParameters = null,
             bool isInLayer = false,
@@ -51,6 +56,7 @@ namespace Statsig
             ConfigName = configName ?? "";
             Value = value ?? new Dictionary<string, JToken>();
             RuleID = ruleID ?? "";
+            GroupName = groupName ?? null;
             SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
             ExplicitParameters = explicitParameters ?? new List<string>();
             IsInLayer = isInLayer;
@@ -59,8 +65,7 @@ namespace Statsig
 
         public T? Get<T>(string key, T? defaultValue = default(T))
         {
-            JToken? outVal;
-            if (!this.Value.TryGetValue(key, out outVal))
+            if (!this.Value.TryGetValue(key, out var outVal))
             {
                 return defaultValue;
             }
@@ -85,26 +90,19 @@ namespace Statsig
                 return null;
             }
 
-            jobj.TryGetValue("rule_id", out JToken? ruleToken);
-            jobj.TryGetValue("value", out JToken? valueToken);
-
             try
             {
-                var value = valueToken == null ? null : valueToken.ToObject<Dictionary<string, JToken>>();
-                var config = new DynamicConfig
+                return new DynamicConfig
                 (
                     configName,
-                    value,
-                    ruleToken == null ? null : ruleToken.Value<string>(),
-                    jobj.TryGetValue("secondary_exposures", out JToken? exposures)
-                        ? exposures.ToObject<List<IReadOnlyDictionary<string, string>>>()
-                        : new List<IReadOnlyDictionary<string, string>>(),
-                    JsonHelpers.GetFromJSON(jobj, "explicit_parameters", new List<string>()),
-                    JsonHelpers.GetFromJSON(jobj, "is_in_layer", false),
-                    JsonHelpers.GetFromJSON(jobj, "is_user_in_experiment", false)
+                    jobj.GetOrDefault<Dictionary<string, JToken>>("value"),
+                    jobj.GetOrDefault("rule_id", ""),
+                    jobj.GetOrDefault<string?>("group_name", null),
+                    jobj.GetOrDefault<List<IReadOnlyDictionary<string, string>>>("secondary_exposures"),
+                    jobj.GetOrDefault<List<string>>("explicit_parameters"),
+                    jobj.GetOrDefault("is_in_layer", false),
+                    jobj.GetOrDefault("is_user_in_experiment", false)
                 );
-
-                return config;
             }
             catch
             {

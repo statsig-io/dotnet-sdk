@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using Statsig.Lib;
 
 namespace Statsig.Server
 {
@@ -10,6 +11,7 @@ namespace Statsig.Server
         internal string Name { get; private set; }
         internal double PassPercentage { get; private set; }
         internal string ID { get; private set; }
+        internal string? GroupName { get; private set; }
         internal string? Salt { get; private set; }
         internal string? IDType { get; private set; }
         internal bool IsExperimentGroup { get; private set; }
@@ -34,13 +36,22 @@ namespace Statsig.Server
                 DynamicConfigValue =
                     new DynamicConfig(Name, returnValue.ToObject<Dictionary<string, JToken>>(), ID);
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         internal static ConfigRule? FromJObject(JObject jobj)
         {
-            JToken? name, passPercentage, returnValue, conditions, id, salt, 
-                idType, configDelegate, isExperimentGroup;
+            JToken? name,
+                passPercentage,
+                returnValue,
+                conditions,
+                id,
+                salt,
+                idType,
+                configDelegate,
+                isExperimentGroup;
 
             if (jobj == null ||
                 !jobj.TryGetValue("name", out name) ||
@@ -53,7 +64,7 @@ namespace Statsig.Server
             }
 
             var conditionsList = new List<ConfigCondition>();
-            foreach (JObject cond in (conditions.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>()))
+            foreach (var cond in (conditions.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>()))
             {
                 var condition = ConfigCondition.FromJObject(cond);
                 if (condition != null)
@@ -69,12 +80,17 @@ namespace Statsig.Server
                 ID = id.Value<string>() ?? "",
                 Salt = jobj.TryGetValue("salt", out salt) ? salt.Value<string>() : null,
                 Conditions = conditionsList,
-                IsExperimentGroup = jobj.TryGetValue("isExperimentGroup", out isExperimentGroup) ? isExperimentGroup.Value<bool>() : false,
+                IsExperimentGroup = jobj.TryGetValue("isExperimentGroup", out isExperimentGroup)
+                    ? isExperimentGroup.Value<bool>()
+                    : false,
                 IDType = jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null,
-                ConfigDelegate = jobj.TryGetValue("configDelegate", out configDelegate) ? configDelegate.Value<string>() : null,
+                ConfigDelegate = jobj.TryGetValue("configDelegate", out configDelegate)
+                    ? configDelegate.Value<string>()
+                    : null,
+                GroupName = jobj.GetOrDefault<string?>("groupName", null)
             };
-            
-            rule.SetConfigValue(returnValue);            
+
+            rule.SetConfigValue(returnValue);
             return rule;
         }
     }
