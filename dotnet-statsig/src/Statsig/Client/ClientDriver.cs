@@ -36,6 +36,7 @@ namespace Statsig.Client
         Dictionary<string, DynamicConfig> _configs;
         Dictionary<string, Layer> _layers;
         Dictionary<string, string>? _statsigMetadata;
+        private readonly string _sessionID = Guid.NewGuid().ToString();
 
         public ClientDriver(string clientKey, StatsigOptions? options = null)
         {
@@ -56,10 +57,11 @@ namespace Statsig.Client
 
             _clientKey = clientKey;
             _options = options;
-            _requestDispatcher = new RequestDispatcher(_clientKey, _options);
+            var sdkDetails = SDKDetails.GetClientSDKDetails(); 
+            _requestDispatcher = new RequestDispatcher(_clientKey, _options, sdkDetails, _sessionID);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
-                SDKDetails.GetClientSDKDetails(),
+                sdkDetails,
                 clientOpts?.LoggingBufferMaxSize ?? Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH,
                 clientOpts?.LoggingIntervalSeconds ?? Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC,
                 Constants.CLIENT_DEDUPE_INTERVAL
@@ -93,7 +95,6 @@ namespace Statsig.Client
                     ["user"] = _user,
                     ["statsigMetadata"] = GetStatsigMetadata(),
                 },
-                SDKDetails.GetClientSDKDetails().StatsigMetadata,
                 timeoutInMs: _options.ClientRequestTimeoutMs
             );
             if (response == null)
@@ -397,16 +398,17 @@ namespace Statsig.Client
                     systemName = "Linux";
                 }
 
+                var sdkDetails = SDKDetails.GetClientSDKDetails();
                 _statsigMetadata = new Dictionary<string, string>
                 {
-                    ["sessionID"] = Guid.NewGuid().ToString(),
+                    ["sessionID"] = _sessionID,
                     ["stableID"] = PersistentStore.StableID,
                     ["locale"] = CultureInfo.CurrentUICulture.Name,
                     ["appVersion"] = Assembly.GetEntryAssembly()!.GetName()!.Version!.ToString()!,
                     ["systemVersion"] = Environment.OSVersion.Version.ToString(),
                     ["systemName"] = systemName,
-                    ["sdkType"] = SDKDetails.GetClientSDKDetails().SDKType,
-                    ["sdkVersion"] = SDKDetails.GetClientSDKDetails().SDKVersion,
+                    ["sdkType"] = sdkDetails.SDKType,
+                    ["sdkVersion"] = sdkDetails.SDKVersion,
                 };
             }
 

@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using Xunit;
-
 using Statsig;
 using Statsig.Server;
 using Statsig.Lib;
 using System.Threading.Tasks;
+using Statsig.Network;
 using WireMock.ResponseProviders;
 using WireMock;
 using WireMock.Settings;
@@ -54,9 +54,9 @@ namespace dotnet_statsig_tests
         }
 
         // IResponseProvider
-        public async Task<(ResponseMessage Message, IMapping Mapping)> ProvideResponseAsync(RequestMessage requestMessage, IWireMockServerSettings settings)
+        public async Task<(ResponseMessage Message, IMapping Mapping)> ProvideResponseAsync(
+            RequestMessage requestMessage, IWireMockServerSettings settings)
         {
-
             if (requestMessage.AbsolutePath.Contains("/v1/download_config_specs"))
             {
                 return await Response.Create()
@@ -109,7 +109,9 @@ namespace dotnet_statsig_tests
         [Fact]
         public async void TestStore()
         {
-            var store = new SpecStore("secret-123", new StatsigOptions(_server.Urls[0] + "/v1") { IDListsSyncInterval = 1});
+            var opts = new StatsigOptions(_server.Urls[0] + "/v1") { IDListsSyncInterval = 1 };
+            var dispatcher = new RequestDispatcher("secret-123", opts, SDKDetails.GetServerSDKDetails(), "my-session");
+            var store = new SpecStore(opts, dispatcher);
             await store.Initialize();
             var expectedIDLists = SpecStoreResponseData.getIDListExpectedResults(_server.Urls[0]);
             TestStoreHelper(store, expectedIDLists, 0);
@@ -138,4 +140,3 @@ namespace dotnet_statsig_tests
         }
     }
 }
-

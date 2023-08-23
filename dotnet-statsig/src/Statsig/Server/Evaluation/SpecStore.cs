@@ -33,10 +33,10 @@ namespace Statsig.Server
         private Func<IIDStore>? _idStoreFactory;
         private IDataStore? _dataStore;
         
-        internal SpecStore(string serverSecret, StatsigOptions options)
+        internal SpecStore(StatsigOptions options, RequestDispatcher dispatcher)
         {
             _idStoreFactory = options.IDStoreFactory;
-            _requestDispatcher = new RequestDispatcher(serverSecret, options);
+            _requestDispatcher = dispatcher;
             _idListsSyncInterval = options.IDListsSyncInterval;
             _rulesetsSyncInterval = options.RulesetsSyncInterval;
             LastSyncTime = 0;
@@ -324,8 +324,7 @@ namespace Statsig.Server
             var response = await _requestDispatcher.Fetch("get_id_lists", new Dictionary<string, object>
             {
                 ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-            }, 
-                SDKDetails.GetServerSDKDetails().StatsigMetadata);
+            });
             if (response == null || response.Count == 0)
             {
                 return;
@@ -342,8 +341,7 @@ namespace Statsig.Server
                 {
                     ["sinceTime"] = LastSyncTime,
                     ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-                },
-                SDKDetails.GetServerSDKDetails().StatsigMetadata
+                }
             );
 
             var hasUpdates = ParseResponse(response);

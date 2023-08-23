@@ -29,6 +29,7 @@ namespace Statsig.Server
         internal Evaluator evaluator;
 
         private ErrorBoundary _errorBoundary;
+        private readonly string _sessionID = Guid.NewGuid().ToString();
 
         public ServerDriver(string serverSecret, StatsigOptions? options = null)
         {
@@ -55,15 +56,16 @@ namespace Statsig.Server
             _errorBoundary = new ErrorBoundary(serverSecret, SDKDetails.GetServerSDKDetails());
             _errorBoundary.Swallow("Constructor", () =>
             {
-                _requestDispatcher = new RequestDispatcher(_serverSecret, _options);
+                var sdkDetails = SDKDetails.GetServerSDKDetails();
+                _requestDispatcher = new RequestDispatcher(_serverSecret, _options, sdkDetails, _sessionID);
                 _eventLogger = new EventLogger(
                     _requestDispatcher,
-                    SDKDetails.GetServerSDKDetails(),
+                    sdkDetails,
                     serverOpts?.LoggingBufferMaxSize ?? Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
                     serverOpts?.LoggingIntervalSeconds ?? Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC,
                     Constants.SERVER_DEDUPE_INTERVAL
                 );
-                evaluator = new Evaluator(serverSecret, options);
+                evaluator = new Evaluator(options, _requestDispatcher);
             });
         }
 
@@ -327,7 +329,7 @@ namespace Statsig.Server
                     { "sdkVersion", details.SDKVersion },
                     { "exposureLoggingDisabled", !shouldLogExposure }
                 }
-            }, details.StatsigMetadata);
+            });
 
             if (response == null)
             {
@@ -460,7 +462,7 @@ namespace Statsig.Server
                     { "sdkVersion", details.SDKVersion },
                     { "exposureLoggingDisabled", !shouldLogExposure }
                 }
-            }, details.StatsigMetadata);
+            });
 
             if (response == null)
             {

@@ -29,7 +29,7 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
         ).RespondWith(this);
 
         var sdkDetails = SDKDetails.GetClientSDKDetails();
-        var dispatcher = new RequestDispatcher("a-key", new StatsigOptions(apiUrlBase: _server.Urls[0]));
+        var dispatcher = new RequestDispatcher("a-key", new StatsigOptions(apiUrlBase: _server.Urls[0]), sdkDetails, "my-session");
         _logger = new EventLogger(dispatcher, sdkDetails, 1, 999);
         
         return Task.CompletedTask;

@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Statsig.Network;
 using static Statsig.Server.Evaluation.Helpers;
 
 namespace Statsig.Server.Evaluation
@@ -24,9 +25,9 @@ namespace Statsig.Server.Evaluation
         private readonly SpecStore _store;
         private bool _initialized;
 
-        internal Evaluator(string serverSecret, StatsigOptions options)
+        internal Evaluator(StatsigOptions options, RequestDispatcher dispatcher)
         {
-            _store = new SpecStore(serverSecret, options);
+            _store = new SpecStore(options, dispatcher);
             _initialized = false;
         }
 

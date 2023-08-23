@@ -157,7 +157,7 @@ namespace Statsig.Network
                 ["events"] = snapshot
             };
 
-            await _dispatcher.Fetch("log_event", body, _statsigMetadata, 5, 1);
+            await _dispatcher.Fetch("log_event", body, 5, 1);
         }
 
         public async Task Shutdown()
