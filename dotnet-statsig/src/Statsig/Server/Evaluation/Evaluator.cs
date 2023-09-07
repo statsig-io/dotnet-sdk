@@ -287,8 +287,8 @@ namespace Statsig.Server.Evaluation
                 secondaryExposures.AddRange(ruleExposures);
                 switch (result)
                 {
-                    case EvaluationResult.FetchFromServer:
-                        return new ConfigEvaluation(EvaluationResult.FetchFromServer);
+                    case EvaluationResult.Unsupported:
+                        return new ConfigEvaluation(EvaluationResult.Unsupported);
                     case EvaluationResult.Pass:
                         var delegatedResult = EvaluateDelegate(user, rule, secondaryExposures, depth + 1);
                         if (delegatedResult != null)
@@ -391,7 +391,7 @@ namespace Statsig.Server.Evaluation
             {
                 var result = EvaluateCondition(user, condition,
                     out var conditionExposures, depth + 1);
-                if (result == EvaluationResult.FetchFromServer)
+                if (result == EvaluationResult.Unsupported)
                 {
                     return result;
                 }
@@ -429,9 +429,9 @@ namespace Statsig.Server.Evaluation
                 case "pass_gate":
                     _store.FeatureGates.TryGetValue(targetStr.ToLowerInvariant(), out var spec);
                     var otherGateResult = Evaluate(user, spec, depth + 1);
-                    if (otherGateResult.Result == EvaluationResult.FetchFromServer)
+                    if (otherGateResult.Result == EvaluationResult.Unsupported)
                     {
-                        return EvaluationResult.FetchFromServer;
+                        return EvaluationResult.Unsupported;
                     }
 
                     var pass = otherGateResult.Result == EvaluationResult.Pass;
@@ -485,7 +485,7 @@ namespace Statsig.Server.Evaluation
                     value = GetUnitID(user, idType);
                     break;
                 default:
-                    return EvaluationResult.FetchFromServer;
+                    return EvaluationResult.Unsupported;
             }
 
             bool result = false;
@@ -613,7 +613,7 @@ namespace Statsig.Server.Evaluation
 
                     break;
                 default:
-                    return EvaluationResult.FetchFromServer;
+                    return EvaluationResult.Unsupported;
             }
 
             return result ? EvaluationResult.Pass : EvaluationResult.Fail;

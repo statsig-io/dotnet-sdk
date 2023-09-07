@@ -9,6 +9,7 @@ namespace Statsig.Server
     {
         static ServerDriver? _singleDriver;
 
+
         public static async Task Initialize(string serverSecret, StatsigOptions? options = null)
         {
             if (_singleDriver != null)
@@ -33,14 +34,16 @@ namespace Statsig.Server
             _singleDriver = null;
         }
 
-        public static async Task<bool> CheckGate(StatsigUser user, string gateName)
+        #region CheckGate
+
+        public static bool CheckGateSync(StatsigUser user, string gateName)
         {
-            return await EnforceInitialized().CheckGate(user, gateName);
+            return EnforceInitialized().CheckGateSync(user, gateName);
         }
 
-        public static async Task<bool> CheckGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
+        public static bool CheckGateWithExposureLoggingDisabledSync(StatsigUser user, string gateName)
         {
-            return await EnforceInitialized().CheckGateWithExposureLoggingDisabled(user, gateName);
+            return EnforceInitialized().CheckGateSync(user, gateName);
         }
 
         public static void ManuallyLogGateExposure(StatsigUser user, string gateName)
@@ -48,17 +51,21 @@ namespace Statsig.Server
             EnforceInitialized().LogGateExposure(user, gateName);
         }
 
-        public static async Task<DynamicConfig> GetConfig(StatsigUser user, string configName)
+        #endregion
+
+        #region GetConfig
+
+        public static DynamicConfig GetConfigSync(StatsigUser user, string configName)
         {
-            return await EnforceInitialized().GetConfig(user, configName);
+            return EnforceInitialized().GetConfigSync(user, configName);
         }
 
-        public static async Task<DynamicConfig> GetConfigWithExposureLoggingDisabled(
+        public static DynamicConfig GetConfigWithExposureLoggingDisabledSync(
             StatsigUser user,
             string configName
         )
         {
-            return await EnforceInitialized().GetConfigWithExposureLoggingDisabled(user, configName);
+            return EnforceInitialized().GetConfigWithExposureLoggingDisabledSync(user, configName);
         }
 
         public static void ManuallyLogConfigExposure(StatsigUser user, string configName)
@@ -66,17 +73,21 @@ namespace Statsig.Server
             EnforceInitialized().LogConfigExposure(user, configName);
         }
 
-        public static async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
+        #endregion
+
+        #region GetExperiment
+
+        public static DynamicConfig GetExperimentSync(StatsigUser user, string experimentName)
         {
-            return await EnforceInitialized().GetExperiment(user, experimentName);
+            return EnforceInitialized().GetExperimentSync(user, experimentName);
         }
 
-        public static async Task<DynamicConfig> GetExperimentWithExposureLoggingDisabled(
+        public static DynamicConfig GetExperimentWithExposureLoggingDisabledSync(
             StatsigUser user,
             string experimentName
         )
         {
-            return await EnforceInitialized().GetConfigWithExposureLoggingDisabled(user, experimentName);
+            return EnforceInitialized().GetExperimentWithExposureLoggingDisabledSync(user, experimentName);
         }
 
         public static void ManuallyLogExperimentExposure(StatsigUser user, string experimentName)
@@ -84,14 +95,18 @@ namespace Statsig.Server
             EnforceInitialized().LogExperimentExposure(user, experimentName);
         }
 
-        public static async Task<Layer> GetLayer(StatsigUser user, string layerName)
+        #endregion
+
+        #region GetLayer
+
+        public static Layer GetLayerSync(StatsigUser user, string layerName)
         {
-            return await EnforceInitialized().GetLayer(user, layerName);
+            return EnforceInitialized().GetLayerSync(user, layerName);
         }
 
-        public static async Task<Layer> GetLayerWithExposureLoggingDisabled(StatsigUser user, string layerName)
+        public static Layer GetLayerWithExposureLoggingDisabledSync(StatsigUser user, string layerName)
         {
-            return await EnforceInitialized().GetLayerWithExposureLoggingDisabled(user, layerName);
+            return EnforceInitialized().GetLayerWithExposureLoggingDisabledSync(user, layerName);
         }
 
         public static async void ManuallyLogLayerParameterExposure(
@@ -102,6 +117,8 @@ namespace Statsig.Server
         {
             EnforceInitialized().LogLayerParameterExposure(user, layerName, parameterName);
         }
+
+        #endregion
 
         public static Dictionary<string, object> GetClientInitializeResponse(StatsigUser user)
         {
@@ -145,6 +162,70 @@ namespace Statsig.Server
             return EnforceInitialized().GetExperimentList();
         }
 
+        #region Deprecated Async Functions
+
+        [Obsolete("Please use CheckGateSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
+        public static async Task<bool> CheckGate(StatsigUser user, string gateName)
+        {
+            return await EnforceInitialized().CheckGate(user, gateName);
+        }
+
+        [Obsolete(
+            "Please use CheckGateWithExposureLoggingDisabledSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
+        public static async Task<bool> CheckGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
+        {
+            return await EnforceInitialized().CheckGateWithExposureLoggingDisabled(user, gateName);
+        }
+
+        [Obsolete("Please use GetConfigSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
+        public static async Task<DynamicConfig> GetConfig(StatsigUser user, string configName)
+        {
+            return await EnforceInitialized().GetConfig(user, configName);
+        }
+
+        [Obsolete(
+            "Please use GetConfigWithExposureLoggingDisabledSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
+        public static async Task<DynamicConfig> GetConfigWithExposureLoggingDisabled(
+            StatsigUser user,
+            string configName
+        )
+        {
+            return await EnforceInitialized().GetConfigWithExposureLoggingDisabled(user, configName);
+        }
+
+        [Obsolete("Please use GetExperimentSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
+        public static async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
+        {
+            return await EnforceInitialized().GetExperiment(user, experimentName);
+        }
+
+        [Obsolete("Please use GetExperimentWithExposureLoggingDisabledSync instead. " +
+                  ServerDriver.AsyncFuncDeprecationLink)]
+        public static async Task<DynamicConfig> GetExperimentWithExposureLoggingDisabled(
+            StatsigUser user,
+            string experimentName
+        )
+        {
+            return await EnforceInitialized().GetExperimentWithExposureLoggingDisabled(user, experimentName);
+        }
+
+        [Obsolete("Please use GetLayerSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
+        public static async Task<Layer> GetLayer(StatsigUser user, string layerName)
+        {
+            return await EnforceInitialized().GetLayer(user, layerName);
+        }
+
+        [Obsolete(
+            "Please use GetLayerWithExposureLoggingDisabledSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
+        public static async Task<Layer> GetLayerWithExposureLoggingDisabled(StatsigUser user, string layerName)
+        {
+            return await EnforceInitialized().GetLayerWithExposureLoggingDisabled(user, layerName);
+        }
+
+        #endregion
+
+        #region Private
+
         private static ServerDriver EnforceInitialized()
         {
             if (_singleDriver == null)
@@ -154,5 +235,7 @@ namespace Statsig.Server
 
             return _singleDriver;
         }
+
+        #endregion
     }
 }

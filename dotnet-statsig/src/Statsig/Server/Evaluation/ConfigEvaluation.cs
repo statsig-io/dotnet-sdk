@@ -7,7 +7,7 @@ namespace Statsig.Server.Evaluation
     {
         Pass,
         Fail,
-        FetchFromServer
+        Unsupported
     }
 
     class ConfigEvaluation

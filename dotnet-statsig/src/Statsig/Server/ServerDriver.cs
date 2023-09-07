@@ -19,11 +19,11 @@ namespace Statsig.Server
         , IAsyncDisposable
 #endif
     {
-        readonly StatsigOptions _options;
+        private readonly StatsigOptions _options;
         internal readonly string _serverSecret;
-        bool _initialized;
-        bool _disposed;
-        RequestDispatcher _requestDispatcher;
+        private bool _initialized;
+        private bool _disposed;
+        private RequestDispatcher _requestDispatcher;
 
         internal EventLogger _eventLogger;
         internal Evaluator evaluator;
@@ -94,25 +94,17 @@ namespace Statsig.Server
             });
         }
 
-        public async Task<bool> CheckGate(StatsigUser user, string gateName)
+        #region CheckGate
+
+        public bool CheckGateSync(StatsigUser user, string gateName)
         {
-            return await _errorBoundary.Capture("CheckGate", async () =>
-                {
-                    var result = await CheckGateImpl(user, gateName, shouldLogExposure: true);
-                    return result.Value;
-                }
-                , () => false);
+            return _errorBoundary.Capture(
+                "CheckGate",
+                () => CheckGateImpl(user, gateName, shouldLogExposure: true).Value,
+                () => false
+            );
         }
 
-        public async Task<bool> CheckGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
-        {
-            return await _errorBoundary.Capture("CheckGateWithExposureLoggingDisabled", async () =>
-                {
-                    var result = await CheckGateImpl(user, gateName, shouldLogExposure: false);
-                    return result.Value;
-                }
-                , () => false);
-        }
 
         public void LogGateExposure(StatsigUser user, string gateName)
         {
@@ -123,18 +115,27 @@ namespace Statsig.Server
             });
         }
 
-        public async Task<DynamicConfig> GetConfig(StatsigUser user, string configName)
+        #endregion
+
+
+        #region GetConfig
+
+        public DynamicConfig GetConfigSync(StatsigUser user, string configName)
         {
-            return await _errorBoundary.Capture("GetConfig",
-                async () => await GetConfigImpl(user, configName, shouldLogExposure: true),
-                () => new DynamicConfig(configName));
+            return _errorBoundary.Capture(
+                "GetConfig",
+                () => GetConfigImpl(user, configName, shouldLogExposure: true),
+                () => new DynamicConfig(configName)
+            );
         }
 
-        public async Task<DynamicConfig> GetConfigWithExposureLoggingDisabled(StatsigUser user, string configName)
+        public DynamicConfig GetConfigWithExposureLoggingDisabledSync(StatsigUser user, string configName)
         {
-            return await _errorBoundary.Capture("GetConfigWithExposureLoggingDisabled",
-                async () => await GetConfigImpl(user, configName, shouldLogExposure: false),
-                () => new DynamicConfig(configName));
+            return _errorBoundary.Capture(
+                "GetConfigWithExposureLoggingDisabled",
+                () => GetConfigImpl(user, configName, shouldLogExposure: false),
+                () => new DynamicConfig(configName)
+            );
         }
 
         public void LogConfigExposure(StatsigUser user, string configName)
@@ -146,19 +147,30 @@ namespace Statsig.Server
             });
         }
 
-        public async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
+        #endregion
+
+
+        #region GetExperiment
+
+        public DynamicConfig GetExperimentSync(StatsigUser user, string experimentName)
         {
-            return await _errorBoundary.Capture("GetExperiment",
-                async () => await GetConfigImpl(user, experimentName, shouldLogExposure: true),
-                () => new DynamicConfig(experimentName));
+            return _errorBoundary.Capture(
+                "GetExperiment",
+                () => GetConfigImpl(user, experimentName, shouldLogExposure: true),
+                () => new DynamicConfig(experimentName)
+            );
         }
 
-        public async Task<DynamicConfig> GetExperimentWithExposureLoggingDisabled(StatsigUser user,
-            string experimentName)
+        public DynamicConfig GetExperimentWithExposureLoggingDisabledSync(
+            StatsigUser user,
+            string experimentName
+        )
         {
-            return await _errorBoundary.Capture("GetExperimentWithExposureLoggingDisabled",
-                async () => await GetConfigImpl(user, experimentName, shouldLogExposure: false),
-                () => new DynamicConfig(experimentName));
+            return _errorBoundary.Capture(
+                "GetExperimentWithExposureLoggingDisabled",
+                () => GetConfigImpl(user, experimentName, shouldLogExposure: false),
+                () => new DynamicConfig(experimentName)
+            );
         }
 
         public void LogExperimentExposure(StatsigUser user, string experimentName)
@@ -170,18 +182,27 @@ namespace Statsig.Server
             });
         }
 
-        public async Task<Layer> GetLayer(StatsigUser user, string layerName)
+        #endregion
+
+
+        #region GetLayer
+
+        public Layer GetLayerSync(StatsigUser user, string layerName)
         {
-            return await _errorBoundary.Capture("GetLayer",
-                async () => await GetLayerImpl(user, layerName, shouldLogExposure: true),
-                () => new Layer(layerName));
+            return _errorBoundary.Capture(
+                "GetLayer",
+                () => GetLayerImpl(user, layerName, shouldLogExposure: true),
+                () => new Layer(layerName)
+            );
         }
 
-        public async Task<Layer> GetLayerWithExposureLoggingDisabled(StatsigUser user, string layerName)
+        public Layer GetLayerWithExposureLoggingDisabledSync(StatsigUser user, string layerName)
         {
-            return await _errorBoundary.Capture("GetLayerWithExposureLoggingDisabled",
-                async () => await GetLayerImpl(user, layerName, shouldLogExposure: false),
-                () => new Layer(layerName));
+            return _errorBoundary.Capture(
+                "GetLayerWithExposureLoggingDisabled",
+                () => GetLayerImpl(user, layerName, shouldLogExposure: false),
+                () => new Layer(layerName)
+            );
         }
 
         public void LogLayerParameterExposure(StatsigUser user, string layerName, string parameterName)
@@ -192,6 +213,8 @@ namespace Statsig.Server
                 LogLayerParameterExposureImpl(user, layerName, parameterName, evaluation, ExposureCause.Manual);
             });
         }
+
+        #endregion
 
         public Dictionary<string, object> GenerateInitializeResponse(StatsigUser user)
         {
@@ -298,9 +321,75 @@ namespace Statsig.Server
         }
 #endif
 
+        #region Deprecated Async Methods
+        internal const string AsyncFuncDeprecationLink = "See https://docs.statsig.com/server/deprecation-notices";
+
+        [Obsolete("Please use CheckGateSync instead. " + AsyncFuncDeprecationLink)]
+        public Task<bool> CheckGate(StatsigUser user, string gateName)
+        {
+            var result = _errorBoundary.Capture(
+                "CheckGate",
+                () => CheckGateImpl(user, gateName, shouldLogExposure: true).Value,
+                () => false
+            );
+            return Task.FromResult(result);
+        }
+
+        [Obsolete("Please use CheckGateWithExposureLoggingDisabledSync instead. " + AsyncFuncDeprecationLink)]
+        public Task<bool> CheckGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
+        {
+            var result = _errorBoundary.Capture(
+                "CheckGateWithExposureLoggingDisabled",
+                () => CheckGateImpl(user, gateName, shouldLogExposure: false).Value,
+                () => false
+            );
+            return Task.FromResult(result);
+        }
+
+        [Obsolete("Please use GetConfigSync instead. " + AsyncFuncDeprecationLink)]
+        public Task<DynamicConfig> GetConfig(StatsigUser user, string configName)
+        {
+            return Task.FromResult(GetConfigSync(user, configName));
+        }
+
+        [Obsolete("Please use GetConfigWithExposureLoggingDisabledSync instead. " + AsyncFuncDeprecationLink)]
+        public Task<DynamicConfig> GetConfigWithExposureLoggingDisabled(StatsigUser user, string configName)
+        {
+            return Task.FromResult(GetConfigWithExposureLoggingDisabledSync(user, configName));
+        }
+
+        [Obsolete("Please use GetExperimentSync instead. " + AsyncFuncDeprecationLink)]
+        public Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
+        {
+            return Task.FromResult(GetExperimentSync(user, experimentName));
+        }
+
+        [Obsolete("Please use GetExperimentWithExposureLoggingDisabledSync instead. " + AsyncFuncDeprecationLink)]
+        public Task<DynamicConfig> GetExperimentWithExposureLoggingDisabled(
+            StatsigUser user,
+            string experimentName
+        )
+        {
+            return Task.FromResult(GetExperimentWithExposureLoggingDisabledSync(user, experimentName));
+        }
+
+        [Obsolete("Please use GetLayerSync instead. " + AsyncFuncDeprecationLink)]
+        public Task<Layer> GetLayer(StatsigUser user, string layerName)
+        {
+            return Task.FromResult(GetLayerSync(user, layerName));
+        }
+
+        [Obsolete("Please use GetLayerWithExposureLoggingDisabledSync instead. " + AsyncFuncDeprecationLink)]
+        public Task<Layer> GetLayerWithExposureLoggingDisabled(StatsigUser user, string layerName)
+        {
+            return Task.FromResult(GetLayerWithExposureLoggingDisabledSync(user, layerName));
+        }
+
+        #endregion
+
         #region Private Methods
 
-        private async Task<FeatureGate> CheckGateImpl(StatsigUser user, string gateName, bool shouldLogExposure)
+        private FeatureGate CheckGateImpl(StatsigUser user, string gateName, bool shouldLogExposure)
         {
             EnsureInitialized();
             ValidateUser(user);
@@ -308,38 +397,18 @@ namespace Statsig.Server
             ValidateNonEmptyArgument(gateName, "gateName");
 
             var evaluation = evaluator.CheckGate(user, gateName);
-            if (evaluation.Result != EvaluationResult.FetchFromServer)
-            {
-                if (shouldLogExposure)
-                {
-                    LogGateExposureImpl(user, gateName, evaluation.GateValue, ExposureCause.Automatic);
-                }
 
-                return evaluation.GateValue;
-            }
-
-            var details = SDKDetails.GetServerSDKDetails();
-            var response = await _requestDispatcher.Fetch("check_gate", new Dictionary<string, object>
-            {
-                ["user"] = user,
-                ["gateName"] = gateName,
-                ["statsigMetadata"] = new Dictionary<string, object>
-                {
-                    { "sdkType", details.SDKType },
-                    { "sdkVersion", details.SDKVersion },
-                    { "exposureLoggingDisabled", !shouldLogExposure }
-                }
-            });
-
-            if (response == null)
+            if (evaluation.Result == EvaluationResult.Unsupported)
             {
                 return new FeatureGate(gateName);
             }
 
-            response.TryGetValue("value", out var value);
-            response.TryGetValue("rule_id", out var ruleId);
+            if (shouldLogExposure)
+            {
+                LogGateExposureImpl(user, gateName, evaluation.GateValue, ExposureCause.Automatic);
+            }
 
-            return new FeatureGate(gateName, value?.Value<bool>() ?? false, ruleId?.Value<string>());
+            return evaluation.GateValue;
         }
 
         private void LogGateExposureImpl(StatsigUser user, string gateName, FeatureGate gate, ExposureCause cause)
@@ -352,7 +421,7 @@ namespace Statsig.Server
             ));
         }
 
-        private async Task<DynamicConfig> GetConfigImpl(StatsigUser user, string configName, bool shouldLogExposure)
+        private DynamicConfig GetConfigImpl(StatsigUser user, string configName, bool shouldLogExposure)
         {
             EnsureInitialized();
             ValidateUser(user);
@@ -360,17 +429,18 @@ namespace Statsig.Server
             ValidateNonEmptyArgument(configName, "configName");
 
             var evaluation = evaluator.GetConfig(user, configName);
-            if (evaluation.Result != EvaluationResult.FetchFromServer)
-            {
-                if (shouldLogExposure)
-                {
-                    LogConfigExposureImpl(user, configName, evaluation.ConfigValue, ExposureCause.Automatic);
-                }
 
-                return evaluation.ConfigValue;
+            if (evaluation.Result == EvaluationResult.Unsupported)
+            {
+                return new DynamicConfig(configName);
             }
 
-            return await FetchConfigFromServer(user, configName, shouldLogExposure);
+            if (shouldLogExposure)
+            {
+                LogConfigExposureImpl(user, configName, evaluation.ConfigValue, ExposureCause.Automatic);
+            }
+
+            return evaluation.ConfigValue;
         }
 
         private void LogConfigExposureImpl(StatsigUser user, string configName, DynamicConfig config,
@@ -383,7 +453,7 @@ namespace Statsig.Server
             ));
         }
 
-        private async Task<Layer> GetLayerImpl(StatsigUser user, string layerName, bool shouldLogExposure)
+        private Layer GetLayerImpl(StatsigUser user, string layerName, bool shouldLogExposure)
         {
             EnsureInitialized();
             ValidateUser(user);
@@ -391,6 +461,11 @@ namespace Statsig.Server
             ValidateNonEmptyArgument(layerName, "layerName");
 
             var evaluation = evaluator.GetLayer(user, layerName);
+            
+            if (evaluation.Result == EvaluationResult.Unsupported)
+            {
+                return new Layer(layerName);
+            }
 
             void OnExposure(Layer layer, string parameterName)
             {
@@ -402,19 +477,8 @@ namespace Statsig.Server
                 LogLayerParameterExposureImpl(user, layerName, parameterName, evaluation, ExposureCause.Automatic);
             }
 
-            if (evaluation.Result != EvaluationResult.FetchFromServer)
-            {
-                var dc = evaluation.ConfigValue;
-                return new Layer(layerName, dc.Value, dc.RuleID, OnExposure);
-            }
-
-            if (evaluation.ConfigDelegate == null)
-            {
-                return new Layer(layerName);
-            }
-
-            var config = await FetchConfigFromServer(user, evaluation.ConfigDelegate, shouldLogExposure: false);
-            return new Layer(layerName, config.Value, config.RuleID, OnExposure);
+            var dc = evaluation.ConfigValue;
+            return new Layer(layerName, dc.Value, dc.RuleID, OnExposure);
         }
 
         private void LogLayerParameterExposureImpl(
@@ -448,34 +512,7 @@ namespace Statsig.Server
             );
         }
 
-
-        private async Task<DynamicConfig> FetchConfigFromServer(StatsigUser user, string name, bool shouldLogExposure)
-        {
-            var details = SDKDetails.GetServerSDKDetails();
-            var response = await _requestDispatcher.Fetch("get_config", new Dictionary<string, object>
-            {
-                ["user"] = user,
-                ["configName"] = name,
-                ["statsigMetadata"] = new Dictionary<string, object>
-                {
-                    { "sdkType", details.SDKType },
-                    { "sdkVersion", details.SDKVersion },
-                    { "exposureLoggingDisabled", !shouldLogExposure }
-                }
-            });
-
-            if (response == null)
-            {
-                return new DynamicConfig(name);
-            }
-
-            response.TryGetValue("value", out var value);
-            response.TryGetValue("rule_id", out var ruleId);
-
-            return new DynamicConfig(name, value?.ToObject<Dictionary<string, JToken>>(), ruleId?.Value<string>());
-        }
-
-        void ValidateUser(StatsigUser user)
+        private void ValidateUser(StatsigUser user)
         {
             if (user == null)
             {
@@ -492,7 +529,7 @@ namespace Statsig.Server
             }
         }
 
-        void NormalizeUser(StatsigUser user)
+        private void NormalizeUser(StatsigUser user)
         {
             if (user != null && _options.StatsigEnvironment != null && _options.StatsigEnvironment.Values.Count > 0)
             {
@@ -500,7 +537,7 @@ namespace Statsig.Server
             }
         }
 
-        void EnsureInitialized()
+        private void EnsureInitialized()
         {
             if (_disposed)
             {
@@ -513,7 +550,7 @@ namespace Statsig.Server
             }
         }
 
-        void ValidateNonEmptyArgument(string argument, string argName)
+        private void ValidateNonEmptyArgument(string argument, string argName)
         {
             if (string.IsNullOrWhiteSpace(argument))
             {
@@ -521,7 +558,7 @@ namespace Statsig.Server
             }
         }
 
-        void LogEventHelper(
+        private void LogEventHelper(
             StatsigUser user,
             string eventName,
             object? value,
