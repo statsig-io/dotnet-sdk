@@ -43,7 +43,7 @@ namespace Statsig.Server
 
         public static bool CheckGateWithExposureLoggingDisabledSync(StatsigUser user, string gateName)
         {
-            return EnforceInitialized().CheckGateSync(user, gateName);
+            return EnforceInitialized().CheckGateWithExposureLoggingDisabledSync(user, gateName);
         }
 
         public static void ManuallyLogGateExposure(StatsigUser user, string gateName)

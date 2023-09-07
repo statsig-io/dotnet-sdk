@@ -99,12 +99,20 @@ namespace Statsig.Server
         public bool CheckGateSync(StatsigUser user, string gateName)
         {
             return _errorBoundary.Capture(
-                "CheckGate",
+                "CheckGateSync",
                 () => CheckGateImpl(user, gateName, shouldLogExposure: true).Value,
                 () => false
             );
         }
 
+        public bool CheckGateWithExposureLoggingDisabledSync(StatsigUser user, string gateName)
+        {
+            return _errorBoundary.Capture(
+                "CheckGateWithExposureLoggingDisabledSync",
+                () => CheckGateImpl(user, gateName, shouldLogExposure: false).Value,
+                () => false
+            );
+        }
 
         public void LogGateExposure(StatsigUser user, string gateName)
         {
@@ -123,7 +131,7 @@ namespace Statsig.Server
         public DynamicConfig GetConfigSync(StatsigUser user, string configName)
         {
             return _errorBoundary.Capture(
-                "GetConfig",
+                "GetConfigSync",
                 () => GetConfigImpl(user, configName, shouldLogExposure: true),
                 () => new DynamicConfig(configName)
             );
@@ -132,7 +140,7 @@ namespace Statsig.Server
         public DynamicConfig GetConfigWithExposureLoggingDisabledSync(StatsigUser user, string configName)
         {
             return _errorBoundary.Capture(
-                "GetConfigWithExposureLoggingDisabled",
+                "GetConfigWithExposureLoggingDisabledSync",
                 () => GetConfigImpl(user, configName, shouldLogExposure: false),
                 () => new DynamicConfig(configName)
             );
@@ -155,7 +163,7 @@ namespace Statsig.Server
         public DynamicConfig GetExperimentSync(StatsigUser user, string experimentName)
         {
             return _errorBoundary.Capture(
-                "GetExperiment",
+                "GetExperimentSync",
                 () => GetConfigImpl(user, experimentName, shouldLogExposure: true),
                 () => new DynamicConfig(experimentName)
             );
@@ -167,7 +175,7 @@ namespace Statsig.Server
         )
         {
             return _errorBoundary.Capture(
-                "GetExperimentWithExposureLoggingDisabled",
+                "GetExperimentWithExposureLoggingDisabledSync",
                 () => GetConfigImpl(user, experimentName, shouldLogExposure: false),
                 () => new DynamicConfig(experimentName)
             );
@@ -190,7 +198,7 @@ namespace Statsig.Server
         public Layer GetLayerSync(StatsigUser user, string layerName)
         {
             return _errorBoundary.Capture(
-                "GetLayer",
+                "GetLayerSync",
                 () => GetLayerImpl(user, layerName, shouldLogExposure: true),
                 () => new Layer(layerName)
             );
@@ -199,7 +207,7 @@ namespace Statsig.Server
         public Layer GetLayerWithExposureLoggingDisabledSync(StatsigUser user, string layerName)
         {
             return _errorBoundary.Capture(
-                "GetLayerWithExposureLoggingDisabled",
+                "GetLayerWithExposureLoggingDisabledSync",
                 () => GetLayerImpl(user, layerName, shouldLogExposure: false),
                 () => new Layer(layerName)
             );
@@ -322,28 +330,19 @@ namespace Statsig.Server
 #endif
 
         #region Deprecated Async Methods
+
         internal const string AsyncFuncDeprecationLink = "See https://docs.statsig.com/server/deprecation-notices";
 
         [Obsolete("Please use CheckGateSync instead. " + AsyncFuncDeprecationLink)]
         public Task<bool> CheckGate(StatsigUser user, string gateName)
         {
-            var result = _errorBoundary.Capture(
-                "CheckGate",
-                () => CheckGateImpl(user, gateName, shouldLogExposure: true).Value,
-                () => false
-            );
-            return Task.FromResult(result);
+            return Task.FromResult(CheckGateSync(user, gateName));
         }
 
         [Obsolete("Please use CheckGateWithExposureLoggingDisabledSync instead. " + AsyncFuncDeprecationLink)]
         public Task<bool> CheckGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
         {
-            var result = _errorBoundary.Capture(
-                "CheckGateWithExposureLoggingDisabled",
-                () => CheckGateImpl(user, gateName, shouldLogExposure: false).Value,
-                () => false
-            );
-            return Task.FromResult(result);
+            return Task.FromResult(CheckGateWithExposureLoggingDisabledSync(user, gateName));
         }
 
         [Obsolete("Please use GetConfigSync instead. " + AsyncFuncDeprecationLink)]
@@ -461,7 +460,7 @@ namespace Statsig.Server
             ValidateNonEmptyArgument(layerName, "layerName");
 
             var evaluation = evaluator.GetLayer(user, layerName);
-            
+
             if (evaluation.Result == EvaluationResult.Unsupported)
             {
                 return new Layer(layerName);

@@ -164,7 +164,7 @@ namespace dotnet_statsig_tests.Server
                 async () => await _statsig.CheckGate(_user, "a_gate"));
 
             AssertSingleErrorBoundaryHit(
-                "CheckGate",
+                "CheckGateSync",
                 "System.NullReferenceException"
             );
         }
@@ -176,7 +176,7 @@ namespace dotnet_statsig_tests.Server
                 async () => await _statsig.GetConfig(_user, "a_config"));
 
             AssertSingleErrorBoundaryHit(
-                "GetConfig",
+                "GetConfigSync",
                 "System.NullReferenceException"
             );
         }
@@ -188,7 +188,7 @@ namespace dotnet_statsig_tests.Server
                 async () => await _statsig.GetExperiment(_user, "an_experiment"));
 
             AssertSingleErrorBoundaryHit(
-                "GetExperiment",
+                "GetExperimentSync",
                 "System.NullReferenceException"
             );
         }
@@ -200,7 +200,7 @@ namespace dotnet_statsig_tests.Server
                 async () => await _statsig.GetLayer(_user, "a_layer"));
 
             AssertSingleErrorBoundaryHit(
-                "GetLayer",
+                "GetLayerSync",
                 "System.NullReferenceException"
             );
         }
