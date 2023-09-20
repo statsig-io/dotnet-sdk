@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using Statsig.Lib;
 
 namespace Statsig.Server
 {
@@ -19,6 +20,7 @@ namespace Statsig.Server
         internal FeatureGate FeatureGateDefault { get; private set; }
         internal List<string> ExplicitParameters { get; private set; }
         internal bool HasSharedParams { get; private set; }
+        internal string[]? TargetAppIDs { get; private set; }
 
 #pragma warning disable CS8618 // FromJObject below takes care of properties init
         ConfigSpec()
@@ -52,7 +54,8 @@ namespace Statsig.Server
                 enabled,
                 idType,
                 explicitParameters,
-                isActive;
+                isActive,
+                targetAppIDs;
 
             if (jobj == null ||
                 !jobj.TryGetValue("name", out name) ||
@@ -98,6 +101,7 @@ namespace Statsig.Server
                 IDType = jobj.TryGetValue("idType", out idType) ? idType.Value<string>() : null,
                 ExplicitParameters = explicitParamsList,
                 HasSharedParams = hasSharedParams?.Value<bool>() ?? false,
+                TargetAppIDs = jobj.GetOrDefault<string[]?>("targetAppIDs", null),
             };
 
             jobj.TryGetValue("defaultValue", out JToken? defaultValue);

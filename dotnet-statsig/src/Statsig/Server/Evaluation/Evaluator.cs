@@ -62,17 +62,30 @@ namespace Statsig.Server.Evaluation
             return _store.GetSpecNames(type);
         }
 
-        internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user)
+        internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user, string? clientSDKKey)
         {
             if (!_initialized)
             {
                 return null;
             }
 
+            string? target_app_id = null;
+
+            if (_store.SDKKeysToAppIDs.ContainsKey(clientSDKKey ?? ""))
+            {
+                target_app_id = _store.SDKKeysToAppIDs[clientSDKKey ?? ""];
+            }
+
             var gates = new Dictionary<string, Dictionary<string, object>>();
             foreach (var kv in _store.FeatureGates)
             {
                 if (kv.Value.Entity == "segment" || kv.Value.Entity == "holdout")
+                {
+                    continue;
+                }
+
+                if (target_app_id != null && kv.Value.TargetAppIDs != null &&
+                    !kv.Value.TargetAppIDs.Contains(target_app_id))
                 {
                     continue;
                 }
@@ -92,6 +105,12 @@ namespace Statsig.Server.Evaluation
             var dynamicConfigs = new Dictionary<string, Dictionary<string, object>>();
             foreach (var kv in _store.DynamicConfigs)
             {
+                if (target_app_id != null && kv.Value.TargetAppIDs != null &&
+                    !kv.Value.TargetAppIDs.Contains(target_app_id))
+                {
+                    continue;
+                }
+
                 var hashedName = HashName(kv.Value.Name);
                 var config = Evaluate(user, kv.Value, 0).ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
@@ -113,6 +132,12 @@ namespace Statsig.Server.Evaluation
             var layerConfigs = new Dictionary<string, Dictionary<string, object>>();
             foreach (var kv in _store.LayerConfigs)
             {
+                if (target_app_id != null && kv.Value.TargetAppIDs != null &&
+                    !kv.Value.TargetAppIDs.Contains(target_app_id))
+                {
+                    continue;
+                }
+
                 var hashedName = HashName(kv.Value.Name);
                 var evaluation = Evaluate(user, kv.Value, 0);
                 var config = evaluation.ConfigValue;

@@ -120,9 +120,9 @@ namespace Statsig.Server
 
         #endregion
 
-        public static Dictionary<string, object> GetClientInitializeResponse(StatsigUser user)
+        public static Dictionary<string, object> GetClientInitializeResponse(StatsigUser user, string? clientSDKKey = null)
         {
-            return EnforceInitialized().GenerateInitializeResponse(user);
+            return EnforceInitialized().GenerateInitializeResponse(user, clientSDKKey);
         }
 
         public static void LogEvent(

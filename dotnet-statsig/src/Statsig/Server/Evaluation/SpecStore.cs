@@ -27,6 +27,7 @@ namespace Statsig.Server
         internal Dictionary<string, ConfigSpec> DynamicConfigs { get; private set; }
         internal Dictionary<string, ConfigSpec> LayerConfigs { get; private set; }
         internal Dictionary<string, string> ExperimentToLayer { get; private set; }
+        internal Dictionary<string, string> SDKKeysToAppIDs { get; private set; }
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
         private double _idListsSyncInterval;
         private double _rulesetsSyncInterval;
@@ -43,6 +44,7 @@ namespace Statsig.Server
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             LayerConfigs = new Dictionary<string, ConfigSpec>();
+            SDKKeysToAppIDs = new Dictionary<string, string>();
             _idLists = new ConcurrentDictionary<string, IDList>();
 
             _syncIDListsTask = null;
@@ -381,6 +383,7 @@ namespace Statsig.Server
             var newGates = new Dictionary<string, ConfigSpec>();
             var newConfigs = new Dictionary<string, ConfigSpec>();
             var newLayerConfigs = new Dictionary<string, ConfigSpec>();
+            var newSDKKeysToAppIDs = new Dictionary<string, string>();
             
             JToken? objVal;
             if (json.TryGetValue("feature_gates", out objVal))
@@ -442,10 +445,16 @@ namespace Statsig.Server
                     }
                 }
             }
+
+            if (json.TryGetValue("sdk_keys_to_app_ids", out objVal)) 
+            {
+                newSDKKeysToAppIDs = objVal.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>();
+            }
             
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
             LayerConfigs = newLayerConfigs;
+            SDKKeysToAppIDs = newSDKKeysToAppIDs;
 
             return true;
         }

@@ -26,7 +26,7 @@ namespace dotnet_statsig_tests
                 Request.Create().WithPath("/v1/initialize").UsingPost()
             ).RespondWith(
                 Response.Create().WithStatusCode(200).WithBodyAsJson(TestData.ClientInitializeResponse)
-                    .WithDelay(TimeSpan.FromSeconds(1))
+                    .WithDelay(TimeSpan.FromSeconds(2))
             );
             _server.Given(
                 Request.Create().WithPath("/v1/log_event").UsingPost()
@@ -70,7 +70,6 @@ namespace dotnet_statsig_tests
             await StatsigClient.Shutdown();
 
             startTime = DateTime.Now;
-            ;
             await StatsigClient.Initialize
             (
                 "client-fake-key",
