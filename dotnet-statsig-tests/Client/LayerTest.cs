@@ -97,7 +97,7 @@ namespace dotnet_statsig_tests
                 'ruleID': 'default',
                 'allocatedExperiment': '',
                 'parameterName': 'an_int',
-                'isExplicitParameter': 'false'
+                'isExplicitParameter': 'false',
             }"), _events[0]["metadata"]);
 
             Assert.Equal(JObject.Parse(@"{'arr': [{
@@ -124,7 +124,7 @@ namespace dotnet_statsig_tests
                 'ruleID': 'default',
                 'allocatedExperiment': 'an_experiment',
                 'parameterName': 'explicit_key',
-                'isExplicitParameter': 'true'
+                'isExplicitParameter': 'true',
             }"), _events[0]["metadata"]);
 
             Assert.Equal(JObject.Parse(@"{'arr': [{
@@ -138,7 +138,7 @@ namespace dotnet_statsig_tests
                 'ruleID': 'default',
                 'allocatedExperiment': '',
                 'parameterName': 'implicit_key',
-                'isExplicitParameter': 'false'
+                'isExplicitParameter': 'false',
             }"), _events[1]["metadata"]);
 
             Assert.Equal(JObject.Parse(@"{'arr': [{

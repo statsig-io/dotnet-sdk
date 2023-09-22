@@ -25,10 +25,17 @@ namespace Statsig.Server.Evaluation
         private readonly SpecStore _store;
         private bool _initialized;
 
+        private Dictionary<string, Dictionary<string, bool>> _gateOverrides;
+        private Dictionary<string, Dictionary<string, Dictionary<string, JToken>>> _configOverrides;
+        private Dictionary<string, Dictionary<string, Dictionary<string, JToken>>> _layerOverrides;
+
         internal Evaluator(StatsigOptions options, RequestDispatcher dispatcher)
         {
             _store = new SpecStore(options, dispatcher);
             _initialized = false;
+            _gateOverrides = new Dictionary<string, Dictionary<string, bool>>();
+            _configOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
+            _layerOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
         }
 
         internal async Task Initialize()
@@ -42,18 +49,140 @@ namespace Statsig.Server.Evaluation
             await _store.Shutdown();
         }
 
+        internal void OverrideGate(string gateName, bool value, string? userID)
+        {
+            if (!_gateOverrides.ContainsKey(gateName))
+            {
+                _gateOverrides.Add(gateName, new Dictionary<string, bool>());
+            }
+            var overrides = _gateOverrides[gateName] ?? new Dictionary<string, bool>();
+            overrides[userID ?? ""] = value;
+            _gateOverrides[gateName] = overrides;
+        }
+
+        internal void OverrideConfig(string configName, Dictionary<string, JToken> value, string? userID)
+        {
+            if (!_configOverrides.ContainsKey(configName))
+            {
+                _configOverrides.Add(configName, new Dictionary<string, Dictionary<string, JToken>>());
+            }
+            var overrides = _configOverrides[configName] ?? new Dictionary<string, Dictionary<string, JToken>>();
+            overrides[userID ?? ""] = value;
+            _configOverrides[configName] = overrides;
+        }
+
+        internal void OverrideLayer(string layerName, Dictionary<string, JToken> value, string? userID)
+        {
+            if (!_layerOverrides.ContainsKey(layerName))
+            {
+                _layerOverrides.Add(layerName, new Dictionary<string, Dictionary<string, JToken>>());
+            }
+            var overrides = _layerOverrides[layerName] ?? new Dictionary<string, Dictionary<string, JToken>>();
+            overrides[userID ?? ""] = value;
+            _layerOverrides[layerName] = overrides;
+        }
+
+        internal ConfigEvaluation? LookupGateOverride(StatsigUser user, string gateName)
+        {   
+            if (!_gateOverrides.ContainsKey(gateName))
+            {
+                return null;
+            }
+            var overrides = _gateOverrides[gateName];
+            if (overrides == null)
+            {
+                return null;
+            }
+
+            if (user.UserID != null && overrides.ContainsKey(user.UserID))
+            {
+                return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride,
+                    new FeatureGate(gateName, overrides[user.UserID]!, "local override"));
+            }
+
+            if (overrides.ContainsKey(""))
+            {
+                return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride,
+                    new FeatureGate(gateName, overrides[""]!, "local override"));
+            }
+            return null;
+        }
+
+        internal ConfigEvaluation? LookupConfigOverride(StatsigUser user, string configName)
+        {
+            if (!_configOverrides.ContainsKey(configName))
+            {
+                return null;
+            }
+            var overrides = _configOverrides[configName];
+            if (overrides == null)
+            {
+                return null;
+            }
+            return LookupConfigBasedOverride(user, overrides, configName);
+        }
+
+        internal ConfigEvaluation? LookupLayerOverride(StatsigUser user, string layerName)
+        {
+            if (!_layerOverrides.ContainsKey(layerName))
+            {
+                return null;
+            }
+            var overrides = _layerOverrides[layerName];
+            if (overrides == null)
+            {
+                return null;
+            }
+            return LookupConfigBasedOverride(user, overrides, layerName);
+        }
+
+        internal ConfigEvaluation? LookupConfigBasedOverride(StatsigUser user, Dictionary<string, Dictionary<string, JToken>> overrides, string configName)
+        {
+
+            if (user.UserID != null && overrides.ContainsKey(user.UserID))
+            {
+                return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride, null,
+                    new DynamicConfig(configName, overrides[user.UserID]!, "localOverride"));
+            }
+
+            if (overrides.ContainsKey(""))
+            {
+                return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride, null,
+                    new DynamicConfig(configName, overrides[""]!, "localOverride"));
+            }
+            return null;
+        }
+
         internal ConfigEvaluation CheckGate(StatsigUser user, string gateName)
         {
+            var overrideResult = LookupGateOverride(user, gateName);
+            if (overrideResult != null) {
+                return overrideResult;
+            }
+
             return EvaluateSpec(user, gateName, SpecType.Gate);
         }
+        
 
         internal ConfigEvaluation GetConfig(StatsigUser user, string configName)
         {
+            var overrideResult = LookupConfigOverride(user, configName);
+            if (overrideResult != null)
+            {
+                return overrideResult;
+            }
+
             return EvaluateSpec(user, configName, SpecType.Config);
         }
 
         internal ConfigEvaluation GetLayer(StatsigUser user, string layerName)
         {
+            var overrideResult = LookupLayerOverride(user, layerName);
+            if (overrideResult != null)
+            {
+                return overrideResult;
+            }
+
             return EvaluateSpec(user, layerName, SpecType.Layer);
         }
 
@@ -174,9 +303,14 @@ namespace Statsig.Server.Evaluation
 
         private ConfigEvaluation EvaluateSpec(StatsigUser user, string specName, SpecType type)
         {
-            if (!_initialized || string.IsNullOrWhiteSpace(specName))
+            if (!_initialized)
             {
-                return new ConfigEvaluation(EvaluationResult.Fail);
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Uninitialized);
+            }
+
+            if (string.IsNullOrWhiteSpace(specName)) 
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
             }
 
             var name = specName.ToLowerInvariant();
@@ -190,7 +324,7 @@ namespace Statsig.Server.Evaluation
 
             if (lookup == null || !lookup.ContainsKey(name))
             {
-                return new ConfigEvaluation(EvaluationResult.Fail);
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
             }
 
             return Evaluate(user, lookup[name], 0);
@@ -269,18 +403,19 @@ namespace Statsig.Server.Evaluation
         private ConfigEvaluation? EvaluateDelegate(StatsigUser user, ConfigRule rule,
             List<IReadOnlyDictionary<string, string>> exposures, int depth)
         {
-            ConfigSpec? config;
-            _store.DynamicConfigs.TryGetValue(rule.ConfigDelegate ?? "", out config);
+            _store.DynamicConfigs.TryGetValue(rule.ConfigDelegate ?? "", out ConfigSpec? config);
             if (config == null)
             {
                 return null;
             }
 
             var delegatedResult = Evaluate(user, config, depth + 1);
-            var result = new ConfigEvaluation(delegatedResult.Result, delegatedResult.GateValue,
-                delegatedResult.ConfigValue);
-            result.ExplicitParameters = config.ExplicitParameters;
-            result.UndelegatedSecondaryExposures = exposures;
+            var result = new ConfigEvaluation(delegatedResult.Result, delegatedResult.Reason, delegatedResult.GateValue,
+                delegatedResult.ConfigValue)
+            {
+                ExplicitParameters = config.ExplicitParameters,
+                UndelegatedSecondaryExposures = exposures
+            };
             result.ConfigValue.SecondaryExposures =
                 exposures.Concat(delegatedResult.ConfigValue.SecondaryExposures).ToList();
             result.ConfigDelegate = rule.ConfigDelegate;
@@ -299,6 +434,7 @@ namespace Statsig.Server.Evaluation
                 return new ConfigEvaluation
                 (
                     EvaluationResult.Fail,
+                    _store.EvalReason,
                     new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "disabled"),
                     new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "disabled", null, null,
                         spec.ExplicitParameters)
@@ -313,7 +449,7 @@ namespace Statsig.Server.Evaluation
                 switch (result)
                 {
                     case EvaluationResult.Unsupported:
-                        return new ConfigEvaluation(EvaluationResult.Unsupported);
+                        return new ConfigEvaluation(EvaluationResult.Unsupported, EvaluationReason.Unsupported);
                     case EvaluationResult.Pass:
                         var delegatedResult = EvaluateDelegate(user, rule, secondaryExposures, depth + 1);
                         if (delegatedResult != null)
@@ -341,8 +477,8 @@ namespace Statsig.Server.Evaluation
                             spec.HasSharedParams,
                             IsUserAllocatedToExperiment(user, spec, rule.ID)
                         );
-                        return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail,
-                            gateV, configV);
+                        return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail, 
+                            _store.EvalReason, gateV, configV);
                     case EvaluationResult.Fail:
                     default:
                         break;
@@ -352,6 +488,7 @@ namespace Statsig.Server.Evaluation
             return new ConfigEvaluation
             (
                 EvaluationResult.Fail,
+                _store.EvalReason,
                 new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "default", secondaryExposures),
                 new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "default", null, secondaryExposures,
                     spec.ExplicitParameters)

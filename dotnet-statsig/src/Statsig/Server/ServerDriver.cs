@@ -94,6 +94,34 @@ namespace Statsig.Server
             });
         }
 
+        #region Local Overrides
+
+        public void OverrideGate(string gateName, bool value, string? userID = null)
+        {
+            _errorBoundary.Swallow("OverrideGate", () =>
+            {
+                 evaluator.OverrideGate(gateName, value, userID);
+            });
+        }
+
+        public void OverrideConfig(string configName, Dictionary<string, JToken> value, string? userID = null)
+        {
+            _errorBoundary.Swallow("OverrideConfig", () =>
+            {
+                evaluator.OverrideConfig(configName, value, userID);
+            });
+        }
+
+        public void OverrideLayer(string layerName, Dictionary<string, JToken> value, string? userID = null)
+        {
+            _errorBoundary.Swallow("OverrideLayer", () =>
+            {
+                evaluator.OverrideLayer(layerName, value, userID);
+            });
+        }
+
+        #endregion
+
         #region CheckGate
 
         public bool CheckGateSync(StatsigUser user, string gateName)
@@ -118,8 +146,9 @@ namespace Statsig.Server
         {
             _errorBoundary.Swallow("LogGateExposure", () =>
             {
-                var gate = evaluator.CheckGate(user, gateName).GateValue;
-                LogGateExposureImpl(user, gateName, gate, ExposureCause.Manual);
+                var evaluation = evaluator.CheckGate(user, gateName);
+                var gate = evaluation.GateValue;
+                LogGateExposureImpl(user, gateName, gate, ExposureCause.Manual, evaluation.Reason);
             });
         }
 
@@ -150,8 +179,9 @@ namespace Statsig.Server
         {
             _errorBoundary.Swallow("LogConfigExposure", () =>
             {
-                var config = evaluator.GetConfig(user, configName).ConfigValue;
-                LogConfigExposureImpl(user, configName, config, ExposureCause.Manual);
+                var evaluation = evaluator.GetConfig(user, configName);
+                var config = evaluation.ConfigValue;
+                LogConfigExposureImpl(user, configName, config, ExposureCause.Manual, evaluation.Reason);
             });
         }
 
@@ -185,8 +215,9 @@ namespace Statsig.Server
         {
             _errorBoundary.Swallow("LogExperimentExposure", () =>
             {
-                var config = evaluator.GetConfig(user, experimentName).ConfigValue;
-                LogConfigExposureImpl(user, experimentName, config, ExposureCause.Manual);
+                var evaluation = evaluator.GetConfig(user, experimentName);
+                var config = evaluation.ConfigValue;
+                LogConfigExposureImpl(user, experimentName, config, ExposureCause.Manual, evaluation.Reason);
             });
         }
 
@@ -404,19 +435,20 @@ namespace Statsig.Server
 
             if (shouldLogExposure)
             {
-                LogGateExposureImpl(user, gateName, evaluation.GateValue, ExposureCause.Automatic);
+                LogGateExposureImpl(user, gateName, evaluation.GateValue, ExposureCause.Automatic, evaluation.Reason);
             }
 
             return evaluation.GateValue;
         }
 
-        private void LogGateExposureImpl(StatsigUser user, string gateName, FeatureGate gate, ExposureCause cause)
+        private void LogGateExposureImpl(StatsigUser user, string gateName, FeatureGate gate, ExposureCause cause, EvaluationReason reason)
         {
             _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName,
                 gate?.Value ?? false,
                 gate?.RuleID ?? "",
                 gate?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>(),
-                cause
+                cause,
+                reason.ToString()
             ));
         }
 
@@ -436,19 +468,20 @@ namespace Statsig.Server
 
             if (shouldLogExposure)
             {
-                LogConfigExposureImpl(user, configName, evaluation.ConfigValue, ExposureCause.Automatic);
+                LogConfigExposureImpl(user, configName, evaluation.ConfigValue, ExposureCause.Automatic, evaluation.Reason);
             }
 
             return evaluation.ConfigValue;
         }
 
         private void LogConfigExposureImpl(StatsigUser user, string configName, DynamicConfig config,
-            ExposureCause cause)
+            ExposureCause cause, EvaluationReason reason)
         {
             _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(user, configName,
                 config?.RuleID ?? "",
                 config?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>(),
-                cause
+                cause,
+                reason.ToString()
             ));
         }
 
@@ -507,7 +540,8 @@ namespace Statsig.Server
                     parameterName,
                     isExplicit,
                     exposures ?? new List<IReadOnlyDictionary<string, string>>(),
-                    cause)
+                    cause,
+                    evaluation.Reason.ToString())
             );
         }
 

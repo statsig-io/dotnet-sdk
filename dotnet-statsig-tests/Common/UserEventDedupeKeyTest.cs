@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Statsig;
+using Statsig.Server.Evaluation;
 using Xunit;
 using ExposureCause = Statsig.EventLog.ExposureCause;
 
@@ -43,9 +44,9 @@ namespace dotnet_statsig_tests
         public void TestSameGateExposureEventSameKey()
         {
             var eventA = EventLog.CreateGateExposureLog(_constantUserWithId, "a_gate", true, "a-rule-id",
-                EmptyList, ExposureCause.Automatic);
+                EmptyList, ExposureCause.Automatic, EvaluationReason.Network.ToString());
             var eventB = EventLog.CreateGateExposureLog(_dynamicUserWithId, "a_gate", true, "a-rule-id",
-                EmptyList, ExposureCause.Automatic);
+                EmptyList, ExposureCause.Automatic, EvaluationReason.Network.ToString());
 
             Assert.Equal(eventA.GetDedupeKey(), eventB.GetDedupeKey());
         }
@@ -54,9 +55,9 @@ namespace dotnet_statsig_tests
         public void TestSameConfigExposureEventSameKey()
         {
             var eventA = EventLog.CreateGateExposureLog(_constantUserWithId, "a_gate", true, "a-rule-id",
-                EmptyList, ExposureCause.Automatic);
+                EmptyList, ExposureCause.Automatic, EvaluationReason.Network.ToString());
             var eventB = EventLog.CreateGateExposureLog(_dynamicUserWithId, "a_gate", true, "a-rule-id",
-                EmptyList, ExposureCause.Automatic);
+                EmptyList, ExposureCause.Automatic, EvaluationReason.Network.ToString());
 
             Assert.Equal(eventA.GetDedupeKey(), eventB.GetDedupeKey());
         }
@@ -65,9 +66,9 @@ namespace dotnet_statsig_tests
         public void TestSameLayerExposureEventSameKey()
         {
             var eventA = EventLog.CreateGateExposureLog(_constantUserWithId, "a_gate", true, "a-rule-id",
-                EmptyList, ExposureCause.Automatic);
+                EmptyList, ExposureCause.Automatic, EvaluationReason.Network.ToString());
             var eventB = EventLog.CreateGateExposureLog(_dynamicUserWithId, "a_gate", true, "a-rule-id",
-                EmptyList, ExposureCause.Automatic);
+                EmptyList, ExposureCause.Automatic, EvaluationReason.Network.ToString());
 
             Assert.Equal(eventA.GetDedupeKey(), eventB.GetDedupeKey());
         }

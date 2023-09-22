@@ -10,6 +10,18 @@ namespace Statsig.Server.Evaluation
         Unsupported
     }
 
+    enum EvaluationReason
+    {
+        Network,
+        LocalOverride,
+        Unrecognized,
+        Uninitialized,
+        Bootstrap,
+        DataAdapter,
+        Unsupported
+
+    }
+
     class ConfigEvaluation
     {
         internal EvaluationResult Result { get; set; }
@@ -18,9 +30,11 @@ namespace Statsig.Server.Evaluation
         internal List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures { get; set; }
         internal List<string> ExplicitParameters { get; set; }
         internal string? ConfigDelegate { get; set; }
+        internal EvaluationReason Reason { get; set; }
 
         internal ConfigEvaluation(
             EvaluationResult result,
+            EvaluationReason reason,
             FeatureGate? gate = null,
             DynamicConfig? config = null)
         {
@@ -29,6 +43,7 @@ namespace Statsig.Server.Evaluation
             ConfigValue = config ?? new DynamicConfig();
             UndelegatedSecondaryExposures = ConfigValue.SecondaryExposures;
             ExplicitParameters = new List<string>();
+            Reason = reason;
         }
     }
 }

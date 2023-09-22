@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Linq;
 using Newtonsoft.Json;
 using Statsig.Server.Interfaces;
+using Statsig.Server.Evaluation;
 
 namespace Statsig.Server
 {
@@ -33,6 +34,8 @@ namespace Statsig.Server
         private double _rulesetsSyncInterval;
         private Func<IIDStore>? _idStoreFactory;
         private IDataStore? _dataStore;
+
+        internal EvaluationReason EvalReason { get; set;}
         
         internal SpecStore(StatsigOptions options, RequestDispatcher dispatcher)
         {
@@ -55,6 +58,7 @@ namespace Statsig.Server
             {
                 _dataStore = o.DataStore;
             }
+            EvalReason = EvaluationReason.Uninitialized;
         }
 
         internal async Task Initialize()
@@ -68,6 +72,11 @@ namespace Statsig.Server
             if (!bootedFromDataStore)
             {
                 await SyncValuesFromNetwork();
+                EvalReason = EvaluationReason.Network;
+            }
+            else 
+            {
+                EvalReason = EvaluationReason.DataAdapter;
             }
             
             await SyncIDLists();

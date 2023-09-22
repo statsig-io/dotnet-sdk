@@ -60,14 +60,21 @@ namespace Statsig
             bool gateValue,
             string ruleID,
             List<IReadOnlyDictionary<string, string>> secondaryExposures,
-            ExposureCause cause)
+            ExposureCause cause,
+            string? reason = null
+        )
         {
             var metadata = new Dictionary<string, string>
             {
                 ["gate"] = gateName,
                 ["gateValue"] = gateValue ? "true" : "false",
-                ["ruleID"] = ruleID
+                ["ruleID"] = ruleID,
             };
+
+            if (reason != null)
+            {
+                metadata["reason"] = reason;
+            }
 
             if (cause == ExposureCause.Manual)
             {
@@ -89,7 +96,8 @@ namespace Statsig
             string configName,
             string ruleID,
             List<IReadOnlyDictionary<string, string>> secondaryExposures,
-            ExposureCause cause
+            ExposureCause cause,
+            string? reason = null
         )
         {
             var metadata = new Dictionary<string, string>
@@ -97,6 +105,11 @@ namespace Statsig
                 ["config"] = configName,
                 ["ruleID"] = ruleID,
             };
+
+            if (reason != null)
+            {
+                metadata["reason"] = reason;
+            }
 
             if (cause == ExposureCause.Manual)
             {
@@ -121,7 +134,8 @@ namespace Statsig
             string parameterName,
             bool isExplicitParameter,
             List<IReadOnlyDictionary<string, string>> exposures,
-            ExposureCause cause
+            ExposureCause cause,
+            string? reason = null
         )
         {
             var metadata = new Dictionary<string, string>
@@ -132,6 +146,10 @@ namespace Statsig
                 ["parameterName"] = parameterName,
                 ["isExplicitParameter"] = isExplicitParameter ? "true" : "false",
             };
+
+            if (reason != null) {
+                metadata["reason"] = reason;
+            }
 
             if (cause == ExposureCause.Manual)
             {

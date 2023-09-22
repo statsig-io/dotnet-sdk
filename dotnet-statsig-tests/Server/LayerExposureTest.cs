@@ -121,7 +121,8 @@ namespace dotnet_statsig_tests
                 'ruleID': 'default',
                 'allocatedExperiment': '',
                 'parameterName': 'an_int',
-                'isExplicitParameter': 'false'
+                'isExplicitParameter': 'false',
+                'reason': 'Network',
             }"), _events[0]["metadata"]);
         }
 
@@ -141,7 +142,8 @@ namespace dotnet_statsig_tests
                 'ruleID': 'alwaysPass',
                 'allocatedExperiment': 'experiment',
                 'parameterName': 'an_int',
-                'isExplicitParameter': 'true'
+                'isExplicitParameter': 'true',
+                'reason': 'Network',
             }"), _events[0]["metadata"]);
             Assert.Equal(JObject.Parse(@"{'arr': []}")["arr"], _events[0]["secondaryExposures"]);
 
@@ -150,7 +152,8 @@ namespace dotnet_statsig_tests
                 'ruleID': 'alwaysPass',
                 'allocatedExperiment': '',
                 'parameterName': 'a_string',
-                'isExplicitParameter': 'false'
+                'isExplicitParameter': 'false',
+                'reason': 'Network',
             }"), _events[1]["metadata"]);
             Assert.Equal(JObject.Parse(@"{'arr': []}")["arr"], _events[1]["secondaryExposures"]);
         }

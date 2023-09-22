@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using Statsig.Lib;
 
 namespace Statsig.Server
@@ -33,6 +34,25 @@ namespace Statsig.Server
             await EnforceInitialized().Shutdown();
             _singleDriver = null;
         }
+
+        #region Local Overrides
+
+        public static void OverrideGate(string gateName, bool value, string? userID = null)
+        {
+            EnforceInitialized().OverrideGate(gateName, value, userID);
+        }
+
+        public static void OverrideConfig(string configName, Dictionary<string, JToken> value, string? userID = null)
+        {
+            EnforceInitialized().OverrideConfig(configName, value, userID);
+        }
+
+        public static void OverrideLayer(string layerName, Dictionary<string, JToken> value, string? userID = null)
+        {
+            EnforceInitialized().OverrideLayer(layerName, value, userID);
+        }
+
+        #endregion
 
         #region CheckGate
 
