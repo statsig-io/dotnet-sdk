@@ -22,10 +22,10 @@ namespace Statsig.Server.Evaluation
             return
                 user.properties.TryGetValue(field, out strVal) ? strVal :
                 user.properties.TryGetValue(field.ToLowerInvariant(), out strVal) ? strVal :
-                user.customProperties.TryGetValue(field, out objVal) ? objVal :
-                user.customProperties.TryGetValue(field.ToLowerInvariant(), out objVal) ? objVal :
-                user.privateAttributes.TryGetValue(field, out objVal) ? objVal :
-                user.privateAttributes.TryGetValue(field.ToLowerInvariant(), out objVal) ? objVal : null;
+                user.CustomProperties.TryGetValue(field, out objVal) ? objVal :
+                user.CustomProperties.TryGetValue(field.ToLowerInvariant(), out objVal) ? objVal :
+                user.PrivateAttributes.TryGetValue(field, out objVal) ? objVal :
+                user.PrivateAttributes.TryGetValue(field.ToLowerInvariant(), out objVal) ? objVal : null;
         }
 
         internal static string? GetFromIP(StatsigUser user, string field)

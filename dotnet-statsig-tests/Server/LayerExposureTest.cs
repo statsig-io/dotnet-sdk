@@ -198,14 +198,10 @@ namespace dotnet_statsig_tests
             var layer = await StatsigServer.GetLayer(user, "unallocated_layer");
             layer.Get("an_int", 0);
             await StatsigServer.Shutdown();
-
             Assert.Equal(JObject.Parse(@"{
+                'customIDs': {},
                 'userID': 'dan',
                 'email': 'dan@theman.com',
-                'custom': {},
-                'privateAttributes': {},
-                'statsigEnvironment': {},
-                'customIDs': {},
             }"), _events[0]["user"]);
 
             Assert.Equal("statsig::layer_exposure", _events[0]["eventName"]);

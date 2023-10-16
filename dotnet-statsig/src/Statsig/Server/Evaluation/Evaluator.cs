@@ -297,6 +297,7 @@ namespace Statsig.Server.Evaluation
                 ["sdkParams"] = new Object(),
                 ["has_updates"] = true,
                 ["time"] = _store.LastSyncTime,
+                ["user_hash"] = user.GetHashWithoutStableID()
             };
             return result;
         }
