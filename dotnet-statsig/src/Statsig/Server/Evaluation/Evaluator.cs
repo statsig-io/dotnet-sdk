@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Statsig.Lib;
 using Statsig.Network;
 using static Statsig.Server.Evaluation.Helpers;
 
@@ -199,8 +200,13 @@ namespace Statsig.Server.Evaluation
             }
 
             string? target_app_id = null;
+            string? hashedSDKKey = Hashing.DJB2(clientSDKKey ?? "");
+            if (_store.HashedSDKKeysToAppIDs.ContainsKey(hashedSDKKey)) 
+            {
+                target_app_id = _store.HashedSDKKeysToAppIDs[hashedSDKKey];
+            }
 
-            if (_store.SDKKeysToAppIDs.ContainsKey(clientSDKKey ?? ""))
+            if (target_app_id == null && _store.SDKKeysToAppIDs.ContainsKey(clientSDKKey ?? ""))
             {
                 target_app_id = _store.SDKKeysToAppIDs[clientSDKKey ?? ""];
             }
