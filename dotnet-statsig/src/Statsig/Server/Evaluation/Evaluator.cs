@@ -84,7 +84,7 @@ namespace Statsig.Server.Evaluation
         }
 
         internal ConfigEvaluation? LookupGateOverride(StatsigUser user, string gateName)
-        {   
+        {
             if (!_gateOverrides.ContainsKey(gateName))
             {
                 return null;
@@ -157,13 +157,14 @@ namespace Statsig.Server.Evaluation
         internal ConfigEvaluation CheckGate(StatsigUser user, string gateName)
         {
             var overrideResult = LookupGateOverride(user, gateName);
-            if (overrideResult != null) {
+            if (overrideResult != null)
+            {
                 return overrideResult;
             }
 
             return EvaluateSpec(user, gateName, SpecType.Gate);
         }
-        
+
 
         internal ConfigEvaluation GetConfig(StatsigUser user, string configName)
         {
@@ -192,7 +193,7 @@ namespace Statsig.Server.Evaluation
             return _store.GetSpecNames(type);
         }
 
-        internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user, string? clientSDKKey)
+        internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user, string? clientSDKKey, string? hash)
         {
             if (!_initialized)
             {
@@ -201,7 +202,7 @@ namespace Statsig.Server.Evaluation
 
             string? target_app_id = null;
             string? hashedSDKKey = Hashing.DJB2(clientSDKKey ?? "");
-            if (_store.HashedSDKKeysToAppIDs.ContainsKey(hashedSDKKey)) 
+            if (_store.HashedSDKKeysToAppIDs.ContainsKey(hashedSDKKey))
             {
                 target_app_id = _store.HashedSDKKeysToAppIDs[hashedSDKKey];
             }
@@ -225,7 +226,7 @@ namespace Statsig.Server.Evaluation
                     continue;
                 }
 
-                var hashedName = HashName(kv.Value.Name);
+                var hashedName = HashName(kv.Value.Name, hash);
                 var gate = Evaluate(user, kv.Value, 0).GateValue;
                 var entry = new Dictionary<string, object>
                 {
@@ -246,7 +247,7 @@ namespace Statsig.Server.Evaluation
                     continue;
                 }
 
-                var hashedName = HashName(kv.Value.Name);
+                var hashedName = HashName(kv.Value.Name, hash);
                 var config = Evaluate(user, kv.Value, 0).ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
                 if (kv.Value.Entity != "dynamic_config" && kv.Value.Entity != "autotune")
@@ -273,14 +274,14 @@ namespace Statsig.Server.Evaluation
                     continue;
                 }
 
-                var hashedName = HashName(kv.Value.Name);
+                var hashedName = HashName(kv.Value.Name, hash);
                 var evaluation = Evaluate(user, kv.Value, 0);
                 var config = evaluation.ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
                 entry["explicit_parameters"] = kv.Value.ExplicitParameters ?? new List<string>();
                 if (!string.IsNullOrWhiteSpace(evaluation.ConfigDelegate))
                 {
-                    entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate);
+                    entry["allocated_experiment_name"] = HashName(evaluation.ConfigDelegate, hash);
                     ConfigSpec? experimentSpec = null;
                     _store.DynamicConfigs.TryGetValue(evaluation.ConfigDelegate!, out experimentSpec);
 
@@ -303,7 +304,8 @@ namespace Statsig.Server.Evaluation
                 ["sdkParams"] = new Object(),
                 ["has_updates"] = true,
                 ["time"] = _store.LastSyncTime,
-                ["user_hash"] = user.GetHashWithoutStableID()
+                ["user_hash"] = user.GetHashWithoutStableID(),
+                ["hash_used"] = hash == "none" ? "none" : hash == "djb2" ? "djb2" : "sha256"
             };
             return result;
         }
@@ -315,7 +317,7 @@ namespace Statsig.Server.Evaluation
                 return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Uninitialized);
             }
 
-            if (string.IsNullOrWhiteSpace(specName)) 
+            if (string.IsNullOrWhiteSpace(specName))
             {
                 return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
             }
@@ -398,8 +400,16 @@ namespace Statsig.Server.Evaluation
             return entry;
         }
 
-        private string HashName(string? name = "")
+        private string HashName(string? name = "", string? hashAlgo = "sha256")
         {
+            if (hashAlgo == "none")
+            {
+                return name;
+            }
+            if (hashAlgo == "djb2")
+            {
+                return Hashing.DJB2(name);
+            }
             using (var sha = SHA256.Create())
             {
                 var buffer = sha.ComputeHash(Encoding.UTF8.GetBytes(name ?? ""));
@@ -484,7 +494,7 @@ namespace Statsig.Server.Evaluation
                             spec.HasSharedParams,
                             IsUserAllocatedToExperiment(user, spec, rule.ID)
                         );
-                        return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail, 
+                        return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail,
                             _store.EvalReason, gateV, configV);
                     case EvaluationResult.Fail:
                     default:

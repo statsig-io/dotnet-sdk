@@ -100,7 +100,7 @@ namespace Statsig.Server
         {
             _errorBoundary.Swallow("OverrideGate", () =>
             {
-                 evaluator.OverrideGate(gateName, value, userID);
+                evaluator.OverrideGate(gateName, value, userID);
             });
         }
 
@@ -255,7 +255,7 @@ namespace Statsig.Server
 
         #endregion
 
-        public Dictionary<string, object> GenerateInitializeResponse(StatsigUser user, string? clientSDKKey = null)
+        public Dictionary<string, object> GenerateInitializeResponse(StatsigUser user, string? clientSDKKey = null, string? hash = null)
         {
             return _errorBoundary.Capture("GenerateInitializeResponse", () =>
             {
@@ -263,7 +263,7 @@ namespace Statsig.Server
                 ValidateUser(user);
                 NormalizeUser(user);
 
-                var allEvals = evaluator.GetAllEvaluations(user, clientSDKKey) ?? new Dictionary<string, object>();
+                var allEvals = evaluator.GetAllEvaluations(user, clientSDKKey, hash) ?? new Dictionary<string, object>();
                 allEvals.Add("generator", "Dotnet Server");
 
                 var evaluatedKeys = new Dictionary<string, object>();
