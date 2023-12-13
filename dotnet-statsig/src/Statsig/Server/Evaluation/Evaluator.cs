@@ -220,8 +220,8 @@ namespace Statsig.Server.Evaluation
                     continue;
                 }
 
-                if (target_app_id != null && kv.Value.TargetAppIDs != null &&
-                    !kv.Value.TargetAppIDs.Contains(target_app_id))
+                if (target_app_id != null && (kv.Value.TargetAppIDs == null ||
+                    !kv.Value.TargetAppIDs.Contains(target_app_id)))
                 {
                     continue;
                 }
