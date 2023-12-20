@@ -146,6 +146,7 @@ namespace Statsig.Server
         {
             _errorBoundary.Swallow("LogGateExposure", () =>
             {
+                NormalizeUser(user);
                 var evaluation = evaluator.CheckGate(user, gateName);
                 var gate = evaluation.GateValue;
                 LogGateExposureImpl(user, gateName, gate, ExposureCause.Manual, evaluation.Reason);
@@ -179,6 +180,7 @@ namespace Statsig.Server
         {
             _errorBoundary.Swallow("LogConfigExposure", () =>
             {
+                NormalizeUser(user);
                 var evaluation = evaluator.GetConfig(user, configName);
                 var config = evaluation.ConfigValue;
                 LogConfigExposureImpl(user, configName, config, ExposureCause.Manual, evaluation.Reason);
@@ -215,6 +217,7 @@ namespace Statsig.Server
         {
             _errorBoundary.Swallow("LogExperimentExposure", () =>
             {
+                NormalizeUser(user);
                 var evaluation = evaluator.GetConfig(user, experimentName);
                 var config = evaluation.ConfigValue;
                 LogConfigExposureImpl(user, experimentName, config, ExposureCause.Manual, evaluation.Reason);
@@ -248,6 +251,7 @@ namespace Statsig.Server
         {
             _errorBoundary.Swallow("LogLayerParameterExposure", () =>
             {
+                NormalizeUser(user);
                 var evaluation = evaluator.GetLayer(user, layerName);
                 LogLayerParameterExposureImpl(user, layerName, parameterName, evaluation, ExposureCause.Manual);
             });
