@@ -80,7 +80,7 @@ namespace Statsig.Lib
             return recover();
         }
 
-        private async void LogException(string tag, Exception ex)
+        public async void LogException(string tag, Exception ex)
         {
             try
             {

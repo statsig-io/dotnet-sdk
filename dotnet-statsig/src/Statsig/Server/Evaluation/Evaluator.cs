@@ -24,16 +24,14 @@ namespace Statsig.Server.Evaluation
         }
 
         private readonly SpecStore _store;
-        private bool _initialized;
 
         private Dictionary<string, Dictionary<string, bool>> _gateOverrides;
         private Dictionary<string, Dictionary<string, Dictionary<string, JToken>>> _configOverrides;
         private Dictionary<string, Dictionary<string, Dictionary<string, JToken>>> _layerOverrides;
 
-        internal Evaluator(StatsigOptions options, RequestDispatcher dispatcher)
+        internal Evaluator(StatsigOptions options, RequestDispatcher dispatcher, string serverSecret, ErrorBoundary errorBoundary)
         {
-            _store = new SpecStore(options, dispatcher);
-            _initialized = false;
+            _store = new SpecStore(options, dispatcher, serverSecret, errorBoundary);
             _gateOverrides = new Dictionary<string, Dictionary<string, bool>>();
             _configOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
             _layerOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
@@ -42,7 +40,6 @@ namespace Statsig.Server.Evaluation
         internal async Task Initialize()
         {
             await _store.Initialize();
-            _initialized = true;
         }
 
         internal async Task Shutdown()
@@ -195,7 +192,7 @@ namespace Statsig.Server.Evaluation
 
         internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user, string? clientSDKKey, string? hash)
         {
-            if (!_initialized)
+            if (_store.EvalReason == EvaluationReason.Uninitialized)
             {
                 return null;
             }
@@ -312,7 +309,7 @@ namespace Statsig.Server.Evaluation
 
         private ConfigEvaluation EvaluateSpec(StatsigUser user, string specName, SpecType type)
         {
-            if (!_initialized)
+            if (_store.EvalReason == EvaluationReason.Uninitialized)
             {
                 return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Uninitialized);
             }

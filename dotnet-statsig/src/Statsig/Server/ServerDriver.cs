@@ -65,7 +65,7 @@ namespace Statsig.Server
                     serverOpts?.LoggingIntervalSeconds ?? Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC,
                     Constants.SERVER_DEDUPE_INTERVAL
                 );
-                evaluator = new Evaluator(options, _requestDispatcher);
+                evaluator = new Evaluator(options, _requestDispatcher, serverSecret, _errorBoundary);
             });
         }
 

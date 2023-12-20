@@ -29,3 +29,10 @@ public class StatsigArgumentNullException : ArgumentNullException
     {
     }
 }
+
+public class StatsigInvalidSDKKeyResponse : SystemException
+{
+    public StatsigInvalidSDKKeyResponse() : base("Incorrect SDK Key used to generate response.")
+    {
+    }
+}

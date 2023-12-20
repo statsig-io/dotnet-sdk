@@ -35,10 +35,12 @@ namespace Statsig.Server
         private double _rulesetsSyncInterval;
         private Func<IIDStore>? _idStoreFactory;
         private IDataStore? _dataStore;
+        private string _serverSecret;
+        private ErrorBoundary _errorBoundary;
 
-        internal EvaluationReason EvalReason { get; set;}
-        
-        internal SpecStore(StatsigOptions options, RequestDispatcher dispatcher)
+        internal EvaluationReason EvalReason { get; set; }
+
+        internal SpecStore(StatsigOptions options, RequestDispatcher dispatcher, string serverSecret, ErrorBoundary errorBoundary)
         {
             _idStoreFactory = options.IDStoreFactory;
             _requestDispatcher = dispatcher;
@@ -51,11 +53,13 @@ namespace Statsig.Server
             SDKKeysToAppIDs = new Dictionary<string, string>();
             HashedSDKKeysToAppIDs = new Dictionary<string, string>();
             _idLists = new ConcurrentDictionary<string, IDList>();
+            _serverSecret = serverSecret;
+            _errorBoundary = errorBoundary;
 
             _syncIDListsTask = null;
             _syncValuesTask = null;
             _cts = new CancellationTokenSource();
-            
+
             if (options is StatsigServerOptions o)
             {
                 _dataStore = o.DataStore;
@@ -69,18 +73,17 @@ namespace Statsig.Server
             {
                 await _dataStore.Init();
             }
-            
+
             var bootedFromDataStore = await SyncValuesFromDataStore();
             if (!bootedFromDataStore)
             {
                 await SyncValuesFromNetwork();
-                EvalReason = EvaluationReason.Network;
             }
-            else 
+            else
             {
                 EvalReason = EvaluationReason.DataAdapter;
             }
-            
+
             await SyncIDLists();
 
             // Start background tasks to periodically refresh the store
@@ -94,7 +97,7 @@ namespace Statsig.Server
             {
                 await _dataStore.Shutdown();
             }
-            
+
             // Signal that the periodic task should exit, and then wait for them to finish
             if (_cts != null)
             {
@@ -114,7 +117,7 @@ namespace Statsig.Server
         {
             return _idLists.TryGetValue(listName, out var list) && list.Store.Contains(value);
         }
-        
+
         internal List<string> GetSpecNames(string type)
         {
             return type switch
@@ -170,7 +173,7 @@ namespace Statsig.Server
                             continue;
                         }
                     }
-                    
+
                     await SyncValuesFromNetwork();
                 }
                 catch (TaskCanceledException)
@@ -198,7 +201,7 @@ namespace Statsig.Server
                     {
                         return;
                     }
-            
+
                     if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
                     {
                         using (var memoryStream = new MemoryStream())
@@ -358,12 +361,16 @@ namespace Statsig.Server
             );
 
             var hasUpdates = ParseResponse(response);
+            if (hasUpdates)
+            {
+                EvalReason = EvaluationReason.Network;
+            }
             if (hasUpdates && _dataStore != null && response != null)
             {
                 await _dataStore.Set(DataStoreKey.Rulesets, response);
             }
         }
-        
+
         private async Task<bool> SyncValuesFromDataStore()
         {
             if (_dataStore == null)
@@ -381,10 +388,18 @@ namespace Statsig.Server
             if (json == null)
             {
                 return false;
-            } 
-            
+            }
+
+            JToken? hashedSDKKeyUsed;
+            if (json.TryGetValue("hashed_sdk_key_used", out hashedSDKKeyUsed) && hashedSDKKeyUsed.ToObject<string>() != null && Hashing.DJB2(_serverSecret) != hashedSDKKeyUsed.ToObject<string>())
+            {
+                _errorBoundary.LogException("Initialize", new StatsigInvalidSDKKeyResponse());
+                return false;
+            }
+
             JToken? time;
             LastSyncTime = json.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
+
 
             if (!json.TryGetValue("has_updates", out var hasUpdates) || !hasUpdates.Value<bool>())
             {
@@ -396,7 +411,7 @@ namespace Statsig.Server
             var newLayerConfigs = new Dictionary<string, ConfigSpec>();
             var newSDKKeysToAppIDs = new Dictionary<string, string>();
             var newHashedSDKKeysToAppIDs = new Dictionary<string, string>();
-            
+
             JToken? objVal;
             if (json.TryGetValue("feature_gates", out objVal))
             {
@@ -417,7 +432,7 @@ namespace Statsig.Server
                     }
                 }
             }
-            
+
             if (json.TryGetValue("dynamic_configs", out objVal))
             {
                 var configs = objVal.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>();
@@ -437,7 +452,7 @@ namespace Statsig.Server
                     }
                 }
             }
-            
+
             if (json.TryGetValue("layer_configs", out objVal))
             {
                 var configs = objVal.ToObject<JObject[]>() ?? Enumerable.Empty<JObject>();
@@ -458,16 +473,16 @@ namespace Statsig.Server
                 }
             }
 
-            if (json.TryGetValue("sdk_keys_to_app_ids", out objVal)) 
+            if (json.TryGetValue("sdk_keys_to_app_ids", out objVal))
             {
                 newSDKKeysToAppIDs = objVal.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>();
             }
 
-            if (json.TryGetValue("hashed_sdk_keys_to_app_ids", out objVal)) 
+            if (json.TryGetValue("hashed_sdk_keys_to_app_ids", out objVal))
             {
                 newHashedSDKKeysToAppIDs = objVal.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>();
             }
-            
+
             FeatureGates = newGates;
             DynamicConfigs = newConfigs;
             LayerConfigs = newLayerConfigs;
