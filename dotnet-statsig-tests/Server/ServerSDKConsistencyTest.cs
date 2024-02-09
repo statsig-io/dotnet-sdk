@@ -25,7 +25,7 @@ namespace dotnet_statsig_tests
             IReadOnlyDictionary<string, JToken> value = null,
             string ruleID = null, Action<Layer, string> onExposure = null,
             List<IReadOnlyDictionary<string, string>> secondaryExposures = null,
-            List<IReadOnlyDictionary<string, string>> undelegatedSecondaryExposures = null) : base(name, value, ruleID, onExposure)
+            List<IReadOnlyDictionary<string, string>> undelegatedSecondaryExposures = null) : base(name, value, ruleID, null, null, onExposure)
         {
             SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
             UndelegatedSecondaryExposures = undelegatedSecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();

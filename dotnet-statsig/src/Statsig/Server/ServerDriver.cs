@@ -514,7 +514,7 @@ namespace Statsig.Server
             }
 
             var dc = evaluation.ConfigValue;
-            return new Layer(layerName, dc.Value, dc.RuleID, OnExposure);
+            return new Layer(layerName, dc.Value, dc.RuleID, evaluation.ConfigDelegate, evaluation.ExplicitParameters, OnExposure);
         }
 
         private void LogLayerParameterExposureImpl(

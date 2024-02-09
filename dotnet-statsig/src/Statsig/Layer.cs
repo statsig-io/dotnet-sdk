@@ -23,7 +23,7 @@ namespace Statsig
         internal List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures;
 
         [JsonProperty("allocated_experiment_name")]
-        internal string AllocatedExperimentName;
+        public string AllocatedExperimentName;
 
         internal Action<Layer, string> OnExposure;
 
@@ -45,6 +45,8 @@ namespace Statsig
         public Layer(string? name = null,
             IReadOnlyDictionary<string, JToken>? value = null,
             string? ruleID = null,
+            string? allocatedExperimentName = null,
+            List<string>? explicitParameters = null,
             Action<Layer, string>? onExposure = null)
         {
             Name = name ?? "";
@@ -53,8 +55,8 @@ namespace Statsig
             OnExposure = onExposure ?? delegate { };
             SecondaryExposures = new List<IReadOnlyDictionary<string, string>>();
             UndelegatedSecondaryExposures = new List<IReadOnlyDictionary<string, string>>();
-            ExplicitParameters = new List<string>();
-            AllocatedExperimentName = "";
+            ExplicitParameters = explicitParameters ?? new List<string>();
+            AllocatedExperimentName = allocatedExperimentName ?? "";
         }
 
         public T? Get<T>(string key, T? defaultValue = default(T))
@@ -86,7 +88,6 @@ namespace Statsig
             {
                 return null;
             }
-
 
             try
             {
