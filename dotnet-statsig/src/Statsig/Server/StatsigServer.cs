@@ -11,22 +11,35 @@ namespace Statsig.Server
         static ServerDriver? _singleDriver;
 
 
-        public static async Task Initialize(string serverSecret, StatsigOptions? options = null)
+        public static async Task<InitializeResult> Initialize(string serverSecret, StatsigOptions? options = null)
         {
             if (_singleDriver != null)
             {
                 if (_singleDriver._serverSecret != serverSecret)
                 {
-                    throw new StatsigInvalidOperationException("Cannot reinitialize SDK with a different serverSecret");
+                    System.Diagnostics.Debug.WriteLine("Cannot reinitialize SDK with a different serverSecret");
+                    return InitializeResult.InvalidSDKKey;
                 }
                 else
                 {
-                    return;
+                    return InitializeResult.AlreadyInitialized;
                 }
             }
 
+            if (string.IsNullOrWhiteSpace(serverSecret))
+            {
+                System.Diagnostics.Debug.WriteLine("serverSecret cannot be empty.");
+                return InitializeResult.InvalidSDKKey;
+            }
+
+            if (!serverSecret.StartsWith("secret-"))
+            {
+                System.Diagnostics.Debug.WriteLine("Invalid key provided. Please check your Statsig console to get the right server key.");
+                return InitializeResult.InvalidSDKKey;
+            }
+
             _singleDriver = new ServerDriver(serverSecret, options);
-            await _singleDriver.Initialize();
+            return await _singleDriver.Initialize();
         }
 
         public static async Task Shutdown()

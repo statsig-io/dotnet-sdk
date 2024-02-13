@@ -30,11 +30,6 @@ namespace Statsig.Network
             string sessionID
         )
         {
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                throw new ArgumentException("Key cannot be empty.", nameof(key));
-            }
-
             ApiBaseUrl = string.IsNullOrWhiteSpace(options.ApiUrlBase)
                 ? Constants.DEFAULT_API_URL_BASE
                 : options.ApiUrlBase;
@@ -58,11 +53,11 @@ namespace Statsig.Network
             int backoff = 1,
             int timeoutInMs = 0)
         {
-            var result = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs);
+            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs);
             return JsonConvert.DeserializeObject<IReadOnlyDictionary<string, JToken>>(result ?? "");
         }
 
-        public async Task<string?> FetchAsString(
+        public async Task<(string?, InitializeResult)> FetchAsString(
             string endpoint,
             IReadOnlyDictionary<string, object> body,
             int retries = 0,
@@ -71,7 +66,7 @@ namespace Statsig.Network
         {
             if (_options is StatsigServerOptions { LocalMode: true })
             {
-                return null;
+                return (null, InitializeResult.LocalMode);
             }
 
             try
@@ -108,18 +103,42 @@ namespace Statsig.Network
                 var response = await client.SendAsync(request);
                 if (response == null)
                 {
-                    return null;
+                    return (null, InitializeResult.Success);
                 }
 
                 if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
                 {
                     var result = await response.Content.ReadAsStringAsync();
-                    return result;
+                    return (result, InitializeResult.Success);
                 }
 
                 if (retries > 0 && RetryCodes.Contains((int)response.StatusCode))
                 {
                     return await Retry(endpoint, body, retries, backoff);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                if (retries > 0)
+                {
+                    return await Retry(endpoint, body, retries, backoff);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Request timed out");
+                    return (null, InitializeResult.Timeout);
+                }
+            }
+            catch (HttpRequestException)
+            {
+                if (retries > 0)
+                {
+                    return await Retry(endpoint, body, retries, backoff);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Request failed due to network error");
+                    return (null, InitializeResult.NetworkError);
                 }
             }
             catch (Exception)
@@ -130,10 +149,10 @@ namespace Statsig.Network
                 }
             }
 
-            return null;
+            return (null, InitializeResult.Failure);
         }
 
-        private async Task<string?> Retry(
+        private async Task<(string?, InitializeResult)> Retry(
             string endpoint,
             IReadOnlyDictionary<string, object> body,
             int retries = 0,

@@ -37,9 +37,9 @@ namespace Statsig.Server.Evaluation
             _layerOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
         }
 
-        internal async Task Initialize()
+        internal async Task<InitializeResult> Initialize()
         {
-            await _store.Initialize();
+            return await _store.Initialize();
         }
 
         internal async Task Shutdown()

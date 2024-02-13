@@ -33,21 +33,7 @@ namespace Statsig.Server
 
         public ServerDriver(string serverSecret, StatsigOptions? options = null)
         {
-            if (string.IsNullOrWhiteSpace(serverSecret))
-            {
-                throw new StatsigArgumentException("serverSecret cannot be empty.");
-            }
-
             options ??= new StatsigOptions();
-
-            if (!serverSecret.StartsWith("secret-"))
-            {
-                if (options.AdditionalHeaders.Count == 0)
-                {
-                    throw new StatsigArgumentException(
-                        "Invalid key provided. Please check your Statsig console to get the right server key.");
-                }
-            }
 
             _serverSecret = serverSecret;
             _options = options;
@@ -69,13 +55,15 @@ namespace Statsig.Server
             });
         }
 
-        public async Task Initialize()
+        public async Task<InitializeResult> Initialize()
         {
-            await _errorBoundary.Swallow("Initialize", async () =>
+            await _errorBoundary.Capture("Initialize", async () =>
             {
-                await evaluator.Initialize();
+                var result = await evaluator.Initialize();
                 _initialized = true;
-            });
+                return result;
+            }, () => { return InitializeResult.Failure; });
+            return InitializeResult.Failure;
         }
 
         public async Task Shutdown()
@@ -264,7 +252,11 @@ namespace Statsig.Server
             return _errorBoundary.Capture("GenerateInitializeResponse", () =>
             {
                 EnsureInitialized();
-                ValidateUser(user);
+                var userIsValid = ValidateUser(user);
+                if (!userIsValid)
+                {
+                    return new Dictionary<string, object>();
+                }
                 NormalizeUser(user);
 
                 var allEvals = evaluator.GetAllEvaluations(user, clientSDKKey, hash) ?? new Dictionary<string, object>();
@@ -342,7 +334,8 @@ namespace Statsig.Server
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException("ServerDriver");
+                System.Diagnostics.Debug.WriteLine("ServerDriver has already been shut down.");
+                return;
             }
 
             // Blocking wait is gross, but there isn't much we can do better as this point as we
@@ -356,7 +349,8 @@ namespace Statsig.Server
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException("ServerDriver");
+                System.Diagnostics.Debug.WriteLine("ServerDriver has already been shut down.");
+                return;
             }
 
             await _eventLogger.FlushEvents();
@@ -426,9 +420,17 @@ namespace Statsig.Server
         private FeatureGate CheckGateImpl(StatsigUser user, string gateName, bool shouldLogExposure)
         {
             EnsureInitialized();
-            ValidateUser(user);
+            var userIsValid = ValidateUser(user);
+            if (!userIsValid)
+            {
+                return new FeatureGate(gateName);
+            }
             NormalizeUser(user);
-            ValidateNonEmptyArgument(gateName, "gateName");
+            var nameValid = ValidateNonEmptyArgument(gateName, "gateName");
+            if (!nameValid)
+            {
+                return new FeatureGate(gateName);
+            }
 
             var evaluation = evaluator.CheckGate(user, gateName);
 
@@ -459,9 +461,18 @@ namespace Statsig.Server
         private DynamicConfig GetConfigImpl(StatsigUser user, string configName, bool shouldLogExposure)
         {
             EnsureInitialized();
-            ValidateUser(user);
+            var userIsValid = ValidateUser(user);
+            if (!userIsValid)
+            {
+                return new DynamicConfig(configName);
+            }
             NormalizeUser(user);
-            ValidateNonEmptyArgument(configName, "configName");
+            var nameValid = ValidateNonEmptyArgument(configName, "configName");
+            if (!nameValid)
+            {
+                return new DynamicConfig(configName);
+            }
+
 
             var evaluation = evaluator.GetConfig(user, configName);
 
@@ -492,9 +503,17 @@ namespace Statsig.Server
         private Layer GetLayerImpl(StatsigUser user, string layerName, bool shouldLogExposure)
         {
             EnsureInitialized();
-            ValidateUser(user);
+            var userIsValid = ValidateUser(user);
+            if (!userIsValid)
+            {
+                return new Layer(layerName);
+            }
             NormalizeUser(user);
-            ValidateNonEmptyArgument(layerName, "layerName");
+            var nameIsValid = ValidateNonEmptyArgument(layerName, "layerName");
+            if (!nameIsValid)
+            {
+                return new Layer(layerName);
+            }
 
             var evaluation = evaluator.GetLayer(user, layerName);
 
@@ -549,21 +568,22 @@ namespace Statsig.Server
             );
         }
 
-        private void ValidateUser(StatsigUser user)
+        private bool ValidateUser(StatsigUser user)
         {
             if (user == null)
             {
-                throw new StatsigArgumentNullException("user",
-                    "A StatsigUser with a valid UserID must be provided for the" +
+                System.Diagnostics.Debug.WriteLine("A StatsigUser with a valid UserID or CustomID must be provided for the" +
                     "server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.");
+                return false;
             }
 
             if ((user.UserID == null || user.UserID == "") && user.CustomIDs.Count == 0)
             {
-                throw new StatsigArgumentNullException("UserID",
-                    "A StatsigUser with a valid UserID or CustomID must be provided for the" +
+                System.Diagnostics.Debug.WriteLine("A StatsigUser with a valid UserID or CustomID must be provided for the" +
                     "server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.");
+                return false;
             }
+            return true;
         }
 
         private void NormalizeUser(StatsigUser user)
@@ -574,25 +594,30 @@ namespace Statsig.Server
             }
         }
 
-        private void EnsureInitialized()
+        private bool EnsureInitialized()
         {
             if (_disposed)
             {
-                throw new StatsigInvalidOperationException("This object has already been shut down.");
+                System.Diagnostics.Debug.WriteLine("Statsig SDK has already been shutdown.");
+                return false;
             }
 
             if (!_initialized)
             {
-                throw new StatsigUninitializedException();
+                System.Diagnostics.Debug.WriteLine("Statsig SDK has not been initialized yet.");
+                return false;
             }
+            return true;
         }
 
-        private void ValidateNonEmptyArgument(string argument, string argName)
+        private bool ValidateNonEmptyArgument(string argument, string argName)
         {
             if (string.IsNullOrWhiteSpace(argument))
             {
-                throw new StatsigArgumentException($"{argName} cannot be empty.");
+                System.Diagnostics.Debug.WriteLine($"{argName} cannot be empty.");
+                return false;
             }
+            return true;
         }
 
         private void LogEventHelper(
@@ -603,7 +628,11 @@ namespace Statsig.Server
         {
             // User can be null for logEvent
             EnsureInitialized();
-            ValidateNonEmptyArgument(eventName, "eventName");
+            var nameIsValid = ValidateNonEmptyArgument(eventName, "eventName");
+            if (!nameIsValid)
+            {
+                return;
+            }
             NormalizeUser(user);
 
             if (eventName.Length > Constants.MAX_SCALAR_LENGTH)

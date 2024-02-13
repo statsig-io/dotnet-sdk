@@ -67,17 +67,17 @@ namespace Statsig.Server
             EvalReason = EvaluationReason.Uninitialized;
         }
 
-        internal async Task Initialize()
+        internal async Task<InitializeResult> Initialize()
         {
             if (_dataStore != null)
             {
                 await _dataStore.Init();
             }
-
+            var status = InitializeResult.Success;
             var bootedFromDataStore = await SyncValuesFromDataStore();
             if (!bootedFromDataStore)
             {
-                await SyncValuesFromNetwork();
+                status = await SyncValuesFromNetwork();
             }
             else
             {
@@ -89,6 +89,8 @@ namespace Statsig.Server
             // Start background tasks to periodically refresh the store
             _syncValuesTask = BackgroundPeriodicSyncValuesTask(_cts.Token);
             _syncIDListsTask = BackgroundPeriodicSyncIDListsTask(_cts.Token);
+
+            return status;
         }
 
         internal async Task Shutdown()
@@ -349,9 +351,9 @@ namespace Statsig.Server
             await SyncIDLists(response);
         }
 
-        private async Task SyncValuesFromNetwork()
+        private async Task<InitializeResult> SyncValuesFromNetwork()
         {
-            var response = await _requestDispatcher.FetchAsString(
+            var (response, status) = await _requestDispatcher.FetchAsString(
                 "download_config_specs",
                 new Dictionary<string, object>
                 {
@@ -369,6 +371,7 @@ namespace Statsig.Server
             {
                 await _dataStore.Set(DataStoreKey.Rulesets, response);
             }
+            return status;
         }
 
         private async Task<bool> SyncValuesFromDataStore()

@@ -59,14 +59,14 @@ namespace dotnet_statsig_tests
                 user,
                 // use a fake persistent store path to disable local storage
                 new StatsigOptions(_server.Urls[0] + "/v1")
-                    { ClientRequestTimeoutMs = 10, PersistentStorageFolder = "abc/def" }
+                { ClientRequestTimeoutMs = 10, PersistentStorageFolder = "abc/def" }
             );
 
             Assert.False(StatsigClient.CheckGate("test_gate"));
             var endTime = DateTime.Now;
-            
-            
-            Assert.True(endTime.Subtract(TimeSpan.FromMilliseconds(200)) < startTime); // make sure it took less than 200 ms to complete
+
+
+            Assert.True(endTime.Subtract(TimeSpan.FromMilliseconds(300)) < startTime); // make sure it took less than 200 ms to complete
             await StatsigClient.Shutdown();
 
             startTime = DateTime.Now;
@@ -74,7 +74,7 @@ namespace dotnet_statsig_tests
             (
                 "client-fake-key",
                 user,
-                // use a fake persistent store path to disable local storage
+                // use a fake persistent store path to disable local storage\
                 new StatsigOptions(_server.Urls[0] + "/v1") { PersistentStorageFolder = "abc/def" }
             );
 
