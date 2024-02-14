@@ -13,10 +13,14 @@ namespace Statsig
     {
         public Dictionary<string, string> Values { get; }
 
-        public StatsigEnvironment(EnvironmentTier? tier = null, IReadOnlyDictionary<string, string>? additionalParams = null)
+        public StatsigEnvironment(EnvironmentTier? tier = null, IReadOnlyDictionary<string, string>? additionalParams = null, string? customTier = null)
         {
             Values = new Dictionary<string, string>();
-            if (tier != null)
+            if (customTier != null)
+            {
+                Values["tier"] = customTier;
+            }
+            else if (tier != null)
             {
                 Values["tier"] = tier.ToString()!.ToLowerInvariant();
             };
