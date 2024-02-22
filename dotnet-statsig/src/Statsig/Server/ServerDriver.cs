@@ -57,13 +57,12 @@ namespace Statsig.Server
 
         public async Task<InitializeResult> Initialize()
         {
-            await _errorBoundary.Capture("Initialize", async () =>
+            return await _errorBoundary.Capture("Initialize", async () =>
             {
                 var result = await evaluator.Initialize();
                 _initialized = true;
                 return result;
             }, () => { return InitializeResult.Failure; });
-            return InitializeResult.Failure;
         }
 
         public async Task Shutdown()
