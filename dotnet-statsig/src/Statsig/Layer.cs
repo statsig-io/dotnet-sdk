@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
-using System.Linq;
+using Statsig.Lib;
 using Statsig.Server;
 
 namespace Statsig
@@ -23,7 +23,9 @@ namespace Statsig
         internal List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures;
 
         [JsonProperty("allocated_experiment_name")]
-        public string AllocatedExperimentName;
+        public string AllocatedExperimentName { get; }
+
+        [JsonProperty("group_name")] public string? GroupName { get; }
 
         internal Action<Layer, string> OnExposure;
 
@@ -47,7 +49,8 @@ namespace Statsig
             string? ruleID = null,
             string? allocatedExperimentName = null,
             List<string>? explicitParameters = null,
-            Action<Layer, string>? onExposure = null)
+            Action<Layer, string>? onExposure = null,
+            string? groupName = null)
         {
             Name = name ?? "";
             Value = value ?? new Dictionary<string, JToken>();
@@ -57,6 +60,7 @@ namespace Statsig
             UndelegatedSecondaryExposures = new List<IReadOnlyDictionary<string, string>>();
             ExplicitParameters = explicitParameters ?? new List<string>();
             AllocatedExperimentName = allocatedExperimentName ?? "";
+            GroupName = groupName;
         }
 
         public T? Get<T>(string key, T? defaultValue = default(T))
@@ -96,15 +100,17 @@ namespace Statsig
                     configName,
                     JsonHelpers.GetFromJSON<Dictionary<string, JToken>>(jobj, "value",
                         new Dictionary<string, JToken>()),
-                    JsonHelpers.GetFromJSON<string>(jobj, "rule_id", "")
+                    JsonHelpers.GetFromJSON<string>(jobj, "rule_id", ""),
+                    JsonHelpers.GetFromJSON(jobj, "allocated_experiment_name", ""),
+                    JsonHelpers.GetFromJSON(jobj, "explicit_parameters", new List<string>()),
+                    null,
+                    jobj.GetOrDefault<string?>("group_name", null)
                 );
 
-                layer.AllocatedExperimentName = JsonHelpers.GetFromJSON(jobj, "allocated_experiment_name", "");
                 layer.SecondaryExposures = JsonHelpers.GetFromJSON(jobj, "secondary_exposures",
                     new List<IReadOnlyDictionary<string, string>>());
                 layer.UndelegatedSecondaryExposures = JsonHelpers.GetFromJSON(jobj, "undelegated_secondary_exposures",
                     new List<IReadOnlyDictionary<string, string>>());
-                layer.ExplicitParameters = JsonHelpers.GetFromJSON(jobj, "explicit_parameters", new List<string>());
 
                 return layer;
             }

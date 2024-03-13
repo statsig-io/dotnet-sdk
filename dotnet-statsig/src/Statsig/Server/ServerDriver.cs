@@ -532,7 +532,7 @@ namespace Statsig.Server
             }
 
             var dc = evaluation.ConfigValue;
-            return new Layer(layerName, dc.Value, dc.RuleID, evaluation.ConfigDelegate, evaluation.ExplicitParameters, OnExposure);
+            return new Layer(layerName, dc.Value, dc.RuleID, evaluation.ConfigDelegate, evaluation.ExplicitParameters, OnExposure, dc.GroupName);
         }
 
         private void LogLayerParameterExposureImpl(
