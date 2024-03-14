@@ -129,6 +129,24 @@ namespace Statsig.Server
             );
         }
 
+        public FeatureGate GetFeatureGate(StatsigUser user, string gateName)
+        {
+            return _errorBoundary.Capture(
+                "GetFeatureGate",
+                () => CheckGateImpl(user, gateName, shouldLogExposure: true),
+                () => new FeatureGate(gateName, false, null, null, EvaluationReason.Error)
+            );
+        }
+
+        public FeatureGate GetFeatureGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
+        {
+            return _errorBoundary.Capture(
+                "GetFeatureGateWithExposureLoggingDisabled",
+                () => CheckGateImpl(user, gateName, shouldLogExposure: false),
+                () => new FeatureGate(gateName, false, null, null, EvaluationReason.Error)
+            );
+        }
+
         public void LogGateExposure(StatsigUser user, string gateName)
         {
             _errorBoundary.Swallow("LogGateExposure", () =>
@@ -418,24 +436,38 @@ namespace Statsig.Server
 
         private FeatureGate CheckGateImpl(StatsigUser user, string gateName, bool shouldLogExposure)
         {
-            EnsureInitialized();
+            var isInitialized = EnsureInitialized();
+            if (!isInitialized)
+            {
+                return new FeatureGate(gateName, false, null, null, EvaluationReason.Uninitialized);
+            }
             var userIsValid = ValidateUser(user);
             if (!userIsValid)
             {
-                return new FeatureGate(gateName);
+                return new FeatureGate(gateName, false, null, null, EvaluationReason.Error);
             }
             NormalizeUser(user);
             var nameValid = ValidateNonEmptyArgument(gateName, "gateName");
             if (!nameValid)
             {
-                return new FeatureGate(gateName);
+                return new FeatureGate(gateName, false, null, null, EvaluationReason.Error);
             }
 
             var evaluation = evaluator.CheckGate(user, gateName);
 
             if (evaluation.Result == EvaluationResult.Unsupported)
             {
-                return new FeatureGate(gateName);
+                return new FeatureGate(gateName, false, null, null, EvaluationReason.Unsupported);
+            }
+
+            if (evaluation.Reason == EvaluationReason.Unrecognized)
+            {
+                var gateValue = new FeatureGate(gateName, false, null, null, EvaluationReason.Unrecognized);
+                if (shouldLogExposure)
+                {
+                    LogGateExposureImpl(user, gateName, gateValue, ExposureCause.Automatic, evaluation.Reason);
+                }
+                return gateValue;
             }
 
             if (shouldLogExposure)

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using Statsig.Server.Evaluation;
 
 namespace Statsig
 {
@@ -14,6 +15,7 @@ namespace Statsig
         public string RuleID { get; }
         [JsonProperty("secondary_exposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; }
+        public EvaluationReason? Reason { get; }
 
         static FeatureGate? _defaultConfig;
 
@@ -29,12 +31,13 @@ namespace Statsig
             }
         }
 
-        public FeatureGate(string? name = null, bool value = false, string? ruleID = null, List<IReadOnlyDictionary<string, string>>? secondaryExposures = null)
+        public FeatureGate(string? name = null, bool value = false, string? ruleID = null, List<IReadOnlyDictionary<string, string>>? secondaryExposures = null, EvaluationReason? reason = null)
         {
             Name = name ?? "";
             Value = value;
             RuleID = ruleID ?? "";
             SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
+            Reason = reason ?? EvaluationReason.Uninitialized;
         }
 
         internal static FeatureGate? FromJObject(string name, JObject? jobj)

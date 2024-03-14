@@ -57,7 +57,7 @@ namespace Statsig.Client
 
             _clientKey = clientKey;
             _options = options;
-            var sdkDetails = SDKDetails.GetClientSDKDetails(); 
+            var sdkDetails = SDKDetails.GetClientSDKDetails();
             _requestDispatcher = new RequestDispatcher(_clientKey, _options, sdkDetails, _sessionID);
             _eventLogger = new EventLogger(
                 _requestDispatcher,
@@ -173,7 +173,7 @@ namespace Statsig.Client
                 }
             }
 
-            value.OnExposure = delegate(Layer layer, string parameterName)
+            value.OnExposure = delegate (Layer layer, string parameterName)
             {
                 var allocatedExperiment = "";
                 var isExplicit = layer.ExplicitParameters.Contains(parameterName);

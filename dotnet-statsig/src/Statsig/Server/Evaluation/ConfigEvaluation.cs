@@ -10,7 +10,7 @@ namespace Statsig.Server.Evaluation
         Unsupported
     }
 
-    enum EvaluationReason
+    public enum EvaluationReason
     {
         Network,
         LocalOverride,
@@ -18,7 +18,8 @@ namespace Statsig.Server.Evaluation
         Uninitialized,
         Bootstrap,
         DataAdapter,
-        Unsupported
+        Unsupported,
+        Error,
 
     }
 

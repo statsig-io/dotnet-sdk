@@ -79,6 +79,16 @@ namespace Statsig.Server
             return EnforceInitialized().CheckGateWithExposureLoggingDisabledSync(user, gateName);
         }
 
+        public static FeatureGate GetFeatureGate(StatsigUser user, string gateName)
+        {
+            return EnforceInitialized().GetFeatureGate(user, gateName);
+        }
+
+        public static FeatureGate GetFeatureGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
+        {
+            return EnforceInitialized().GetFeatureGateWithExposureLoggingDisabled(user, gateName);
+        }
+
         public static void ManuallyLogGateExposure(StatsigUser user, string gateName)
         {
             EnforceInitialized().LogGateExposure(user, gateName);

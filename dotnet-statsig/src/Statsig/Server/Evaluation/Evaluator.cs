@@ -95,13 +95,13 @@ namespace Statsig.Server.Evaluation
             if (user.UserID != null && overrides.ContainsKey(user.UserID))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride,
-                    new FeatureGate(gateName, overrides[user.UserID]!, "local override"));
+                    new FeatureGate(gateName, overrides[user.UserID]!, "local override", null, EvaluationReason.LocalOverride));
             }
 
             if (overrides.ContainsKey(""))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride,
-                    new FeatureGate(gateName, overrides[""]!, "local override"));
+                    new FeatureGate(gateName, overrides[""]!, "local override", null, EvaluationReason.LocalOverride));
             }
             return null;
         }
@@ -449,7 +449,7 @@ namespace Statsig.Server.Evaluation
                 (
                     EvaluationResult.Fail,
                     _store.EvalReason,
-                    new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "disabled"),
+                    new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "disabled", null, _store.EvalReason),
                     new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "disabled", null, null,
                         spec.ExplicitParameters)
                 );
@@ -478,7 +478,8 @@ namespace Statsig.Server.Evaluation
                             spec.Name,
                             passPercentage ? rule.FeatureGateValue.Value : spec.FeatureGateDefault.Value,
                             rule.ID,
-                            secondaryExposures
+                            secondaryExposures,
+                            _store.EvalReason
                         );
                         var configV = new DynamicConfig
                         (
