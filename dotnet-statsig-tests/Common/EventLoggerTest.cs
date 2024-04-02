@@ -19,6 +19,7 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
     private WireMockServer _server;
     private int _flushedEventCount;
     private EventLogger _logger;
+    private static int ThresholdSeconds = 2;
 
     public Task InitializeAsync()
     {
@@ -30,8 +31,8 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
 
         var sdkDetails = SDKDetails.GetClientSDKDetails();
         var dispatcher = new RequestDispatcher("a-key", new StatsigOptions(apiUrlBase: _server.Urls[0]), sdkDetails, "my-session");
-        _logger = new EventLogger(dispatcher, sdkDetails, 1, 999);
-        
+        _logger = new EventLogger(dispatcher, sdkDetails, maxQueueLength: 3, maxThresholdSecs: ThresholdSeconds);
+
         return Task.CompletedTask;
     }
 
@@ -42,12 +43,20 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
     }
 
     [Fact]
+    public void TestPeriodicScheduling()
+    {
+        _logger.Enqueue(new EventLog { EventName = "one" });
+        _logger.Enqueue(new EventLog { EventName = "two" });
+        Task.Delay(TimeSpan.FromSeconds(ThresholdSeconds * 2));
+        Assert.Equal(2, _flushedEventCount);
+    }
+
+    [Fact]
     public async Task TestShutdownWithInFlightLogs()
     {
         _logger.Enqueue(new EventLog { EventName = "one" });
         _logger.Enqueue(new EventLog { EventName = "two" });
         await _logger.Shutdown();
-        
         Assert.Equal(2, _flushedEventCount);
     }
 
