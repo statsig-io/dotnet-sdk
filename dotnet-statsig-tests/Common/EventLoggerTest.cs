@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Statsig;
@@ -19,6 +20,8 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
     private WireMockServer _server;
     private int _flushedEventCount;
     private EventLogger _logger;
+    private CountdownEvent _onLogCountdown;
+    private static int ThresholdSeconds = 2;
 
     public Task InitializeAsync()
     {
@@ -30,8 +33,8 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
 
         var sdkDetails = SDKDetails.GetClientSDKDetails();
         var dispatcher = new RequestDispatcher("a-key", new StatsigOptions(apiUrlBase: _server.Urls[0]), sdkDetails, "my-session");
-        _logger = new EventLogger(dispatcher, sdkDetails, 1, 999);
-        
+        _logger = new EventLogger(dispatcher, sdkDetails, maxQueueLength: 3, maxThresholdSecs: ThresholdSeconds);
+        _onLogCountdown = new CountdownEvent(1);
         return Task.CompletedTask;
     }
 
@@ -42,12 +45,23 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
     }
 
     [Fact]
+    public async void TestPeriodicScheduling()
+    {
+        _logger.Enqueue(new EventLog { EventName = "one" });
+        _logger.Enqueue(new EventLog { EventName = "two" });
+        _onLogCountdown.Wait(TimeSpan.FromSeconds(ThresholdSeconds * 2));
+
+        Assert.Equal(2, _flushedEventCount);
+
+        await _logger.Shutdown();
+    }
+
+    [Fact]
     public async Task TestShutdownWithInFlightLogs()
     {
         _logger.Enqueue(new EventLog { EventName = "one" });
         _logger.Enqueue(new EventLog { EventName = "two" });
         await _logger.Shutdown();
-        
         Assert.Equal(2, _flushedEventCount);
     }
 
@@ -67,9 +81,13 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
         var events = ((JArray)body["events"])?.ToObject<List<JObject>>();
         _flushedEventCount += events?.Count ?? 0;
 
-        return await Response.Create()
+        var result = await Response.Create()
             .WithStatusCode(200)
             .WithDelay(TimeSpan.FromMilliseconds(100))
             .ProvideResponseAsync(requestMessage, settings);
+
+        _onLogCountdown.Signal();
+
+        return result;
     }
 }
