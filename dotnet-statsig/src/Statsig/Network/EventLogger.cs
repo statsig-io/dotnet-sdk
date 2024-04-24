@@ -106,7 +106,7 @@ namespace Statsig.Network
                     var timeUntilNextFlush = _lastFlushTime.AddSeconds(maxThresholdSecs) - DateTime.UtcNow;
                     if (timeUntilNextFlush > TimeSpan.Zero)
                     {
-                        await Task.Delay(timeUntilNextFlush, cancellationToken);
+                        await Task.Delay(timeUntilNextFlush, cancellationToken).ConfigureAwait(false);
                     }
 
                     // While waiting, a flush may have been triggered because the queue filled up,
@@ -114,7 +114,7 @@ namespace Statsig.Network
                     // event flush, and if so, then trigger a flush.
                     if (_lastFlushTime.AddSeconds(maxThresholdSecs) <= DateTime.UtcNow)
                     {
-                        await FlushEvents();
+                        await FlushEvents().ConfigureAwait(false);
                     }
                 }
                 catch (TaskCanceledException)
@@ -129,7 +129,7 @@ namespace Statsig.Network
             }
 
             // Do one final flush before exiting
-            await FlushEvents();
+            await FlushEvents().ConfigureAwait(false);
         }
 
         internal async Task FlushEvents()
@@ -168,7 +168,7 @@ namespace Statsig.Network
                 _backgroundPeriodicFlushTask,
                 FlushEvents(),
                 Task.WhenAll(_tasks.Keys)
-            );
+            ).ConfigureAwait(false);
         }
 
         private bool ShouldAddEventAfterDeduping(EventLog entry)

@@ -59,10 +59,10 @@ namespace Statsig.Server
         {
             return await _errorBoundary.Capture("Initialize", async () =>
             {
-                var result = await evaluator.Initialize();
+                var result = await evaluator.Initialize().ConfigureAwait(false);
                 _initialized = true;
                 return result;
-            }, () => { return InitializeResult.Failure; });
+            }, () => { return InitializeResult.Failure; }).ConfigureAwait(false);
         }
 
         public async Task Shutdown()
@@ -71,14 +71,14 @@ namespace Statsig.Server
             {
                 await Task.WhenAll(
                     evaluator.Shutdown(),
-                    _eventLogger.Shutdown());
+                    _eventLogger.Shutdown()).ConfigureAwait(false);
 
 #if SUPPORTS_ASYNC_DISPOSAL
-                await ((IAsyncDisposable)this).DisposeAsync();
+                await ((IAsyncDisposable)this).DisposeAsync().ConfigureAwait(false);
 #else
                 ((IDisposable)this).Dispose();
 #endif
-            });
+            }).ConfigureAwait(false);
         }
 
         #region Local Overrides
@@ -370,7 +370,7 @@ namespace Statsig.Server
                 return;
             }
 
-            await _eventLogger.FlushEvents();
+            await _eventLogger.FlushEvents().ConfigureAwait(false);
             _disposed = true;
         }
 #endif

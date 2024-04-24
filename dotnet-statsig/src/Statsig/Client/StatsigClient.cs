@@ -16,13 +16,13 @@ namespace Statsig.Client
             }
 
             _singleDriver = new ClientDriver(clientKey, options);
-            await _singleDriver.Initialize(user);
+            await _singleDriver.Initialize(user).ConfigureAwait(false);
         }
 
         public static async Task Shutdown()
         {
             EnsureInitialized();
-            await _singleDriver!.Shutdown();
+            await _singleDriver!.Shutdown().ConfigureAwait(false);
             _singleDriver = null;
         }
 
@@ -84,7 +84,7 @@ namespace Statsig.Client
                 throw new InvalidOperationException("user cannot be null.");
             }
             EnsureInitialized();
-            await _singleDriver!.UpdateUser(user);
+            await _singleDriver!.UpdateUser(user).ConfigureAwait(false);
         }
 
         static void EnsureInitialized()

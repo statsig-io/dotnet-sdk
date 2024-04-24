@@ -39,12 +39,12 @@ namespace Statsig.Server.Evaluation
 
         internal async Task<InitializeResult> Initialize()
         {
-            return await _store.Initialize();
+            return await _store.Initialize().ConfigureAwait(false);
         }
 
         internal async Task Shutdown()
         {
-            await _store.Shutdown();
+            await _store.Shutdown().ConfigureAwait(false);
         }
 
         internal void OverrideGate(string gateName, bool value, string? userID)
