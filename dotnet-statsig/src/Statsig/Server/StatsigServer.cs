@@ -163,9 +163,9 @@ namespace Statsig.Server
 
         #endregion
 
-        public static Dictionary<string, object> GetClientInitializeResponse(StatsigUser user, string? clientSDKKey = null, string? hash = null)
+        public static Dictionary<string, object> GetClientInitializeResponse(StatsigUser user, string? clientSDKKey = null, string? hash = null, bool includeLocalOverrides = false)
         {
-            return EnforceInitialized().GenerateInitializeResponse(user, clientSDKKey, hash);
+            return EnforceInitialized().GenerateInitializeResponse(user, clientSDKKey, hash, includeLocalOverrides);
         }
 
         public static void LogEvent(

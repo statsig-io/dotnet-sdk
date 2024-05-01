@@ -81,7 +81,7 @@ namespace Statsig.Lib
             return recover();
         }
 
-        public async void LogException(string tag, Exception ex)
+        public async void LogException(string tag, Exception ex, Dictionary<String, String>? extra = null)
         {
             try
             {
@@ -110,6 +110,7 @@ namespace Statsig.Lib
                     { "exception", name },
                     { "info", info },
                     { "statsigMetadata", _sdkDetails.StatsigMetadata },
+                    { "extra", extra ?? new Dictionary<string, string>()}
                 });
                 request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 

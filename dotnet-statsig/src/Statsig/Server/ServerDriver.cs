@@ -264,7 +264,7 @@ namespace Statsig.Server
 
         #endregion
 
-        public Dictionary<string, object> GenerateInitializeResponse(StatsigUser user, string? clientSDKKey = null, string? hash = null)
+        public Dictionary<string, object> GenerateInitializeResponse(StatsigUser user, string? clientSDKKey = null, string? hash = null, bool includeLocalOverrides = false)
         {
             return _errorBoundary.Capture("GenerateInitializeResponse", () =>
             {
@@ -276,7 +276,20 @@ namespace Statsig.Server
                 }
                 NormalizeUser(user);
 
-                var allEvals = evaluator.GetAllEvaluations(user, clientSDKKey, hash) ?? new Dictionary<string, object>();
+                var allEvals = evaluator.GetAllEvaluations(user, clientSDKKey, hash, includeLocalOverrides) ?? new Dictionary<string, object>();
+                if (!allEvals.ContainsKey("feature_gates"))
+                {
+                    var extra = new Dictionary<string, string>();
+                    if (clientSDKKey != null)
+                    {
+                        extra["clientSDKKey"] = clientSDKKey;
+                    }
+                    if (hash != null)
+                    {
+                        extra["hash"] = hash;
+                    }
+                    _errorBoundary.LogException("getClientInitializeResponse", new Exception("Failed to generate initialize response"), extra);
+                }
                 allEvals.Add("generator", "Dotnet Server");
 
                 var evaluatedKeys = new Dictionary<string, object>();

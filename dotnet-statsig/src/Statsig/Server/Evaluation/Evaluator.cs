@@ -28,6 +28,7 @@ namespace Statsig.Server.Evaluation
         private Dictionary<string, Dictionary<string, bool>> _gateOverrides;
         private Dictionary<string, Dictionary<string, Dictionary<string, JToken>>> _configOverrides;
         private Dictionary<string, Dictionary<string, Dictionary<string, JToken>>> _layerOverrides;
+        private SDKDetails _sdkDetails;
 
         internal Evaluator(StatsigOptions options, RequestDispatcher dispatcher, string serverSecret, ErrorBoundary errorBoundary)
         {
@@ -35,6 +36,7 @@ namespace Statsig.Server.Evaluation
             _gateOverrides = new Dictionary<string, Dictionary<string, bool>>();
             _configOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
             _layerOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
+            _sdkDetails = SDKDetails.GetServerSDKDetails();
         }
 
         internal async Task<InitializeResult> Initialize()
@@ -95,13 +97,13 @@ namespace Statsig.Server.Evaluation
             if (user.UserID != null && overrides.ContainsKey(user.UserID))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride,
-                    new FeatureGate(gateName, overrides[user.UserID]!, "local override", null, EvaluationReason.LocalOverride));
+                    new FeatureGate(gateName, overrides[user.UserID]!, "override", null, EvaluationReason.LocalOverride));
             }
 
             if (overrides.ContainsKey(""))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride,
-                    new FeatureGate(gateName, overrides[""]!, "local override", null, EvaluationReason.LocalOverride));
+                    new FeatureGate(gateName, overrides[""]!, "override", null, EvaluationReason.LocalOverride));
             }
             return null;
         }
@@ -140,13 +142,13 @@ namespace Statsig.Server.Evaluation
             if (user.UserID != null && overrides.ContainsKey(user.UserID))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride, null,
-                    new DynamicConfig(configName, overrides[user.UserID]!, "localOverride"));
+                    new DynamicConfig(configName, overrides[user.UserID]!, "override"));
             }
 
             if (overrides.ContainsKey(""))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride, null,
-                    new DynamicConfig(configName, overrides[""]!, "localOverride"));
+                    new DynamicConfig(configName, overrides[""]!, "override"));
             }
             return null;
         }
@@ -190,9 +192,9 @@ namespace Statsig.Server.Evaluation
             return _store.GetSpecNames(type);
         }
 
-        internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user, string? clientSDKKey, string? hash)
+        internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user, string? clientSDKKey, string? hash, bool includeLocalOverrides = false)
         {
-            if (_store.EvalReason == EvaluationReason.Uninitialized)
+            if (_store.EvalReason == EvaluationReason.Uninitialized || _store.LastSyncTime == 0)
             {
                 return null;
             }
@@ -224,7 +226,7 @@ namespace Statsig.Server.Evaluation
                 }
 
                 var hashedName = HashName(kv.Value.Name, hash);
-                var gate = Evaluate(user, kv.Value, 0).GateValue;
+                var gate = includeLocalOverrides ? CheckGate(user, kv.Key).GateValue : Evaluate(user, kv.Value, 0).GateValue;
                 var entry = new Dictionary<string, object>
                 {
                     ["name"] = hashedName,
@@ -245,7 +247,7 @@ namespace Statsig.Server.Evaluation
                 }
 
                 var hashedName = HashName(kv.Value.Name, hash);
-                var config = Evaluate(user, kv.Value, 0).ConfigValue;
+                var config = includeLocalOverrides ? GetConfig(user, kv.Key).ConfigValue : Evaluate(user, kv.Value, 0).ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
                 if (kv.Value.Entity != "dynamic_config" && kv.Value.Entity != "autotune")
                 {
@@ -272,7 +274,7 @@ namespace Statsig.Server.Evaluation
                 }
 
                 var hashedName = HashName(kv.Value.Name, hash);
-                var evaluation = Evaluate(user, kv.Value, 0);
+                var evaluation = includeLocalOverrides ? GetLayer(user, kv.Key) : Evaluate(user, kv.Value, 0);
                 var config = evaluation.ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
                 entry["explicit_parameters"] = kv.Value.ExplicitParameters ?? new List<string>();
@@ -301,8 +303,13 @@ namespace Statsig.Server.Evaluation
                 ["sdkParams"] = new Object(),
                 ["has_updates"] = true,
                 ["time"] = _store.LastSyncTime,
-                ["user_hash"] = user.GetHashWithoutStableID(),
-                ["hash_used"] = hash == "none" ? "none" : hash == "djb2" ? "djb2" : "sha256"
+                ["hash_used"] = hash == "none" ? "none" : hash == "djb2" ? "djb2" : "sha256",
+                ["sdkInfo"] = new Dictionary<string, string>
+                {
+                    ["sdkType"] = _sdkDetails.SDKType,
+                    ["sdkVersion"] = _sdkDetails.SDKVersion,
+                },
+                ["user"] = user,
             };
             return result;
         }
