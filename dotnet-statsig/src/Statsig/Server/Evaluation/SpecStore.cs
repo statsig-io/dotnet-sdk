@@ -71,20 +71,20 @@ namespace Statsig.Server
         {
             if (_dataStore != null)
             {
-                await _dataStore.Init();
+                await _dataStore.Init().ConfigureAwait(false);
             }
             var status = InitializeResult.Success;
-            var bootedFromDataStore = await SyncValuesFromDataStore();
+            var bootedFromDataStore = await SyncValuesFromDataStore().ConfigureAwait(false);
             if (!bootedFromDataStore)
             {
-                status = await SyncValuesFromNetwork();
+                status = await SyncValuesFromNetwork().ConfigureAwait(false);
             }
             else
             {
                 EvalReason = EvaluationReason.DataAdapter;
             }
 
-            await SyncIDLists();
+            await SyncIDLists().ConfigureAwait(false);
 
             // Start background tasks to periodically refresh the store
             _syncValuesTask = BackgroundPeriodicSyncValuesTask(_cts.Token);
@@ -97,7 +97,7 @@ namespace Statsig.Server
         {
             if (_dataStore != null)
             {
-                await _dataStore.Shutdown();
+                await _dataStore.Shutdown().ConfigureAwait(false);
             }
 
             // Signal that the periodic task should exit, and then wait for them to finish
@@ -107,11 +107,11 @@ namespace Statsig.Server
             }
             if (_syncIDListsTask != null)
             {
-                await _syncIDListsTask;
+                await _syncIDListsTask.ConfigureAwait(false);
             }
             if (_syncValuesTask != null)
             {
-                await _syncValuesTask;
+                await _syncValuesTask.ConfigureAwait(false);
             }
         }
 
@@ -143,8 +143,8 @@ namespace Statsig.Server
             {
                 try
                 {
-                    await Delay.Wait(delayInterval, cancellationToken);
-                    await SyncIDLists();
+                    await Delay.Wait(delayInterval, cancellationToken).ConfigureAwait(false);
+                    await SyncIDLists().ConfigureAwait(false);
                 }
                 catch (TaskCanceledException)
                 {
@@ -165,18 +165,18 @@ namespace Statsig.Server
             {
                 try
                 {
-                    await Delay.Wait(delayInterval, cancellationToken);
+                    await Delay.Wait(delayInterval, cancellationToken).ConfigureAwait(false);
 
                     if (_dataStore != null && _dataStore.SupportsPollingUpdates(DataStoreKey.Rulesets))
                     {
-                        var didSync = await SyncValuesFromDataStore();
+                        var didSync = await SyncValuesFromDataStore().ConfigureAwait(false);
                         if (didSync)
                         {
                             continue;
                         }
                     }
 
-                    await SyncValuesFromNetwork();
+                    await SyncValuesFromNetwork().ConfigureAwait(false);
                 }
                 catch (TaskCanceledException)
                 {
@@ -198,7 +198,7 @@ namespace Statsig.Server
                 using (var request = new HttpRequestMessage(HttpMethod.Get, list.URL))
                 {
                     request.Headers.Add("Range", string.Format("bytes={0}-", list.Size));
-                    var response = await client.SendAsync(request);
+                    var response = await client.SendAsync(request).ConfigureAwait(false);
                     if (response == null)
                     {
                         return;
@@ -208,7 +208,7 @@ namespace Statsig.Server
                     {
                         using (var memoryStream = new MemoryStream())
                         {
-                            await response.Content.CopyToAsync(memoryStream);
+                            await response.Content.CopyToAsync(memoryStream).ConfigureAwait(false);
                             var contentLength = memoryStream.Length;
                             memoryStream.Seek(0, SeekOrigin.Begin);
 
@@ -292,7 +292,7 @@ namespace Statsig.Server
                 return;
             }
 
-            await DownloadIDList(localList);
+            await DownloadIDList(localList).ConfigureAwait(false);
         }
 
         private async Task SyncIDLists(IReadOnlyDictionary<string, JToken> idListMap)
@@ -317,7 +317,7 @@ namespace Statsig.Server
                     // Ignore malformed lists
                 }
             }
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
 
             var deletedLists = new List<string>();
             foreach (var listName in _idLists.Keys)
@@ -342,13 +342,13 @@ namespace Statsig.Server
             var response = await _requestDispatcher.Fetch("get_id_lists", new Dictionary<string, object>
             {
                 ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-            });
+            }).ConfigureAwait(false);
             if (response == null || response.Count == 0)
             {
                 return;
             }
 
-            await SyncIDLists(response);
+            await SyncIDLists(response).ConfigureAwait(false);
         }
 
         private async Task<InitializeResult> SyncValuesFromNetwork()
@@ -360,7 +360,7 @@ namespace Statsig.Server
                     ["sinceTime"] = LastSyncTime,
                     ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
                 }
-            );
+            ).ConfigureAwait(false);
 
             var hasUpdates = ParseResponse(response);
             if (hasUpdates)
@@ -369,7 +369,7 @@ namespace Statsig.Server
             }
             if (hasUpdates && _dataStore != null && response != null)
             {
-                await _dataStore.Set(DataStoreKey.Rulesets, response);
+                await _dataStore.Set(DataStoreKey.Rulesets, response).ConfigureAwait(false);
             }
             return status;
         }
@@ -381,7 +381,7 @@ namespace Statsig.Server
                 return false;
             }
 
-            var response = await _dataStore.Get(DataStoreKey.Rulesets);
+            var response = await _dataStore.Get(DataStoreKey.Rulesets).ConfigureAwait(false);
             return ParseResponse(response);
         }
 

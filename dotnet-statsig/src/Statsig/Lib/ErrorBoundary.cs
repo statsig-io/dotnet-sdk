@@ -26,9 +26,10 @@ namespace Statsig.Lib
         {
             await Capture(tag, async () =>
             {
-                await task();
+                await task().ConfigureAwait(false);
                 return true;
-            }, () => false);
+            }, () => false)
+            .ConfigureAwait(false);
         }
 
         public void Swallow(string tag, Action task)
@@ -44,7 +45,7 @@ namespace Statsig.Lib
         {
             try
             {
-                var result = await task();
+                var result = await task().ConfigureAwait(false);
                 return result;
             }
             catch (Exception ex)
@@ -123,7 +124,7 @@ namespace Statsig.Lib
                     request.Headers.Add(kv.Key, kv.Value);
                 }
 
-                await client.SendAsync(request);
+                await client.SendAsync(request).ConfigureAwait(false);
             }
             catch
             {

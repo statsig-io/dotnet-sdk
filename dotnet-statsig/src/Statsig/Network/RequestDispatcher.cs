@@ -53,7 +53,7 @@ namespace Statsig.Network
             int backoff = 1,
             int timeoutInMs = 0)
         {
-            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs);
+            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs).ConfigureAwait(false);
             return JsonConvert.DeserializeObject<IReadOnlyDictionary<string, JToken>>(result ?? "");
         }
 
@@ -100,7 +100,7 @@ namespace Statsig.Network
                     client.Timeout = TimeSpan.FromMilliseconds(timeoutInMs);
                 }
 
-                var response = await client.SendAsync(request);
+                var response = await client.SendAsync(request).ConfigureAwait(false);
                 if (response == null)
                 {
                     return (null, InitializeResult.Success);
@@ -108,20 +108,20 @@ namespace Statsig.Network
 
                 if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
                 {
-                    var result = await response.Content.ReadAsStringAsync();
+                    var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     return (result, InitializeResult.Success);
                 }
 
                 if (retries > 0 && RetryCodes.Contains((int)response.StatusCode))
                 {
-                    return await Retry(endpoint, body, retries, backoff);
+                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
                 }
             }
             catch (TaskCanceledException)
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff);
+                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
                 }
                 else
                 {
@@ -133,7 +133,7 @@ namespace Statsig.Network
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff);
+                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
                 }
                 else
                 {
@@ -145,7 +145,7 @@ namespace Statsig.Network
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff);
+                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
                 }
             }
 
@@ -158,8 +158,8 @@ namespace Statsig.Network
             int retries = 0,
             int backoff = 1)
         {
-            await Task.Delay(backoff * 1000);
-            return await FetchAsString(endpoint, body, retries - 1, backoff * BackoffMultiplier);
+            await Task.Delay(backoff * 1000).ConfigureAwait(false);
+            return await FetchAsString(endpoint, body, retries - 1, backoff * BackoffMultiplier).ConfigureAwait(false);
         }
     }
 }

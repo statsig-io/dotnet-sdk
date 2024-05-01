@@ -40,13 +40,13 @@ public class RedisDataStore : IDataStore
 
     public async Task<string?> Get(string key)
     {
-        var result = await _database.StringGetAsync(key);
+        var result = await _database.StringGetAsync(key).ConfigureAwait(false);
         return result.IsNull ? null : result.ToString();
     }
 
     public async Task Set(string key, string value)
     {
-        await _database.StringSetAsync(key, value);
+        await _database.StringSetAsync(key, value).ConfigureAwait(false);
     }
 
     // noop

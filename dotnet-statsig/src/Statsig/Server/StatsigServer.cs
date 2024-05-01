@@ -39,12 +39,12 @@ namespace Statsig.Server
             }
 
             _singleDriver = new ServerDriver(serverSecret, options);
-            return await _singleDriver.Initialize();
+            return await _singleDriver.Initialize().ConfigureAwait(false);
         }
 
         public static async Task Shutdown()
         {
-            await EnforceInitialized().Shutdown();
+            await EnforceInitialized().Shutdown().ConfigureAwait(false);
             _singleDriver = null;
         }
 
@@ -210,20 +210,20 @@ namespace Statsig.Server
         [Obsolete("Please use CheckGateSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
         public static async Task<bool> CheckGate(StatsigUser user, string gateName)
         {
-            return await EnforceInitialized().CheckGate(user, gateName);
+            return await EnforceInitialized().CheckGate(user, gateName).ConfigureAwait(false);
         }
 
         [Obsolete(
             "Please use CheckGateWithExposureLoggingDisabledSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
         public static async Task<bool> CheckGateWithExposureLoggingDisabled(StatsigUser user, string gateName)
         {
-            return await EnforceInitialized().CheckGateWithExposureLoggingDisabled(user, gateName);
+            return await EnforceInitialized().CheckGateWithExposureLoggingDisabled(user, gateName).ConfigureAwait(false);
         }
 
         [Obsolete("Please use GetConfigSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
         public static async Task<DynamicConfig> GetConfig(StatsigUser user, string configName)
         {
-            return await EnforceInitialized().GetConfig(user, configName);
+            return await EnforceInitialized().GetConfig(user, configName).ConfigureAwait(false);
         }
 
         [Obsolete(
@@ -233,13 +233,13 @@ namespace Statsig.Server
             string configName
         )
         {
-            return await EnforceInitialized().GetConfigWithExposureLoggingDisabled(user, configName);
+            return await EnforceInitialized().GetConfigWithExposureLoggingDisabled(user, configName).ConfigureAwait(false);
         }
 
         [Obsolete("Please use GetExperimentSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
         public static async Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
         {
-            return await EnforceInitialized().GetExperiment(user, experimentName);
+            return await EnforceInitialized().GetExperiment(user, experimentName).ConfigureAwait(false);
         }
 
         [Obsolete("Please use GetExperimentWithExposureLoggingDisabledSync instead. " +
@@ -249,20 +249,20 @@ namespace Statsig.Server
             string experimentName
         )
         {
-            return await EnforceInitialized().GetExperimentWithExposureLoggingDisabled(user, experimentName);
+            return await EnforceInitialized().GetExperimentWithExposureLoggingDisabled(user, experimentName).ConfigureAwait(false);
         }
 
         [Obsolete("Please use GetLayerSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
         public static async Task<Layer> GetLayer(StatsigUser user, string layerName)
         {
-            return await EnforceInitialized().GetLayer(user, layerName);
+            return await EnforceInitialized().GetLayer(user, layerName).ConfigureAwait(false);
         }
 
         [Obsolete(
             "Please use GetLayerWithExposureLoggingDisabledSync instead. " + ServerDriver.AsyncFuncDeprecationLink)]
         public static async Task<Layer> GetLayerWithExposureLoggingDisabled(StatsigUser user, string layerName)
         {
-            return await EnforceInitialized().GetLayerWithExposureLoggingDisabled(user, layerName);
+            return await EnforceInitialized().GetLayerWithExposureLoggingDisabled(user, layerName).ConfigureAwait(false);
         }
 
         #endregion

@@ -96,7 +96,7 @@ namespace Statsig.Client
                     ["statsigMetadata"] = GetStatsigMetadata(),
                 },
                 timeoutInMs: _options.ClientRequestTimeoutMs
-            );
+            ).ConfigureAwait(false);
             if (response == null)
             {
                 return;
@@ -107,9 +107,9 @@ namespace Statsig.Client
 
         public async Task Shutdown()
         {
-            await _eventLogger.Shutdown();
+            await _eventLogger.Shutdown().ConfigureAwait(false);
 #if SUPPORTS_ASYNC_DISPOSAL
-            await ((IAsyncDisposable)this).DisposeAsync();
+            await ((IAsyncDisposable)this).DisposeAsync().ConfigureAwait(false);
 #else
             ((IDisposable)this).Dispose();
 #endif
@@ -204,7 +204,7 @@ namespace Statsig.Client
         public async Task UpdateUser(StatsigUser newUser)
         {
             _statsigMetadata = null;
-            await Initialize(newUser);
+            await Initialize(newUser).ConfigureAwait(false);
         }
 
         public void LogEvent(
@@ -257,7 +257,7 @@ namespace Statsig.Client
                 throw new ObjectDisposedException("ClientDriver");
             }
 
-            await _eventLogger.FlushEvents();
+            await _eventLogger.FlushEvents().ConfigureAwait(false);
             _disposed = true;
         }
 #endif
