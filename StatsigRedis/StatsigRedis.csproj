@@ -11,7 +11,7 @@
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <RepositoryUrl>https://github.com/statsig-io/dotnet-sdk.git</RepositoryUrl>
         <Owners>Statsig Inc.,</Owners>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageLicenseExpression>ISC</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/statsig-io/dotnet-sdk</PackageProjectUrl>
         <PackageTags>feature flags; feature gates; a/b testing; experimentation</PackageTags>
         <Title>Statsig Redis Data Store</Title>
