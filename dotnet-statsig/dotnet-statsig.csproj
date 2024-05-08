@@ -10,8 +10,9 @@
     <Version>1.25.0</Version>
     <Authors>Statsig Inc.</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <RepositoryUrl>https://github.com/statsig-io/dotnet-sdk.git</RepositoryUrl>
     <Owners>Statsig Inc.,</Owners>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageLicenseExpression>ISC</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/statsig-io/dotnet-sdk</PackageProjectUrl>
     <PackageTags>feature flags; feature gates; a/b testing; experimentation</PackageTags>
     <Title>Statsig .NET SDK</Title>
@@ -20,10 +21,6 @@
 
   <ItemGroup>
     <Folder Include="src\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="../LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net471' or '$(TargetFramework)' == 'netstandard2.0'">
