@@ -34,9 +34,9 @@ namespace dotnet_statsig_tests.Server
             _requests = new List<RequestMessage>();
             _server = WireMockServer.Start();
             _server.Given(Request.Create().WithPath("*").UsingAnyMethod()).RespondWith(this);
-            ErrorBoundary.ExceptionEndpoint = $"{_server.Urls[0]}/v1/sdk_exception";
 
             _statsig = new ServerDriver("secret-key");
+            _statsig._errorBoundary.ExceptionEndpoint = $"{_server.Urls[0]}/v1/sdk_exception";
 
             return Task.CompletedTask;
         }

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Statsig;
+using Statsig.Lib;
 using Statsig.Network;
 using WireMock;
 using WireMock.RequestBuilders;
@@ -33,7 +34,8 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
 
         var sdkDetails = SDKDetails.GetClientSDKDetails();
         var dispatcher = new RequestDispatcher("a-key", new StatsigOptions(apiUrlBase: _server.Urls[0]), sdkDetails, "my-session");
-        _logger = new EventLogger(dispatcher, sdkDetails, maxQueueLength: 3, maxThresholdSecs: ThresholdSeconds);
+        var errorBoundary = new ErrorBoundary("a-key", SDKDetails.GetServerSDKDetails());
+        _logger = new EventLogger(dispatcher, sdkDetails, maxQueueLength: 3, maxThresholdSecs: ThresholdSeconds, errorBoundary);
         _onLogCountdown = new CountdownEvent(1);
         return Task.CompletedTask;
     }

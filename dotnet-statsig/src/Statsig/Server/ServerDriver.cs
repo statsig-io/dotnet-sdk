@@ -28,7 +28,7 @@ namespace Statsig.Server
         internal EventLogger _eventLogger;
         internal Evaluator evaluator;
 
-        private ErrorBoundary _errorBoundary;
+        public ErrorBoundary _errorBoundary;
         private readonly string _sessionID = Guid.NewGuid().ToString();
 
         public ServerDriver(string serverSecret, StatsigOptions? options = null)
@@ -49,6 +49,7 @@ namespace Statsig.Server
                     sdkDetails,
                     serverOpts?.LoggingBufferMaxSize ?? Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
                     serverOpts?.LoggingIntervalSeconds ?? Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC,
+                    _errorBoundary,
                     Constants.SERVER_DEDUPE_INTERVAL
                 );
                 evaluator = new Evaluator(options, _requestDispatcher, serverSecret, _errorBoundary);
@@ -279,7 +280,7 @@ namespace Statsig.Server
                 var allEvals = evaluator.GetAllEvaluations(user, clientSDKKey, hash, includeLocalOverrides) ?? new Dictionary<string, object>();
                 if (!allEvals.ContainsKey("feature_gates"))
                 {
-                    var extra = new Dictionary<string, string>();
+                    var extra = new Dictionary<string, object>();
                     if (clientSDKKey != null)
                     {
                         extra["clientSDKKey"] = clientSDKKey;

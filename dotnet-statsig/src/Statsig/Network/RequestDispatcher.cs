@@ -51,10 +51,23 @@ namespace Statsig.Network
             IReadOnlyDictionary<string, object> body,
             int retries = 0,
             int backoff = 1,
-            int timeoutInMs = 0)
+            int timeoutInMs = 0,
+            IReadOnlyDictionary<string, string>? additionalHeaders = null)
         {
-            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs).ConfigureAwait(false);
+            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
             return JsonConvert.DeserializeObject<IReadOnlyDictionary<string, JToken>>(result ?? "");
+        }
+
+        public async Task<InitializeResult> FetchStatus(
+            string endpoint,
+            IReadOnlyDictionary<string, object> body,
+            int retries = 0,
+            int backoff = 1,
+            int timeoutInMs = 0,
+            IReadOnlyDictionary<string, string>? additionalHeaders = null)
+        {
+            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
+            return status;
         }
 
         public async Task<(string?, InitializeResult)> FetchAsString(
@@ -62,7 +75,8 @@ namespace Statsig.Network
             IReadOnlyDictionary<string, object> body,
             int retries = 0,
             int backoff = 1,
-            int timeoutInMs = 0)
+            int timeoutInMs = 0,
+            IReadOnlyDictionary<string, string>? additionalHeaders = null)
         {
             if (_options is StatsigServerOptions { LocalMode: true })
             {
@@ -95,6 +109,14 @@ namespace Statsig.Network
                     request.Headers.Add(kv.Key, kv.Value);
                 }
 
+                if (additionalHeaders != null)
+                {
+                    foreach (var kv in additionalHeaders)
+                    {
+                        request.Headers.Add(kv.Key, kv.Value);
+                    }
+                }
+
                 if (timeoutInMs > 0)
                 {
                     client.Timeout = TimeSpan.FromMilliseconds(timeoutInMs);
@@ -114,14 +136,14 @@ namespace Statsig.Network
 
                 if (retries > 0 && RetryCodes.Contains((int)response.StatusCode))
                 {
-                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
+                    return await Retry(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
                 }
             }
             catch (TaskCanceledException)
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
+                    return await Retry(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
                 }
                 else
                 {
@@ -133,7 +155,7 @@ namespace Statsig.Network
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
+                    return await Retry(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
                 }
                 else
                 {
@@ -145,7 +167,7 @@ namespace Statsig.Network
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
+                    return await Retry(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
                 }
             }
 
@@ -156,10 +178,12 @@ namespace Statsig.Network
             string endpoint,
             IReadOnlyDictionary<string, object> body,
             int retries = 0,
-            int backoff = 1)
+            int backoff = 1,
+            int timeoutInMs = 0,
+            IReadOnlyDictionary<string, string>? additionalHeaders = null)
         {
             await Task.Delay(backoff * 1000).ConfigureAwait(false);
-            return await FetchAsString(endpoint, body, retries - 1, backoff * BackoffMultiplier).ConfigureAwait(false);
+            return await FetchAsString(endpoint, body, retries - 1, backoff * BackoffMultiplier, timeoutInMs, additionalHeaders).ConfigureAwait(false);
         }
     }
 }

@@ -64,6 +64,7 @@ namespace Statsig.Client
                 sdkDetails,
                 clientOpts?.LoggingBufferMaxSize ?? Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH,
                 clientOpts?.LoggingIntervalSeconds ?? Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC,
+                null,
                 Constants.CLIENT_DEDUPE_INTERVAL
             );
             _user = new StatsigUser();
