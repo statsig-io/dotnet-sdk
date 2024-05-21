@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Statsig.Lib;
 
 namespace Statsig.Network
@@ -165,7 +166,7 @@ namespace Statsig.Network
                 ["STATSIG-EVENT-COUNT"] = String.Format("{0}", snapshot.Count)
             };
 
-            var status = await _dispatcher.FetchStatus("log_event", body, 5, 1, 0, additionalHeaders);
+            var status = await _dispatcher.FetchStatus("log_event", JsonConvert.SerializeObject(body), 5, 1, 0, additionalHeaders, true);
             if (status != InitializeResult.Success)
             {
                 var message = String.Format("Failed to post {0} logs after {1} retries, dropping the request", snapshot.Count, 5);

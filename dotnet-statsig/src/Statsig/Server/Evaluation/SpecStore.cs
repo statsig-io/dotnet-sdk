@@ -339,10 +339,10 @@ namespace Statsig.Server
 
         private async Task SyncIDLists()
         {
-            var response = await _requestDispatcher.Fetch("get_id_lists", new Dictionary<string, object>
+            var response = await _requestDispatcher.Fetch("get_id_lists", JsonConvert.SerializeObject(new Dictionary<string, object>
             {
                 ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-            }).ConfigureAwait(false);
+            })).ConfigureAwait(false);
             if (response == null || response.Count == 0)
             {
                 return;
@@ -355,11 +355,11 @@ namespace Statsig.Server
         {
             var (response, status) = await _requestDispatcher.FetchAsString(
                 "download_config_specs",
-                new Dictionary<string, object>
+                JsonConvert.SerializeObject(new Dictionary<string, object>
                 {
                     ["sinceTime"] = LastSyncTime,
                     ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-                }
+                })
             ).ConfigureAwait(false);
 
             var hasUpdates = ParseResponse(response);
