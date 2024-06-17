@@ -31,6 +31,8 @@ namespace Statsig.Server
         internal Dictionary<string, string> SDKKeysToAppIDs { get; private set; }
         internal Dictionary<string, string> HashedSDKKeysToAppIDs { get; private set; }
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
+
+        internal long InitialUpdateTime { get; private set; }
         private double _idListsSyncInterval;
         private double _rulesetsSyncInterval;
         private Func<IIDStore>? _idStoreFactory;
@@ -47,6 +49,7 @@ namespace Statsig.Server
             _idListsSyncInterval = options.IDListsSyncInterval;
             _rulesetsSyncInterval = options.RulesetsSyncInterval;
             LastSyncTime = 0;
+            InitialUpdateTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             LayerConfigs = new Dictionary<string, ConfigSpec>();
@@ -83,6 +86,8 @@ namespace Statsig.Server
             {
                 EvalReason = EvaluationReason.DataAdapter;
             }
+
+            InitialUpdateTime = LastSyncTime;
 
             await SyncIDLists().ConfigureAwait(false);
 
@@ -134,6 +139,11 @@ namespace Statsig.Server
                     .ToList(),
                 _ => new List<string>()
             };
+        }
+
+        internal EvaluationDetails GetEvaluationDetails(EvaluationReason? reason = null)
+        {
+            return new EvaluationDetails(reason ?? EvalReason, InitialUpdateTime, LastSyncTime);
         }
 
         private async Task BackgroundPeriodicSyncIDListsTask(CancellationToken cancellationToken)

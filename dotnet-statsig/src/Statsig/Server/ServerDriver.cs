@@ -135,7 +135,7 @@ namespace Statsig.Server
             return _errorBoundary.Capture(
                 "GetFeatureGate",
                 () => CheckGateImpl(user, gateName, shouldLogExposure: true),
-                () => new FeatureGate(gateName, false, null, null, EvaluationReason.Error)
+                () => new FeatureGate(gateName)
             );
         }
 
@@ -144,7 +144,7 @@ namespace Statsig.Server
             return _errorBoundary.Capture(
                 "GetFeatureGateWithExposureLoggingDisabled",
                 () => CheckGateImpl(user, gateName, shouldLogExposure: false),
-                () => new FeatureGate(gateName, false, null, null, EvaluationReason.Error)
+                () => new FeatureGate(gateName)
             );
         }
 
@@ -453,30 +453,30 @@ namespace Statsig.Server
             var isInitialized = EnsureInitialized();
             if (!isInitialized)
             {
-                return new FeatureGate(gateName, false, null, null, EvaluationReason.Uninitialized);
+                return new FeatureGate(gateName, false, null, null, EvaluationReason.Uninitialized, evaluator.GetEvaluationDetails(EvaluationReason.Uninitialized));
             }
             var userIsValid = ValidateUser(user);
             if (!userIsValid)
             {
-                return new FeatureGate(gateName, false, null, null, EvaluationReason.Error);
+                return new FeatureGate(gateName, false, null, null, EvaluationReason.Error, evaluator.GetEvaluationDetails(EvaluationReason.Error));
             }
             NormalizeUser(user);
             var nameValid = ValidateNonEmptyArgument(gateName, "gateName");
             if (!nameValid)
             {
-                return new FeatureGate(gateName, false, null, null, EvaluationReason.Error);
+                return new FeatureGate(gateName, false, null, null, EvaluationReason.Error, evaluator.GetEvaluationDetails(EvaluationReason.Error));
             }
 
             var evaluation = evaluator.CheckGate(user, gateName);
 
             if (evaluation.Result == EvaluationResult.Unsupported)
             {
-                return new FeatureGate(gateName, false, null, null, EvaluationReason.Unsupported);
+                return new FeatureGate(gateName, false, null, null, EvaluationReason.Unsupported, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
             }
 
             if (evaluation.Reason == EvaluationReason.Unrecognized)
             {
-                var gateValue = new FeatureGate(gateName, false, null, null, EvaluationReason.Unrecognized);
+                var gateValue = new FeatureGate(gateName, false, null, null, EvaluationReason.Unrecognized, evaluator.GetEvaluationDetails(EvaluationReason.Unrecognized));
                 if (shouldLogExposure)
                 {
                     LogGateExposureImpl(user, gateName, gateValue, ExposureCause.Automatic, evaluation.Reason);
@@ -509,13 +509,13 @@ namespace Statsig.Server
             var userIsValid = ValidateUser(user);
             if (!userIsValid)
             {
-                return new DynamicConfig(configName);
+                return new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Error));
             }
             NormalizeUser(user);
             var nameValid = ValidateNonEmptyArgument(configName, "configName");
             if (!nameValid)
             {
-                return new DynamicConfig(configName);
+                return new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Error));
             }
 
 
@@ -523,7 +523,17 @@ namespace Statsig.Server
 
             if (evaluation.Result == EvaluationResult.Unsupported)
             {
-                return new DynamicConfig(configName);
+                return new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
+            }
+
+            if (evaluation.Reason == EvaluationReason.Unrecognized)
+            {
+                var configValue = new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Unrecognized));
+                if (shouldLogExposure)
+                {
+                    LogConfigExposureImpl(user, configName, configValue, ExposureCause.Automatic, evaluation.Reason);
+                }
+                return configValue;
             }
 
             if (shouldLogExposure)
@@ -551,20 +561,20 @@ namespace Statsig.Server
             var userIsValid = ValidateUser(user);
             if (!userIsValid)
             {
-                return new Layer(layerName);
+                return new Layer(layerName, null, null, null, null, null, null, evaluator.GetEvaluationDetails(EvaluationReason.Error));
             }
             NormalizeUser(user);
             var nameIsValid = ValidateNonEmptyArgument(layerName, "layerName");
             if (!nameIsValid)
             {
-                return new Layer(layerName);
+                return new Layer(layerName, null, null, null, null, null, null, evaluator.GetEvaluationDetails(EvaluationReason.Error));
             }
 
             var evaluation = evaluator.GetLayer(user, layerName);
 
             if (evaluation.Result == EvaluationResult.Unsupported)
             {
-                return new Layer(layerName);
+                return new Layer(layerName, null, null, null, null, null, null, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
             }
 
             void OnExposure(Layer layer, string parameterName)
@@ -578,7 +588,7 @@ namespace Statsig.Server
             }
 
             var dc = evaluation.ConfigValue;
-            return new Layer(layerName, dc.Value, dc.RuleID, evaluation.ConfigDelegate, evaluation.ExplicitParameters, OnExposure, dc.GroupName);
+            return new Layer(layerName, dc.Value, dc.RuleID, evaluation.ConfigDelegate, evaluation.ExplicitParameters, OnExposure, dc.GroupName, evaluator.GetEvaluationDetails(evaluation.Reason));
         }
 
         private void LogLayerParameterExposureImpl(

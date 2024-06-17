@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using Statsig.Lib;
 using Statsig.Server;
+using Statsig.Server.Evaluation;
 
 namespace Statsig
 {
@@ -31,6 +32,8 @@ namespace Statsig
 
         static Layer? _default;
 
+        public EvaluationDetails? EvaluationDetails { get; }
+
         public static Layer Default
         {
             get
@@ -50,7 +53,8 @@ namespace Statsig
             string? allocatedExperimentName = null,
             List<string>? explicitParameters = null,
             Action<Layer, string>? onExposure = null,
-            string? groupName = null)
+            string? groupName = null,
+            EvaluationDetails? details = null)
         {
             Name = name ?? "";
             Value = value ?? new Dictionary<string, JToken>();
@@ -61,6 +65,7 @@ namespace Statsig
             ExplicitParameters = explicitParameters ?? new List<string>();
             AllocatedExperimentName = allocatedExperimentName ?? "";
             GroupName = groupName;
+            EvaluationDetails = details;
         }
 
         public T? Get<T>(string key, T? defaultValue = default(T))

@@ -97,13 +97,13 @@ namespace Statsig.Server.Evaluation
             if (user.UserID != null && overrides.ContainsKey(user.UserID))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride,
-                    new FeatureGate(gateName, overrides[user.UserID]!, "override", null, EvaluationReason.LocalOverride));
+                    new FeatureGate(gateName, overrides[user.UserID]!, "override", null, EvaluationReason.LocalOverride, _store.GetEvaluationDetails(EvaluationReason.LocalOverride)));
             }
 
             if (overrides.ContainsKey(""))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride,
-                    new FeatureGate(gateName, overrides[""]!, "override", null, EvaluationReason.LocalOverride));
+                    new FeatureGate(gateName, overrides[""]!, "override", null, EvaluationReason.LocalOverride, _store.GetEvaluationDetails(EvaluationReason.LocalOverride)));
             }
             return null;
         }
@@ -142,13 +142,13 @@ namespace Statsig.Server.Evaluation
             if (user.UserID != null && overrides.ContainsKey(user.UserID))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride, null,
-                    new DynamicConfig(configName, overrides[user.UserID]!, "override"));
+                    new DynamicConfig(configName, overrides[user.UserID]!, "override", null, null, null, false, false, _store.GetEvaluationDetails(EvaluationReason.LocalOverride)));
             }
 
             if (overrides.ContainsKey(""))
             {
                 return new ConfigEvaluation(EvaluationResult.Pass, EvaluationReason.LocalOverride, null,
-                    new DynamicConfig(configName, overrides[""]!, "override"));
+                    new DynamicConfig(configName, overrides[""]!, "override", null, null, null, false, false, _store.GetEvaluationDetails(EvaluationReason.LocalOverride)));
             }
             return null;
         }
@@ -190,6 +190,11 @@ namespace Statsig.Server.Evaluation
         internal List<string> GetSpecNames(string type)
         {
             return _store.GetSpecNames(type);
+        }
+
+        internal EvaluationDetails GetEvaluationDetails(EvaluationReason? reason = null)
+        {
+            return _store.GetEvaluationDetails(reason);
         }
 
         internal Dictionary<string, Object>? GetAllEvaluations(StatsigUser user, string? clientSDKKey, string? hash, bool includeLocalOverrides = false)
@@ -460,9 +465,9 @@ namespace Statsig.Server.Evaluation
                 (
                     EvaluationResult.Fail,
                     _store.EvalReason,
-                    new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "disabled", null, _store.EvalReason),
+                    new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "disabled", null, _store.EvalReason, _store.GetEvaluationDetails()),
                     new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "disabled", null, null,
-                        spec.ExplicitParameters)
+                        spec.ExplicitParameters, false, false, _store.GetEvaluationDetails())
                 );
             }
 
@@ -490,7 +495,8 @@ namespace Statsig.Server.Evaluation
                             passPercentage ? rule.FeatureGateValue.Value : spec.FeatureGateDefault.Value,
                             rule.ID,
                             CleanExposures(secondaryExposures),
-                            _store.EvalReason
+                            _store.EvalReason,
+                            _store.GetEvaluationDetails()
                         );
                         var configV = new DynamicConfig
                         (
@@ -501,7 +507,8 @@ namespace Statsig.Server.Evaluation
                             CleanExposures(secondaryExposures),
                             spec.ExplicitParameters,
                             spec.HasSharedParams,
-                            IsUserAllocatedToExperiment(user, spec, rule.ID)
+                            IsUserAllocatedToExperiment(user, spec, rule.ID),
+                            _store.GetEvaluationDetails()
                         );
                         return new ConfigEvaluation(passPercentage ? EvaluationResult.Pass : EvaluationResult.Fail,
                             _store.EvalReason, gateV, configV);
@@ -515,9 +522,9 @@ namespace Statsig.Server.Evaluation
             (
                 EvaluationResult.Fail,
                 _store.EvalReason,
-                new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "default", CleanExposures(secondaryExposures)),
+                new FeatureGate(spec.Name, spec.FeatureGateDefault.Value, "default", CleanExposures(secondaryExposures), _store.EvalReason, _store.GetEvaluationDetails()),
                 new DynamicConfig(spec.Name, spec.DynamicConfigDefault.Value, "default", null, CleanExposures(secondaryExposures),
-                    spec.ExplicitParameters)
+                    spec.ExplicitParameters, false, false, _store.GetEvaluationDetails())
             );
         }
 

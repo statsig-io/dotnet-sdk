@@ -16,6 +16,7 @@ namespace Statsig
         [JsonProperty("secondary_exposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; }
         public EvaluationReason? Reason { get; }
+        public EvaluationDetails? EvaluationDetails { get; }
 
         static FeatureGate? _defaultConfig;
 
@@ -31,13 +32,14 @@ namespace Statsig
             }
         }
 
-        public FeatureGate(string? name = null, bool value = false, string? ruleID = null, List<IReadOnlyDictionary<string, string>>? secondaryExposures = null, EvaluationReason? reason = null)
+        public FeatureGate(string? name = null, bool value = false, string? ruleID = null, List<IReadOnlyDictionary<string, string>>? secondaryExposures = null, EvaluationReason? reason = null, EvaluationDetails? details = null)
         {
             Name = name ?? "";
             Value = value;
             RuleID = ruleID ?? "";
             SecondaryExposures = secondaryExposures ?? new List<IReadOnlyDictionary<string, string>>();
             Reason = reason ?? EvaluationReason.Uninitialized;
+            EvaluationDetails = details;
         }
 
         internal static FeatureGate? FromJObject(string name, JObject? jobj)
