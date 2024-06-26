@@ -406,7 +406,7 @@ namespace Statsig.Client
                     ["sessionID"] = _sessionID,
                     ["stableID"] = PersistentStore.StableID,
                     ["locale"] = CultureInfo.CurrentUICulture.Name,
-                    ["appVersion"] = Assembly.GetEntryAssembly()!.GetName()!.Version!.ToString()!,
+                    ["appVersion"] = Assembly.GetEntryAssembly()?.GetName().Version!.ToString() ?? "unknown",
                     ["systemVersion"] = Environment.OSVersion.Version.ToString(),
                     ["systemName"] = systemName,
                     ["sdkType"] = sdkDetails.SDKType,
