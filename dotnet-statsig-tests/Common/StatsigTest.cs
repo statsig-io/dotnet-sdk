@@ -21,7 +21,7 @@ namespace dotnet_statsig_tests
     {
         WireMockServer _server;
 
-        private const String ExpectedSdkVersion = "1.26.0.0";
+        private const String ExpectedSdkVersion = "1.27.0.0";
 
         Task IAsyncLifetime.InitializeAsync()
         {
