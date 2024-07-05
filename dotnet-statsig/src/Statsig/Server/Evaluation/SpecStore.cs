@@ -410,14 +410,19 @@ namespace Statsig.Server
                 return false;
             }
 
-            JToken? time;
-            LastSyncTime = json.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
-
 
             if (!json.TryGetValue("has_updates", out var hasUpdates) || !hasUpdates.Value<bool>())
             {
                 return false;
             }
+
+            JToken? time;
+            var newTime = json.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
+            if (newTime < LastSyncTime)
+            {
+                return false;
+            }
+            LastSyncTime = newTime;
 
             var newGates = new Dictionary<string, ConfigSpec>();
             var newConfigs = new Dictionary<string, ConfigSpec>();
