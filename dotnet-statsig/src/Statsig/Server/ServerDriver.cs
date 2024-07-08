@@ -474,9 +474,9 @@ namespace Statsig.Server
                 return new FeatureGate(gateName, false, null, null, EvaluationReason.Unsupported, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
             }
 
-            if (evaluation.Reason == EvaluationReason.Unrecognized)
+            if (evaluation.Reason == EvaluationReason.Unrecognized || evaluation.Reason == EvaluationReason.Uninitialized)
             {
-                var gateValue = new FeatureGate(gateName, false, null, null, EvaluationReason.Unrecognized, evaluator.GetEvaluationDetails(EvaluationReason.Unrecognized));
+                var gateValue = new FeatureGate(gateName, false, null, null, EvaluationReason.Unrecognized, evaluator.GetEvaluationDetails(evaluation.Reason));
                 if (shouldLogExposure)
                 {
                     LogGateExposureImpl(user, gateName, gateValue, ExposureCause.Automatic, evaluation.Reason);
@@ -492,7 +492,7 @@ namespace Statsig.Server
             return evaluation.GateValue;
         }
 
-        private void LogGateExposureImpl(StatsigUser user, string gateName, FeatureGate gate, ExposureCause cause, EvaluationReason reason)
+        private void LogGateExposureImpl(StatsigUser user, string gateName, FeatureGate gate, ExposureCause cause, string reason)
         {
             _eventLogger.Enqueue(EventLog.CreateGateExposureLog(user, gateName,
                 gate?.Value ?? false,
@@ -505,7 +505,11 @@ namespace Statsig.Server
 
         private DynamicConfig GetConfigImpl(StatsigUser user, string configName, bool shouldLogExposure)
         {
-            EnsureInitialized();
+            var isInitialized = EnsureInitialized();
+            if (!isInitialized)
+            {
+                return new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Uninitialized));
+            }
             var userIsValid = ValidateUser(user);
             if (!userIsValid)
             {
@@ -526,9 +530,9 @@ namespace Statsig.Server
                 return new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
             }
 
-            if (evaluation.Reason == EvaluationReason.Unrecognized)
+            if (evaluation.Reason == EvaluationReason.Unrecognized || evaluation.Reason == EvaluationReason.Uninitialized)
             {
-                var configValue = new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Unrecognized));
+                var configValue = new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(evaluation.Reason));
                 if (shouldLogExposure)
                 {
                     LogConfigExposureImpl(user, configName, configValue, ExposureCause.Automatic, evaluation.Reason);
@@ -545,7 +549,7 @@ namespace Statsig.Server
         }
 
         private void LogConfigExposureImpl(StatsigUser user, string configName, DynamicConfig config,
-            ExposureCause cause, EvaluationReason reason)
+            ExposureCause cause, string reason)
         {
             _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(user, configName,
                 config?.RuleID ?? "",

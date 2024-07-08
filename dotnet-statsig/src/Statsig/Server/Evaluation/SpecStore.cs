@@ -40,7 +40,7 @@ namespace Statsig.Server
         private string _serverSecret;
         private ErrorBoundary _errorBoundary;
 
-        internal EvaluationReason EvalReason { get; set; }
+        internal string EvalReason { get; set; }
 
         internal SpecStore(StatsigOptions options, RequestDispatcher dispatcher, string serverSecret, ErrorBoundary errorBoundary)
         {
@@ -141,7 +141,7 @@ namespace Statsig.Server
             };
         }
 
-        internal EvaluationDetails GetEvaluationDetails(EvaluationReason? reason = null)
+        internal EvaluationDetails GetEvaluationDetails(string? reason = null)
         {
             return new EvaluationDetails(reason ?? EvalReason, InitialUpdateTime, LastSyncTime);
         }

@@ -192,7 +192,7 @@ namespace Statsig.Server.Evaluation
             return _store.GetSpecNames(type);
         }
 
-        internal EvaluationDetails GetEvaluationDetails(EvaluationReason? reason = null)
+        internal EvaluationDetails GetEvaluationDetails(string? reason = null)
         {
             return _store.GetEvaluationDetails(reason);
         }
