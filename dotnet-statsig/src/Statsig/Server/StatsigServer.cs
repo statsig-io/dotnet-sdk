@@ -8,7 +8,7 @@ namespace Statsig.Server
 {
     public static class StatsigServer
     {
-        static ServerDriver? _singleDriver;
+        public static ServerDriver? _singleDriver;
 
 
         public static async Task<InitializeResult> Initialize(string serverSecret, StatsigOptions? options = null)

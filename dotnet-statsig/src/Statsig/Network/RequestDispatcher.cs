@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -48,21 +51,65 @@ namespace Statsig.Network
 
         public async Task<IReadOnlyDictionary<string, JToken>?> Fetch(
             string endpoint,
-            IReadOnlyDictionary<string, object> body,
+            string body,
             int retries = 0,
             int backoff = 1,
-            int timeoutInMs = 0)
+            int timeoutInMs = 0,
+            IReadOnlyDictionary<string, string>? additionalHeaders = null)
         {
-            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs).ConfigureAwait(false);
+            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
             return JsonConvert.DeserializeObject<IReadOnlyDictionary<string, JToken>>(result ?? "");
+        }
+
+        public async Task<InitializeResult> FetchStatus(
+            string endpoint,
+            string body,
+            int retries = 0,
+            int backoff = 1,
+            int timeoutInMs = 0,
+            IReadOnlyDictionary<string, string>? additionalHeaders = null,
+            bool zipped = false)
+        {
+            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
+            return status;
+        }
+
+        public static byte[] Zip(string str)
+        {
+            var bytes = Encoding.UTF8.GetBytes(str);
+
+            using (var msi = new MemoryStream(bytes))
+            using (var mso = new MemoryStream())
+            {
+                using (var gs = new GZipStream(mso, CompressionMode.Compress))
+                {
+                    CopyTo(msi, gs);
+                }
+
+                return mso.ToArray();
+            }
+        }
+
+        public static void CopyTo(Stream src, Stream dest)
+        {
+            byte[] bytes = new byte[4096];
+
+            int cnt;
+
+            while ((cnt = src.Read(bytes, 0, bytes.Length)) != 0)
+            {
+                dest.Write(bytes, 0, cnt);
+            }
         }
 
         public async Task<(string?, InitializeResult)> FetchAsString(
             string endpoint,
-            IReadOnlyDictionary<string, object> body,
+            string body,
             int retries = 0,
             int backoff = 1,
-            int timeoutInMs = 0)
+            int timeoutInMs = 0,
+            IReadOnlyDictionary<string, string>? additionalHeaders = null,
+            bool zipped = false)
         {
             if (_options is StatsigServerOptions { LocalMode: true })
             {
@@ -77,8 +124,17 @@ namespace Statsig.Network
                     AutomaticDecompression = DecompressionMethods.GZip
                 });
                 using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                var bodyJson = JsonConvert.SerializeObject(body);
-                request.Content = new StringContent(bodyJson, Encoding.UTF8, "application/json");
+                if (zipped)
+                {
+                    var zippedBody = Zip(body);
+                    request.Content = new ByteArrayContent(zippedBody);
+                    request.Content.Headers.Add("Content-Encoding", "gzip");
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                }
+                else
+                {
+                    request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                }
                 request.Headers.Add("STATSIG-API-KEY", Key);
                 request.Headers.Add("STATSIG-CLIENT-TIME",
                     DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
@@ -93,6 +149,14 @@ namespace Statsig.Network
                 foreach (var kv in AdditionalHeaders)
                 {
                     request.Headers.Add(kv.Key, kv.Value);
+                }
+
+                if (additionalHeaders != null)
+                {
+                    foreach (var kv in additionalHeaders)
+                    {
+                        request.Headers.Add(kv.Key, kv.Value);
+                    }
                 }
 
                 if (timeoutInMs > 0)
@@ -114,14 +178,14 @@ namespace Statsig.Network
 
                 if (retries > 0 && RetryCodes.Contains((int)response.StatusCode))
                 {
-                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
+                    return await Retry(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
                 }
             }
             catch (TaskCanceledException)
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
+                    return await Retry(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
                 }
                 else
                 {
@@ -133,7 +197,7 @@ namespace Statsig.Network
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
+                    return await Retry(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
                 }
                 else
                 {
@@ -145,7 +209,7 @@ namespace Statsig.Network
             {
                 if (retries > 0)
                 {
-                    return await Retry(endpoint, body, retries, backoff).ConfigureAwait(false);
+                    return await Retry(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
                 }
             }
 
@@ -154,12 +218,15 @@ namespace Statsig.Network
 
         private async Task<(string?, InitializeResult)> Retry(
             string endpoint,
-            IReadOnlyDictionary<string, object> body,
+            string body,
             int retries = 0,
-            int backoff = 1)
+            int backoff = 1,
+            int timeoutInMs = 0,
+            IReadOnlyDictionary<string, string>? additionalHeaders = null,
+            bool zipped = false)
         {
             await Task.Delay(backoff * 1000).ConfigureAwait(false);
-            return await FetchAsString(endpoint, body, retries - 1, backoff * BackoffMultiplier).ConfigureAwait(false);
+            return await FetchAsString(endpoint, body, retries - 1, backoff * BackoffMultiplier, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
         }
     }
 }

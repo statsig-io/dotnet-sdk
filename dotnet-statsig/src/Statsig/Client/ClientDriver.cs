@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Statsig.Client.Storage;
 using Statsig.Network;
@@ -64,6 +65,7 @@ namespace Statsig.Client
                 sdkDetails,
                 clientOpts?.LoggingBufferMaxSize ?? Constants.CLIENT_MAX_LOGGER_QUEUE_LENGTH,
                 clientOpts?.LoggingIntervalSeconds ?? Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC,
+                null,
                 Constants.CLIENT_DEDUPE_INTERVAL
             );
             _user = new StatsigUser();
@@ -90,11 +92,11 @@ namespace Statsig.Client
             _user.statsigEnvironment = _options.StatsigEnvironment.Values;
             var response = await _requestDispatcher.Fetch(
                 "initialize",
-                new Dictionary<string, object>
+                JsonConvert.SerializeObject(new Dictionary<string, object>
                 {
                     ["user"] = _user,
                     ["statsigMetadata"] = GetStatsigMetadata(),
-                },
+                }),
                 timeoutInMs: _options.ClientRequestTimeoutMs
             ).ConfigureAwait(false);
             if (response == null)
@@ -404,7 +406,7 @@ namespace Statsig.Client
                     ["sessionID"] = _sessionID,
                     ["stableID"] = PersistentStore.StableID,
                     ["locale"] = CultureInfo.CurrentUICulture.Name,
-                    ["appVersion"] = Assembly.GetEntryAssembly()!.GetName()!.Version!.ToString()!,
+                    ["appVersion"] = Assembly.GetEntryAssembly()?.GetName().Version!.ToString() ?? "unknown",
                     ["systemVersion"] = Environment.OSVersion.Version.ToString(),
                     ["systemName"] = systemName,
                     ["sdkType"] = sdkDetails.SDKType,

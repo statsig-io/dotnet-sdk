@@ -86,10 +86,16 @@ namespace dotnet_statsig_tests
             Assert.True(gate.Value);
             Assert.Equal("7w9rbTSffLT89pxqpyhuqK", gate.RuleID);
             Assert.Equal(EvaluationReason.Network, gate.Reason);
+            Assert.Equal(EvaluationReason.Network, gate.EvaluationDetails?.Reason);
+            Assert.Equal(1631638014811, gate.EvaluationDetails?.ConfigSyncTime);
+            Assert.Equal(1631638014811, gate.EvaluationDetails?.InitTime);
 
             var gate2 = StatsigServer.GetFeatureGateWithExposureLoggingDisabled(user, "fake_gate");
             Assert.False(gate2.Value);
             Assert.Equal(EvaluationReason.Unrecognized, gate2.Reason);
+            Assert.Equal(EvaluationReason.Unrecognized, gate2.EvaluationDetails?.Reason);
+            Assert.Equal(1631638014811, gate.EvaluationDetails?.ConfigSyncTime);
+            Assert.Equal(1631638014811, gate.EvaluationDetails?.InitTime);
 
             await StatsigServer.Shutdown();
 

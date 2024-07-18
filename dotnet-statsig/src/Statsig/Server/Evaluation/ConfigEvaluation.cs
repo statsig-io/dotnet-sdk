@@ -10,16 +10,16 @@ namespace Statsig.Server.Evaluation
         Unsupported
     }
 
-    public enum EvaluationReason
+    public class EvaluationReason
     {
-        Network,
-        LocalOverride,
-        Unrecognized,
-        Uninitialized,
-        Bootstrap,
-        DataAdapter,
-        Unsupported,
-        Error,
+        public static string Network = "Network";
+        public static string LocalOverride = "LocalOverride";
+        public static string Unrecognized = "Unrecognized";
+        public static string Uninitialized = "Uninitialized";
+        public static string Bootstrap = "Bootstrap";
+        public static String DataAdapter = "DataAdapter";
+        public static string Unsupported = "Unsupported";
+        public static string Error = "Error";
 
     }
 
@@ -31,11 +31,11 @@ namespace Statsig.Server.Evaluation
         internal List<IReadOnlyDictionary<string, string>> UndelegatedSecondaryExposures { get; set; }
         internal List<string> ExplicitParameters { get; set; }
         internal string? ConfigDelegate { get; set; }
-        internal EvaluationReason Reason { get; set; }
+        internal string Reason { get; set; }
 
         internal ConfigEvaluation(
             EvaluationResult result,
-            EvaluationReason reason,
+            string reason,
             FeatureGate? gate = null,
             DynamicConfig? config = null)
         {

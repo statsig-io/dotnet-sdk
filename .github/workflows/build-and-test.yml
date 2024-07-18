@@ -8,21 +8,24 @@ on:
 
 jobs:
   build:
+    timeout-minutes: 10
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2
         with:
           dotnet-version: "6.x.x"
+
       - name: Install dependencies
         run: dotnet restore
+
       - name: Build
         run: dotnet build --configuration Release --no-restore
-        timeout-minutes: 3
+
       - name: Test
         run: dotnet test --no-restore --verbosity normal
-        timeout-minutes: 5
         env:
           test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
           test_client_key: ${{ secrets.SDK_CLIENT_KEY }}

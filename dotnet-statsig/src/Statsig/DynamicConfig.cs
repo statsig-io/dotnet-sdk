@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using Statsig.Lib;
 using Statsig.Server;
+using Statsig.Server.Evaluation;
 
 namespace Statsig
 {
@@ -25,6 +26,8 @@ namespace Statsig
 
         [JsonProperty("is_user_in_experiment")]
         public bool IsUserInExperiment { get; private set; }
+
+        public EvaluationDetails? EvaluationDetails { get; }
 
 
         static DynamicConfig? _defaultConfig;
@@ -50,7 +53,8 @@ namespace Statsig
             List<IReadOnlyDictionary<string, string>>? secondaryExposures = null,
             List<string>? explicitParameters = null,
             bool isInLayer = false,
-            bool isUserInExperiment = false
+            bool isUserInExperiment = false,
+            EvaluationDetails? details = null
         )
         {
             ConfigName = configName ?? "";
@@ -61,6 +65,7 @@ namespace Statsig
             ExplicitParameters = explicitParameters ?? new List<string>();
             IsInLayer = isInLayer;
             IsUserInExperiment = isUserInExperiment;
+            EvaluationDetails = details;
         }
 
         public T? Get<T>(string key, T? defaultValue = default(T))
