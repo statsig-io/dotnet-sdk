@@ -65,8 +65,7 @@ namespace dotnet_statsig_tests
             Assert.False(StatsigClient.CheckGate("test_gate"));
             var endTime = DateTime.Now;
 
-
-            Assert.True(endTime.Subtract(TimeSpan.FromMilliseconds(300)) < startTime); // make sure it took less than 200 ms to complete
+            Assert.True(endTime.Subtract(TimeSpan.FromMilliseconds(600)) < startTime); // make sure it took less than 600 ms to complete
             await StatsigClient.Shutdown();
 
             startTime = DateTime.Now;

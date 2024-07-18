@@ -9,7 +9,7 @@ namespace Statsig.Lib
 {
     public class ErrorBoundary
     {
-        internal static string ExceptionEndpoint = "https://statsigapi.net/v1/sdk_exception";
+        public string ExceptionEndpoint = "https://statsigapi.net/v1/sdk_exception";
 
         private string _sdkKey;
         private SDKDetails _sdkDetails;
@@ -81,7 +81,7 @@ namespace Statsig.Lib
             return recover();
         }
 
-        public async void LogException(string tag, Exception ex, Dictionary<String, String>? extra = null)
+        public async void LogException(string tag, Exception ex, Dictionary<String, object>? extra = null, bool force = false)
         {
             try
             {
@@ -91,7 +91,7 @@ namespace Statsig.Lib
                 }
 
                 var name = ex?.GetType().FullName ?? "No Name";
-                if (_seen.Contains(name))
+                if (_seen.Contains(name) && !force)
                 {
                     return;
                 }
@@ -110,7 +110,7 @@ namespace Statsig.Lib
                     { "exception", name },
                     { "info", info },
                     { "statsigMetadata", _sdkDetails.StatsigMetadata },
-                    { "extra", extra ?? new Dictionary<string, string>()}
+                    { "extra", extra ?? new Dictionary<string, object>()}
                 });
                 request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 

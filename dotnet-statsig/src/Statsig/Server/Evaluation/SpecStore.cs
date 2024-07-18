@@ -31,6 +31,8 @@ namespace Statsig.Server
         internal Dictionary<string, string> SDKKeysToAppIDs { get; private set; }
         internal Dictionary<string, string> HashedSDKKeysToAppIDs { get; private set; }
         internal readonly ConcurrentDictionary<string, IDList> _idLists;
+
+        internal long InitialUpdateTime { get; private set; }
         private double _idListsSyncInterval;
         private double _rulesetsSyncInterval;
         private Func<IIDStore>? _idStoreFactory;
@@ -38,7 +40,7 @@ namespace Statsig.Server
         private string _serverSecret;
         private ErrorBoundary _errorBoundary;
 
-        internal EvaluationReason EvalReason { get; set; }
+        internal string EvalReason { get; set; }
 
         internal SpecStore(StatsigOptions options, RequestDispatcher dispatcher, string serverSecret, ErrorBoundary errorBoundary)
         {
@@ -47,6 +49,7 @@ namespace Statsig.Server
             _idListsSyncInterval = options.IDListsSyncInterval;
             _rulesetsSyncInterval = options.RulesetsSyncInterval;
             LastSyncTime = 0;
+            InitialUpdateTime = 0;
             FeatureGates = new Dictionary<string, ConfigSpec>();
             DynamicConfigs = new Dictionary<string, ConfigSpec>();
             LayerConfigs = new Dictionary<string, ConfigSpec>();
@@ -83,6 +86,8 @@ namespace Statsig.Server
             {
                 EvalReason = EvaluationReason.DataAdapter;
             }
+
+            InitialUpdateTime = LastSyncTime;
 
             await SyncIDLists().ConfigureAwait(false);
 
@@ -134,6 +139,11 @@ namespace Statsig.Server
                     .ToList(),
                 _ => new List<string>()
             };
+        }
+
+        internal EvaluationDetails GetEvaluationDetails(string? reason = null)
+        {
+            return new EvaluationDetails(reason ?? EvalReason, InitialUpdateTime, LastSyncTime);
         }
 
         private async Task BackgroundPeriodicSyncIDListsTask(CancellationToken cancellationToken)
@@ -339,10 +349,10 @@ namespace Statsig.Server
 
         private async Task SyncIDLists()
         {
-            var response = await _requestDispatcher.Fetch("get_id_lists", new Dictionary<string, object>
+            var response = await _requestDispatcher.Fetch("get_id_lists", JsonConvert.SerializeObject(new Dictionary<string, object>
             {
                 ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-            }).ConfigureAwait(false);
+            })).ConfigureAwait(false);
             if (response == null || response.Count == 0)
             {
                 return;
@@ -355,11 +365,11 @@ namespace Statsig.Server
         {
             var (response, status) = await _requestDispatcher.FetchAsString(
                 "download_config_specs",
-                new Dictionary<string, object>
+                JsonConvert.SerializeObject(new Dictionary<string, object>
                 {
                     ["sinceTime"] = LastSyncTime,
                     ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-                }
+                })
             ).ConfigureAwait(false);
 
             var hasUpdates = ParseResponse(response);
@@ -400,14 +410,19 @@ namespace Statsig.Server
                 return false;
             }
 
-            JToken? time;
-            LastSyncTime = json.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
-
 
             if (!json.TryGetValue("has_updates", out var hasUpdates) || !hasUpdates.Value<bool>())
             {
                 return false;
             }
+
+            JToken? time;
+            var newTime = json.TryGetValue("time", out time) ? time.Value<long>() : LastSyncTime;
+            if (newTime < LastSyncTime)
+            {
+                return false;
+            }
+            LastSyncTime = newTime;
 
             var newGates = new Dictionary<string, ConfigSpec>();
             var newConfigs = new Dictionary<string, ConfigSpec>();

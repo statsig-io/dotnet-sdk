@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Statsig.Lib;
 
 namespace Statsig.Network
 {
@@ -14,6 +16,7 @@ namespace Statsig.Network
         private readonly SDKDetails _sdkDetails;
         private readonly RequestDispatcher _dispatcher;
         private readonly Dictionary<string, string> _statsigMetadata;
+        private readonly ErrorBoundary? _errorBoundary;
 
         private readonly Task _backgroundPeriodicFlushTask;
         private readonly CancellationTokenSource _shutdownCTS;
@@ -28,7 +31,7 @@ namespace Statsig.Network
         private DateTime _dedupeStartTime;
 
         public EventLogger(RequestDispatcher dispatcher, SDKDetails sdkDetails, int maxQueueLength,
-            int maxThresholdSecs, int dedupeInterval = 60 * 1000)
+            int maxThresholdSecs, ErrorBoundary? errorBoundary = null, int dedupeInterval = 60 * 1000)
         {
             _sdkDetails = sdkDetails;
             _maxQueueLength = maxQueueLength;
@@ -38,6 +41,7 @@ namespace Statsig.Network
                 ["sdkType"] = _sdkDetails.SDKType,
                 ["sdkVersion"] = _sdkDetails.SDKVersion,
             };
+            _errorBoundary = errorBoundary;
 
             _eventLogQueue = new List<EventLog>();
             _errorsLogged = new HashSet<string>();
@@ -157,7 +161,26 @@ namespace Statsig.Network
                 ["events"] = snapshot
             };
 
-            await _dispatcher.Fetch("log_event", body, 5, 1);
+            var additionalHeaders = new Dictionary<string, string>
+            {
+                ["STATSIG-EVENT-COUNT"] = String.Format("{0}", snapshot.Count)
+            };
+
+            var status = await _dispatcher.FetchStatus("log_event", JsonConvert.SerializeObject(body), 5, 1, 0, additionalHeaders, true);
+            if (status != InitializeResult.Success)
+            {
+                var message = String.Format("Failed to post {0} logs after {1} retries, dropping the request", snapshot.Count, 5);
+                System.Diagnostics.Debug.WriteLine(message);
+                if (this._errorBoundary != null)
+                {
+                    var extra = new Dictionary<string, object>
+                    {
+                        ["eventCount"] = snapshot.Count,
+                        ["error"] = message
+                    };
+                    this._errorBoundary.LogException("statsig::log_event_failed", new Exception(message), extra, true);
+                }
+            }
         }
 
         public async Task Shutdown()
