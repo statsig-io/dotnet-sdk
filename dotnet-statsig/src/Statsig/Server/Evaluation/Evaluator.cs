@@ -237,7 +237,7 @@ namespace Statsig.Server.Evaluation
                     ["name"] = hashedName,
                     ["value"] = gate.Value,
                     ["rule_id"] = gate.RuleID,
-                    ["secondary_exposures"] = CleanExposures(gate.SecondaryExposures).ToArray(),
+                    ["secondary_exposures"] = HashExposures(CleanExposures(gate.SecondaryExposures), hash).ToArray(),
                 };
                 gates.Add(hashedName, entry);
             }
@@ -253,7 +253,7 @@ namespace Statsig.Server.Evaluation
 
                 var hashedName = HashName(kv.Value.Name, hash);
                 var config = includeLocalOverrides ? GetConfig(user, kv.Key).ConfigValue : Evaluate(user, kv.Value, 0).ConfigValue;
-                var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
+                var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config, hash);
                 if (kv.Value.Entity != "dynamic_config" && kv.Value.Entity != "autotune")
                 {
                     entry["is_experiment_active"] = kv.Value.IsActive;
@@ -281,7 +281,7 @@ namespace Statsig.Server.Evaluation
                 var hashedName = HashName(kv.Value.Name, hash);
                 var evaluation = includeLocalOverrides ? GetLayer(user, kv.Key) : Evaluate(user, kv.Value, 0);
                 var config = evaluation.ConfigValue;
-                var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config);
+                var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config, hash);
                 entry["explicit_parameters"] = kv.Value.ExplicitParameters ?? new List<string>();
                 if (!string.IsNullOrWhiteSpace(evaluation.ConfigDelegate))
                 {
@@ -296,7 +296,7 @@ namespace Statsig.Server.Evaluation
                 }
 
                 entry["undelegated_secondary_exposures"] =
-                    CleanExposures(evaluation.UndelegatedSecondaryExposures).ToArray();
+                    HashExposures(CleanExposures(evaluation.UndelegatedSecondaryExposures), hash).ToArray();
                 layerConfigs.Add(hashedName, entry);
             }
 
@@ -378,6 +378,30 @@ namespace Statsig.Server.Evaluation
             }).Where(exp => exp != null).Select(exp => exp!).ToList();
         }
 
+        private List<Dictionary<string, string>> HashExposures(
+            List<IReadOnlyDictionary<string, string>> exposures,
+            string? hash = "sha256"
+        )
+        {
+            if (exposures == null)
+            {
+                return new List<Dictionary<string, string>>();
+            }
+
+            return exposures.Select((exp) =>
+            {
+                var newExp = new Dictionary<string, string>();
+                foreach (var kv in exp)
+                {
+                    newExp[kv.Key] = kv.Value;
+                }
+
+
+                newExp["gate"] = HashName(exp["gate"], hash);
+                return newExp;
+            }).ToList();
+        }
+
         private bool IsUserAllocatedToExperiment(
             StatsigUser user,
             ConfigSpec spec,
@@ -396,7 +420,8 @@ namespace Statsig.Server.Evaluation
         private Dictionary<string, object> ConfigSpecToInitResponse(
             string hashedName,
             ConfigSpec spec,
-            DynamicConfig config
+            DynamicConfig config,
+            string? hash
         )
         {
             var entry = new Dictionary<string, object>
@@ -407,7 +432,7 @@ namespace Statsig.Server.Evaluation
                 ["group"] = config.RuleID,
                 ["is_device_based"] = (spec.IDType != null &&
                                        spec.IDType.ToLowerInvariant() == "stableid"),
-                ["secondary_exposures"] = CleanExposures(config.SecondaryExposures).ToArray(),
+                ["secondary_exposures"] = HashExposures(CleanExposures(config.SecondaryExposures), hash).ToArray(),
             };
 
             return entry;
