@@ -300,6 +300,8 @@ namespace Statsig.Server.Evaluation
                 layerConfigs.Add(hashedName, entry);
             }
 
+            var userWithoutPrivateAttributes = user.ToMapForLogging();
+
             var result = new Dictionary<string, Object>
             {
                 ["feature_gates"] = gates,
@@ -314,7 +316,7 @@ namespace Statsig.Server.Evaluation
                     ["sdkType"] = _sdkDetails.SDKType,
                     ["sdkVersion"] = _sdkDetails.SDKVersion,
                 },
-                ["user"] = user,
+                ["user"] = userWithoutPrivateAttributes,
             };
             return result;
         }

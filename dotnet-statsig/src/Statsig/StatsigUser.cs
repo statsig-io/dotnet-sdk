@@ -247,6 +247,24 @@ namespace Statsig
             return copy;
         }
 
+        internal Dictionary<string, object> ToMapForLogging()
+        {
+            return new Dictionary<string, object>
+            {
+                { "userID", UserID ?? string.Empty },
+                { "userAgent", UserAgent ?? string.Empty },
+                { "appVersion", AppVersion ?? string.Empty },
+                { "country", Country ?? string.Empty},
+                { "custom", CustomProperties ?? new Dictionary<string, object>() },
+                { "customIDs", CustomIDs },
+                { "email", Email ?? string.Empty },
+                { "ip", IPAddress ?? string.Empty },
+                { "locale", Locale ?? string.Empty },
+                { "statsigEnvironment", StatsigEnvironment },
+                // Do NOT add private attributes here
+            };
+        }
+
         internal Dictionary<string, string> GetParsedUserAgent()
         {
             if (_parsedUserAgent == null)
