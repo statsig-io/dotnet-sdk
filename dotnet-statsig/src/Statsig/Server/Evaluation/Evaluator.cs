@@ -437,6 +437,11 @@ namespace Statsig.Server.Evaluation
                 ["secondary_exposures"] = HashExposures(CleanExposures(config.SecondaryExposures), hash).ToArray(),
             };
 
+            if (config.GroupName != null)
+            {
+                entry["group_name"] = config.GroupName;
+            }
+
             return entry;
         }
 
@@ -476,6 +481,7 @@ namespace Statsig.Server.Evaluation
             result.ConfigValue.SecondaryExposures =
                 CleanExposures(exposures.Concat(delegatedResult.ConfigValue.SecondaryExposures).ToList());
             result.ConfigDelegate = rule.ConfigDelegate;
+            result.ConfigValue.GroupName = delegatedResult.ConfigValue.GroupName;
             return result;
         }
 

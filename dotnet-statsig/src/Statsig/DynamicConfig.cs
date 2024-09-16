@@ -17,7 +17,7 @@ namespace Statsig
         [JsonProperty("explicit_parameters")] public List<string> ExplicitParameters { get; private set; }
 
         [JsonProperty("rule_id")] public string RuleID { get; }
-        [JsonProperty("group_name")] public string? GroupName { get; private set; }
+        [JsonProperty("group_name")] public string? GroupName { get; internal set; }
 
         [JsonProperty("secondary_exposures")]
         public List<IReadOnlyDictionary<string, string>> SecondaryExposures { get; internal set; }
