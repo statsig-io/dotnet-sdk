@@ -114,7 +114,7 @@ namespace dotnet_statsig_tests
 
                 foreach (var config in data.dynamic_configs)
                 {
-                    var sdkResult = driver.evaluator.GetConfig(data.user, config.Key);
+                    var sdkResult = driver.evaluator.GetConfig(data.user, config.Key, null);
                     var sdkConfigResult = sdkResult.ConfigValue;
                     var serverResult = config.Value;
                     foreach (var entry in sdkConfigResult.Value)
@@ -130,7 +130,7 @@ namespace dotnet_statsig_tests
 
                 foreach (var layer in data.layer_configs)
                 {
-                    var sdkResult = driver.evaluator.GetLayer(data.user, layer.Key);
+                    var sdkResult = driver.evaluator.GetLayer(data.user, layer.Key, null);
                     var sdkConfigResult = sdkResult.ConfigValue;
                     var serverResult = layer.Value;
                     foreach (var entry in sdkConfigResult.Value)

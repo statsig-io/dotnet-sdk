@@ -168,7 +168,7 @@ namespace Statsig.Server
         {
             return _errorBoundary.Capture(
                 "GetConfigSync",
-                () => GetConfigImpl(user, configName, shouldLogExposure: true),
+                () => GetConfigImpl(user, configName, shouldLogExposure: true, null),
                 () => new DynamicConfig(configName)
             );
         }
@@ -177,7 +177,7 @@ namespace Statsig.Server
         {
             return _errorBoundary.Capture(
                 "GetConfigWithExposureLoggingDisabledSync",
-                () => GetConfigImpl(user, configName, shouldLogExposure: false),
+                () => GetConfigImpl(user, configName, shouldLogExposure: false, null),
                 () => new DynamicConfig(configName)
             );
         }
@@ -187,7 +187,7 @@ namespace Statsig.Server
             _errorBoundary.Swallow("LogConfigExposure", () =>
             {
                 NormalizeUser(user);
-                var evaluation = evaluator.GetConfig(user, configName);
+                var evaluation = evaluator.GetConfig(user, configName, null);
                 var config = evaluation.ConfigValue;
                 LogConfigExposureImpl(user, configName, config, ExposureCause.Manual, evaluation.Reason);
             });
@@ -198,33 +198,34 @@ namespace Statsig.Server
 
         #region GetExperiment
 
-        public DynamicConfig GetExperimentSync(StatsigUser user, string experimentName)
+        public DynamicConfig GetExperimentSync(StatsigUser user, string experimentName, Dictionary<string, StickyValue>? userPersistedValues = null)
         {
             return _errorBoundary.Capture(
                 "GetExperimentSync",
-                () => GetConfigImpl(user, experimentName, shouldLogExposure: true),
+                () => GetConfigImpl(user, experimentName, shouldLogExposure: true, userPersistedValues),
                 () => new DynamicConfig(experimentName)
             );
         }
 
         public DynamicConfig GetExperimentWithExposureLoggingDisabledSync(
             StatsigUser user,
-            string experimentName
+            string experimentName,
+            Dictionary<string, StickyValue>? userPersistedValues = null
         )
         {
             return _errorBoundary.Capture(
                 "GetExperimentWithExposureLoggingDisabledSync",
-                () => GetConfigImpl(user, experimentName, shouldLogExposure: false),
+                () => GetConfigImpl(user, experimentName, shouldLogExposure: false, userPersistedValues),
                 () => new DynamicConfig(experimentName)
             );
         }
 
-        public void LogExperimentExposure(StatsigUser user, string experimentName)
+        public void LogExperimentExposure(StatsigUser user, string experimentName, Dictionary<string, StickyValue>? userPersistedValues = null)
         {
             _errorBoundary.Swallow("LogExperimentExposure", () =>
             {
                 NormalizeUser(user);
-                var evaluation = evaluator.GetConfig(user, experimentName);
+                var evaluation = evaluator.GetConfig(user, experimentName, userPersistedValues);
                 var config = evaluation.ConfigValue;
                 LogConfigExposureImpl(user, experimentName, config, ExposureCause.Manual, evaluation.Reason);
             });
@@ -235,30 +236,30 @@ namespace Statsig.Server
 
         #region GetLayer
 
-        public Layer GetLayerSync(StatsigUser user, string layerName)
+        public Layer GetLayerSync(StatsigUser user, string layerName, Dictionary<string, StickyValue>? userPersistedValues = null)
         {
             return _errorBoundary.Capture(
                 "GetLayerSync",
-                () => GetLayerImpl(user, layerName, shouldLogExposure: true),
+                () => GetLayerImpl(user, layerName, shouldLogExposure: true, userPersistedValues),
                 () => new Layer(layerName)
             );
         }
 
-        public Layer GetLayerWithExposureLoggingDisabledSync(StatsigUser user, string layerName)
+        public Layer GetLayerWithExposureLoggingDisabledSync(StatsigUser user, string layerName, Dictionary<string, StickyValue>? userPersistedValues = null)
         {
             return _errorBoundary.Capture(
                 "GetLayerWithExposureLoggingDisabledSync",
-                () => GetLayerImpl(user, layerName, shouldLogExposure: false),
+                () => GetLayerImpl(user, layerName, shouldLogExposure: false, userPersistedValues),
                 () => new Layer(layerName)
             );
         }
 
-        public void LogLayerParameterExposure(StatsigUser user, string layerName, string parameterName)
+        public void LogLayerParameterExposure(StatsigUser user, string layerName, string parameterName, Dictionary<string, StickyValue>? userPersistedValues = null)
         {
             _errorBoundary.Swallow("LogLayerParameterExposure", () =>
             {
                 NormalizeUser(user);
-                var evaluation = evaluator.GetLayer(user, layerName);
+                var evaluation = evaluator.GetLayer(user, layerName, userPersistedValues);
                 LogLayerParameterExposureImpl(user, layerName, parameterName, evaluation, ExposureCause.Manual);
             });
         }
@@ -361,6 +362,11 @@ namespace Statsig.Server
             );
         }
 
+        public async Task<Dictionary<string, StickyValue>?> GetUserPersistedValues(StatsigUser user, string idType)
+        {
+            return await evaluator.GetUserPersistedValues(user, idType);
+        }
+
         void IDisposable.Dispose()
         {
             if (_disposed)
@@ -420,7 +426,7 @@ namespace Statsig.Server
         [Obsolete("Please use GetExperimentSync instead. " + AsyncFuncDeprecationLink)]
         public Task<DynamicConfig> GetExperiment(StatsigUser user, string experimentName)
         {
-            return Task.FromResult(GetExperimentSync(user, experimentName));
+            return Task.FromResult(GetExperimentSync(user, experimentName, null));
         }
 
         [Obsolete("Please use GetExperimentWithExposureLoggingDisabledSync instead. " + AsyncFuncDeprecationLink)]
@@ -429,19 +435,19 @@ namespace Statsig.Server
             string experimentName
         )
         {
-            return Task.FromResult(GetExperimentWithExposureLoggingDisabledSync(user, experimentName));
+            return Task.FromResult(GetExperimentWithExposureLoggingDisabledSync(user, experimentName, null));
         }
 
         [Obsolete("Please use GetLayerSync instead. " + AsyncFuncDeprecationLink)]
         public Task<Layer> GetLayer(StatsigUser user, string layerName)
         {
-            return Task.FromResult(GetLayerSync(user, layerName));
+            return Task.FromResult(GetLayerSync(user, layerName, null));
         }
 
         [Obsolete("Please use GetLayerWithExposureLoggingDisabledSync instead. " + AsyncFuncDeprecationLink)]
         public Task<Layer> GetLayerWithExposureLoggingDisabled(StatsigUser user, string layerName)
         {
-            return Task.FromResult(GetLayerWithExposureLoggingDisabledSync(user, layerName));
+            return Task.FromResult(GetLayerWithExposureLoggingDisabledSync(user, layerName, null));
         }
 
         #endregion
@@ -503,7 +509,7 @@ namespace Statsig.Server
             ));
         }
 
-        private DynamicConfig GetConfigImpl(StatsigUser user, string configName, bool shouldLogExposure)
+        private DynamicConfig GetConfigImpl(StatsigUser user, string configName, bool shouldLogExposure, Dictionary<string, StickyValue>? userPersistedValues)
         {
             var isInitialized = EnsureInitialized();
             if (!isInitialized)
@@ -523,7 +529,7 @@ namespace Statsig.Server
             }
 
 
-            var evaluation = evaluator.GetConfig(user, configName);
+            var evaluation = evaluator.GetConfig(user, configName, userPersistedValues);
 
             if (evaluation.Result == EvaluationResult.Unsupported)
             {
@@ -559,7 +565,7 @@ namespace Statsig.Server
             ));
         }
 
-        private Layer GetLayerImpl(StatsigUser user, string layerName, bool shouldLogExposure)
+        private Layer GetLayerImpl(StatsigUser user, string layerName, bool shouldLogExposure, Dictionary<string, StickyValue>? userPersistedValues)
         {
             EnsureInitialized();
             var userIsValid = ValidateUser(user);
@@ -574,7 +580,7 @@ namespace Statsig.Server
                 return new Layer(layerName, null, null, null, null, null, null, evaluator.GetEvaluationDetails(EvaluationReason.Error));
             }
 
-            var evaluation = evaluator.GetLayer(user, layerName);
+            var evaluation = evaluator.GetLayer(user, layerName, userPersistedValues);
 
             if (evaluation.Result == EvaluationResult.Unsupported)
             {

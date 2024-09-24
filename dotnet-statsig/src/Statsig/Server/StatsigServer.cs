@@ -120,45 +120,47 @@ namespace Statsig.Server
 
         #region GetExperiment
 
-        public static DynamicConfig GetExperimentSync(StatsigUser user, string experimentName)
+        public static DynamicConfig GetExperimentSync(StatsigUser user, string experimentName, StatsigGetExperimentOptions? options = null)
         {
-            return EnforceInitialized().GetExperimentSync(user, experimentName);
+            return EnforceInitialized().GetExperimentSync(user, experimentName, options?.UserPersistedValues);
         }
 
         public static DynamicConfig GetExperimentWithExposureLoggingDisabledSync(
             StatsigUser user,
-            string experimentName
+            string experimentName,
+            StatsigGetExperimentOptions? options = null
         )
         {
-            return EnforceInitialized().GetExperimentWithExposureLoggingDisabledSync(user, experimentName);
+            return EnforceInitialized().GetExperimentWithExposureLoggingDisabledSync(user, experimentName, options?.UserPersistedValues);
         }
 
-        public static void ManuallyLogExperimentExposure(StatsigUser user, string experimentName)
+        public static void ManuallyLogExperimentExposure(StatsigUser user, string experimentName, StatsigGetExperimentOptions? options = null)
         {
-            EnforceInitialized().LogExperimentExposure(user, experimentName);
+            EnforceInitialized().LogExperimentExposure(user, experimentName, options?.UserPersistedValues);
         }
 
         #endregion
 
         #region GetLayer
 
-        public static Layer GetLayerSync(StatsigUser user, string layerName)
+        public static Layer GetLayerSync(StatsigUser user, string layerName, StatsigGetLayerOptions? options = null)
         {
-            return EnforceInitialized().GetLayerSync(user, layerName);
+            return EnforceInitialized().GetLayerSync(user, layerName, options?.UserPersistedValues);
         }
 
-        public static Layer GetLayerWithExposureLoggingDisabledSync(StatsigUser user, string layerName)
+        public static Layer GetLayerWithExposureLoggingDisabledSync(StatsigUser user, string layerName, StatsigGetLayerOptions? options = null)
         {
-            return EnforceInitialized().GetLayerWithExposureLoggingDisabledSync(user, layerName);
+            return EnforceInitialized().GetLayerWithExposureLoggingDisabledSync(user, layerName, options?.UserPersistedValues);
         }
 
         public static async void ManuallyLogLayerParameterExposure(
             StatsigUser user,
             string layerName,
-            string parameterName
+            string parameterName,
+            StatsigGetLayerOptions? options = null
         )
         {
-            EnforceInitialized().LogLayerParameterExposure(user, layerName, parameterName);
+            EnforceInitialized().LogLayerParameterExposure(user, layerName, parameterName, options?.UserPersistedValues);
         }
 
         #endregion
@@ -193,6 +195,11 @@ namespace Statsig.Server
             IReadOnlyDictionary<string, string>? metadata = null)
         {
             EnforceInitialized().LogEvent(user, eventName, value, metadata);
+        }
+
+        public static async Task<Dictionary<string, StickyValue>?> GetUserPersistedValues(StatsigUser user, string idType)
+        {
+            return await EnforceInitialized().GetUserPersistedValues(user, idType);
         }
 
         public static List<string> GetFeatureGateList()

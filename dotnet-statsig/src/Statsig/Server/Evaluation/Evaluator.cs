@@ -29,6 +29,7 @@ namespace Statsig.Server.Evaluation
         private Dictionary<string, Dictionary<string, Dictionary<string, JToken>>> _configOverrides;
         private Dictionary<string, Dictionary<string, Dictionary<string, JToken>>> _layerOverrides;
         private SDKDetails _sdkDetails;
+        private UserPersistentStorageHandler _persistentStore;
 
         internal Evaluator(StatsigOptions options, RequestDispatcher dispatcher, string serverSecret, ErrorBoundary errorBoundary)
         {
@@ -37,6 +38,8 @@ namespace Statsig.Server.Evaluation
             _configOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
             _layerOverrides = new Dictionary<string, Dictionary<string, Dictionary<string, JToken>>>();
             _sdkDetails = SDKDetails.GetServerSDKDetails();
+            var serverOps = options as StatsigServerOptions;
+            _persistentStore = new UserPersistentStorageHandler(serverOps?.UserPersistentStorage);
         }
 
         internal async Task<InitializeResult> Initialize()
@@ -161,11 +164,28 @@ namespace Statsig.Server.Evaluation
                 return overrideResult;
             }
 
-            return EvaluateSpec(user, gateName, SpecType.Gate);
+            if (_store.EvalReason == EvaluationReason.Uninitialized)
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Uninitialized);
+            }
+
+            if (string.IsNullOrWhiteSpace(gateName))
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
+            }
+
+            var spec = _store.FeatureGates.ContainsKey(gateName.ToLowerInvariant()) ? _store.FeatureGates[gateName.ToLowerInvariant()] : null;
+
+            if (spec == null)
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
+            }
+
+            return Evaluate(user, spec, 0);
         }
 
 
-        internal ConfigEvaluation GetConfig(StatsigUser user, string configName)
+        internal ConfigEvaluation GetConfig(StatsigUser user, string configName, Dictionary<string, StickyValue>? userPersistedValues)
         {
             var overrideResult = LookupConfigOverride(user, configName);
             if (overrideResult != null)
@@ -173,10 +193,46 @@ namespace Statsig.Server.Evaluation
                 return overrideResult;
             }
 
-            return EvaluateSpec(user, configName, SpecType.Config);
+            if (_store.EvalReason == EvaluationReason.Uninitialized)
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Uninitialized);
+            }
+
+            if (string.IsNullOrWhiteSpace(configName))
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
+            }
+
+            var spec = _store.DynamicConfigs.ContainsKey(configName.ToLowerInvariant()) ? _store.DynamicConfigs[configName.ToLowerInvariant()] : null;
+
+            if (spec == null)
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
+            }
+
+            if (userPersistedValues == null || !spec.IsActive)
+            {
+                _persistentStore.Delete(user, spec.IDType ?? "userid", spec.Name);
+                return Evaluate(user, spec, 0);
+            }
+
+            var stickyValue = userPersistedValues.ContainsKey(spec.Name) ? userPersistedValues[spec.Name] : null;
+
+            if (stickyValue != null)
+            {
+                return ConfigEvaluation.fromStickyValues(stickyValue);
+            }
+
+            var res = Evaluate(user, spec, 0);
+
+            if (res.ConfigValue.IsUserInExperiment)
+            {
+                _persistentStore.Save(user, spec.IDType ?? "userid", spec.Name, res, _store.LastSyncTime);
+            }
+            return res;
         }
 
-        internal ConfigEvaluation GetLayer(StatsigUser user, string layerName)
+        internal ConfigEvaluation GetLayer(StatsigUser user, string layerName, Dictionary<string, StickyValue>? userPersistedValues)
         {
             var overrideResult = LookupLayerOverride(user, layerName);
             if (overrideResult != null)
@@ -184,7 +240,66 @@ namespace Statsig.Server.Evaluation
                 return overrideResult;
             }
 
-            return EvaluateSpec(user, layerName, SpecType.Layer);
+            if (_store.EvalReason == EvaluationReason.Uninitialized)
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Uninitialized);
+            }
+
+            if (string.IsNullOrWhiteSpace(layerName))
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
+            }
+
+            var spec = _store.LayerConfigs.ContainsKey(layerName.ToLowerInvariant()) ? _store.LayerConfigs[layerName.ToLowerInvariant()] : null;
+
+            if (spec == null)
+            {
+                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
+            }
+
+            if (userPersistedValues == null)
+            {
+                _persistentStore.Delete(user, spec.IDType ?? "userid", spec.Name);
+                return Evaluate(user, spec, 0);
+            }
+
+            var stickyValue = userPersistedValues.ContainsKey(spec.Name) ? userPersistedValues[spec.Name] : null;
+
+            if (stickyValue != null)
+            {
+                var stickyDelegate = stickyValue.ConfigDelegate;
+                var stickyDelegateSpec = stickyDelegate != null && _store.DynamicConfigs.ContainsKey(stickyDelegate) ? _store.DynamicConfigs[stickyDelegate] : null;
+                if (stickyDelegateSpec == null || !stickyDelegateSpec.IsActive)
+                {
+                    _persistentStore.Delete(user, spec.IDType ?? "userid", spec.Name);
+                    return Evaluate(user, spec, 0);
+                }
+                return ConfigEvaluation.fromStickyValues(stickyValue);
+            }
+
+            var res = Evaluate(user, spec, 0);
+
+            var configDelegate = res.ConfigDelegate;
+            var delegateSpec = configDelegate != null && _store.DynamicConfigs.ContainsKey(configDelegate) ? _store.DynamicConfigs[configDelegate] : null;
+            if (delegateSpec != null && delegateSpec.IsActive)
+            {
+
+                if (res.ConfigValue.IsUserInExperiment)
+                {
+                    _persistentStore.Save(user, spec.IDType ?? "userid", spec.Name, res, _store.LastSyncTime);
+                }
+            }
+            else
+            {
+                _persistentStore.Delete(user, spec.IDType ?? "userid", spec.Name);
+            }
+
+            return res;
+        }
+
+        internal async Task<Dictionary<string, StickyValue>?> GetUserPersistedValues(StatsigUser user, string idType)
+        {
+            return await _persistentStore.Load(user, idType);
         }
 
         internal List<string> GetSpecNames(string type)
@@ -252,7 +367,7 @@ namespace Statsig.Server.Evaluation
                 }
 
                 var hashedName = HashName(kv.Value.Name, hash);
-                var config = includeLocalOverrides ? GetConfig(user, kv.Key).ConfigValue : Evaluate(user, kv.Value, 0).ConfigValue;
+                var config = includeLocalOverrides ? GetConfig(user, kv.Key, null).ConfigValue : Evaluate(user, kv.Value, 0).ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config, hash);
                 if (kv.Value.Entity != "dynamic_config" && kv.Value.Entity != "autotune")
                 {
@@ -279,7 +394,7 @@ namespace Statsig.Server.Evaluation
                 }
 
                 var hashedName = HashName(kv.Value.Name, hash);
-                var evaluation = includeLocalOverrides ? GetLayer(user, kv.Key) : Evaluate(user, kv.Value, 0);
+                var evaluation = includeLocalOverrides ? GetLayer(user, kv.Key, null) : Evaluate(user, kv.Value, 0);
                 var config = evaluation.ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config, hash);
                 entry["explicit_parameters"] = kv.Value.ExplicitParameters ?? new List<string>();
@@ -319,35 +434,6 @@ namespace Statsig.Server.Evaluation
                 ["user"] = userWithoutPrivateAttributes,
             };
             return result;
-        }
-
-        private ConfigEvaluation EvaluateSpec(StatsigUser user, string specName, SpecType type)
-        {
-            if (_store.EvalReason == EvaluationReason.Uninitialized)
-            {
-                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Uninitialized);
-            }
-
-            if (string.IsNullOrWhiteSpace(specName))
-            {
-                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
-            }
-
-            var name = specName.ToLowerInvariant();
-            var lookup = type switch
-            {
-                SpecType.Gate => _store.FeatureGates,
-                SpecType.Config => _store.DynamicConfigs,
-                SpecType.Layer => _store.LayerConfigs,
-                _ => null
-            };
-
-            if (lookup == null || !lookup.ContainsKey(name))
-            {
-                return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
-            }
-
-            return Evaluate(user, lookup[name], 0);
         }
 
         private List<IReadOnlyDictionary<string, string>> CleanExposures(
@@ -596,7 +682,7 @@ namespace Statsig.Server.Evaluation
             return (hash % 10000) < (rule.PassPercentage * 100);
         }
 
-        private string GetUnitID(StatsigUser user, string? idType)
+        public static string GetUnitID(StatsigUser user, string? idType)
         {
             if (idType != null && idType.ToLowerInvariant() != "userid")
             {
@@ -655,8 +741,7 @@ namespace Statsig.Server.Evaluation
                     return EvaluationResult.Pass;
                 case "fail_gate":
                 case "pass_gate":
-                    _store.FeatureGates.TryGetValue(targetStr.ToLowerInvariant(), out var spec);
-                    var otherGateResult = Evaluate(user, spec, depth + 1);
+                    var otherGateResult = CheckGate(user, targetStr);
                     if (otherGateResult.Result == EvaluationResult.Unsupported)
                     {
                         return EvaluationResult.Unsupported;
