@@ -21,7 +21,7 @@ namespace dotnet_statsig_tests
     {
         WireMockServer _server;
 
-        private const String ExpectedSdkVersion = "1.27.3.0";
+        private const String ExpectedSdkVersion = "1.28.0.0";
 
         Task IAsyncLifetime.InitializeAsync()
         {
@@ -316,7 +316,7 @@ namespace dotnet_statsig_tests
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
             Assert.True(requestHeaders["STATSIG-SDK-VERSION"].ToString().Equals(ExpectedSdkVersion));
             Assert.True(requestHeaders["STATSIG-SDK-TYPE"].ToString().Equals("dotnet-server"));
-            
+
             Assert.True(metadata["sdkType"].Equals("dotnet-server"));
             Assert.True(metadata["sdkVersion"].Equals(ExpectedSdkVersion));
 
