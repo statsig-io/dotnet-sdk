@@ -677,6 +677,15 @@ namespace Statsig.Server.Evaluation
 
         private bool EvaluatePassPercentage(StatsigUser user, ConfigRule rule, ConfigSpec spec)
         {
+            if (rule.PassPercentage == 0.0)
+            {
+                return false;
+            }
+
+            if (rule.PassPercentage == 100.0)
+            {
+                return true;
+            }
             var hash = ComputeUserHash(string.Format("{0}.{1}.{2}", spec.Salt, rule.Salt ?? rule.ID,
                 GetUnitID(user, rule.IDType)));
             return (hash % 10000) < (rule.PassPercentage * 100);
