@@ -354,6 +354,10 @@ namespace Statsig.Server.Evaluation
                     ["rule_id"] = gate.RuleID,
                     ["secondary_exposures"] = HashExposures(CleanExposures(gate.SecondaryExposures), hash).ToArray(),
                 };
+                if (kv.Value.IDType != null)
+                {
+                    entry["id_type"] = kv.Value.IDType;
+                }
                 gates.Add(hashedName, entry);
             }
 
@@ -369,6 +373,11 @@ namespace Statsig.Server.Evaluation
                 var hashedName = HashName(kv.Value.Name, hash);
                 var config = includeLocalOverrides ? GetConfig(user, kv.Key, null).ConfigValue : Evaluate(user, kv.Value, 0).ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config, hash);
+                if (kv.Value.IDType != null)
+                {
+                    entry["id_type"] = kv.Value.IDType;
+                }
+
                 if (kv.Value.Entity != "dynamic_config" && kv.Value.Entity != "autotune")
                 {
                     entry["is_experiment_active"] = kv.Value.IsActive;
