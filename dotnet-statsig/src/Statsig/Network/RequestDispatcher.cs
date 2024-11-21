@@ -19,6 +19,7 @@ namespace Statsig.Network
 
         public string Key { get; }
         public string ApiBaseUrl { get; }
+        public string CDNBaseUrl { get; }
         public IReadOnlyDictionary<string, string> AdditionalHeaders { get; }
 
         private readonly JsonSerializer _defaultSerializer;
@@ -35,6 +36,9 @@ namespace Statsig.Network
         {
             ApiBaseUrl = string.IsNullOrWhiteSpace(options.ApiUrlBase)
                 ? Constants.DEFAULT_API_URL_BASE
+                : options.ApiUrlBase;
+            CDNBaseUrl = string.IsNullOrWhiteSpace(options.ApiUrlBase)
+                ? Constants.DEFAULT_CDN_URL_BASE
                 : options.ApiUrlBase;
             Key = key;
             AdditionalHeaders = options.AdditionalHeaders;
@@ -119,6 +123,10 @@ namespace Statsig.Network
             try
             {
                 var url = ApiBaseUrl.EndsWith("/") ? ApiBaseUrl + endpoint : ApiBaseUrl + "/" + endpoint;
+                if (endpoint.Equals("download_config_specs"))
+                {
+                    url = CDNBaseUrl.EndsWith("/") ? CDNBaseUrl + endpoint : CDNBaseUrl + "/" + endpoint;
+                }
                 var client = new HttpClient(new HttpClientHandler()
                 {
                     AutomaticDecompression = DecompressionMethods.GZip
