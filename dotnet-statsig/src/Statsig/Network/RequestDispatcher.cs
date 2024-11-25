@@ -61,7 +61,7 @@ namespace Statsig.Network
             int timeoutInMs = 0,
             IReadOnlyDictionary<string, string>? additionalHeaders = null)
         {
-            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
+            var (result, status) = await FetchAsString(endpoint, body, 0, retries, backoff, timeoutInMs, additionalHeaders).ConfigureAwait(false);
             return JsonConvert.DeserializeObject<IReadOnlyDictionary<string, JToken>>(result ?? "");
         }
 
@@ -74,7 +74,7 @@ namespace Statsig.Network
             IReadOnlyDictionary<string, string>? additionalHeaders = null,
             bool zipped = false)
         {
-            var (result, status) = await FetchAsString(endpoint, body, retries, backoff, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
+            var (result, status) = await FetchAsString(endpoint, body, 0, retries, backoff, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
             return status;
         }
 
@@ -109,6 +109,7 @@ namespace Statsig.Network
         public async Task<(string?, InitializeResult)> FetchAsString(
             string endpoint,
             string body,
+            long sinceTime = 0,
             int retries = 0,
             int backoff = 1,
             int timeoutInMs = 0,
@@ -125,13 +126,13 @@ namespace Statsig.Network
                 var url = ApiBaseUrl.EndsWith("/") ? ApiBaseUrl + endpoint : ApiBaseUrl + "/" + endpoint;
                 if (endpoint.Equals("download_config_specs"))
                 {
-                    url = CDNBaseUrl.EndsWith("/") ? CDNBaseUrl + endpoint : CDNBaseUrl + "/" + endpoint;
+                    url = (CDNBaseUrl.EndsWith("/") ? CDNBaseUrl + endpoint : CDNBaseUrl + "/" + endpoint) + "/" + Key + ".json?sinceTime=" + sinceTime;
                 }
                 var client = new HttpClient(new HttpClientHandler()
                 {
                     AutomaticDecompression = DecompressionMethods.GZip
                 });
-                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                using var request = new HttpRequestMessage(endpoint.Equals("download_config_specs") ? HttpMethod.Get : HttpMethod.Post, url);
                 if (zipped)
                 {
                     var zippedBody = Zip(body);
@@ -139,7 +140,7 @@ namespace Statsig.Network
                     request.Content.Headers.Add("Content-Encoding", "gzip");
                     request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
                 }
-                else
+                else if (!string.IsNullOrWhiteSpace(body))
                 {
                     request.Content = new StringContent(body, Encoding.UTF8, "application/json");
                 }
@@ -234,7 +235,7 @@ namespace Statsig.Network
             bool zipped = false)
         {
             await Task.Delay(backoff * 1000).ConfigureAwait(false);
-            return await FetchAsString(endpoint, body, retries - 1, backoff * BackoffMultiplier, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
+            return await FetchAsString(endpoint, body, 0, retries - 1, backoff * BackoffMultiplier, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
         }
     }
 }

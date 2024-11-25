@@ -26,7 +26,7 @@ namespace dotnet_statsig_tests.Server
             _server = WireMockServer.Start();
             _server.ResetLogEntries();
             _server.Given(Request.Create()
-                .WithPath("/v1/download_config_specs").UsingPost()
+                .WithPath("/v1/download_config_specs/secret-key.json").UsingGet()
             ).RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithBody(SpecStoreResponseData.downloadConfigSpecResponse)

@@ -202,7 +202,7 @@ namespace dotnet_statsig_tests
         {
             _server.ResetLogEntries();
             _server.Given(
-                Request.Create().WithPath("/v1/download_config_specs").UsingPost()
+                Request.Create().WithPath("/v1/download_config_specs/secret-fake-key.json").UsingGet()
             ).RespondWith(
                 Response.Create().WithStatusCode(200).WithBodyAsJson(
                     new Dictionary<string, object>
@@ -307,18 +307,10 @@ namespace dotnet_statsig_tests
 
             var requestBody = _server.LogEntries.ElementAt(0).RequestMessage.Body;
             var requestHeaders = _server.LogEntries.ElementAt(0).RequestMessage.Headers;
-            var requestDict = JObject.Parse(requestBody);
-
-            JToken m;
-            requestDict.TryGetValue("statsigMetadata", out m);
-            var metadata = m.ToObject<Dictionary<string, string>>();
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
             Assert.True(requestHeaders["STATSIG-SDK-VERSION"].ToString().Equals(ExpectedSdkVersion));
             Assert.True(requestHeaders["STATSIG-SDK-TYPE"].ToString().Equals("dotnet-server"));
-
-            Assert.True(metadata["sdkType"].Equals("dotnet-server"));
-            Assert.True(metadata["sdkVersion"].Equals(ExpectedSdkVersion));
 
             var gate = await StatsigServer.CheckGate(user, "test_gate");
             Assert.True(gate);
@@ -340,7 +332,7 @@ namespace dotnet_statsig_tests
             // Verify log event requets for exposures and custom logs
             requestBody = _server.LogEntries.ElementAt(2).RequestMessage.Body;
             requestHeaders = _server.LogEntries.ElementAt(2).RequestMessage.Headers;
-            requestDict = JObject.Parse(requestBody);
+            var requestDict = JObject.Parse(requestBody);
 
             Assert.True(requestHeaders["STATSIG-API-KEY"].ToString().Equals("secret-fake-key"));
 

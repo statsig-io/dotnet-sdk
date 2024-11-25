@@ -28,7 +28,7 @@ namespace dotnet_statsig_tests
             _baseURL = _server.Urls[0];
             _server.ResetLogEntries();
             _server.Given(
-                Request.Create().WithPath("/v1/download_config_specs").UsingPost()
+                Request.Create().WithPath("/v1/download_config_specs/secret-server-key.json").UsingGet()
             ).RespondWith(this);
             _server.Given(
                 Request.Create().WithPath("/v1/log_event").UsingPost()
@@ -142,7 +142,7 @@ namespace dotnet_statsig_tests
                 Assert.True(await StatsigServer.CheckGate(user, "always_on_gate"));
 
                 // check id list gate for a user that should be in the id list
-                Assert.True(await StatsigServer.CheckGate(new StatsigUser { UserID = "regular_user_id", customIDs = {{"unique_id", $"{i}_{taskId}"}}}, "on_for_id_list"));
+                Assert.True(await StatsigServer.CheckGate(new StatsigUser { UserID = "regular_user_id", customIDs = { { "unique_id", $"{i}_{taskId}" } } }, "on_for_id_list"));
 
                 StatsigServer.LogEvent(user, "test_event_2", 1, new Dictionary<string, string>() { { "Key", "Value" } });
 

@@ -18,7 +18,7 @@ namespace dotnet_statsig_tests
         private const int NUM_EVENTS = 8;
         private const int NUM_LOOOPS = 20;
         private const int NUM_THREADS = 10;
-        
+
         private WireMockServer _server;
         private string _baseUrl;
         private int _flushedEventCount;
@@ -32,7 +32,7 @@ namespace dotnet_statsig_tests
             _baseUrl = _server.Urls[0];
             _server.ResetLogEntries();
             _server.Given(
-                Request.Create().WithPath("/v1/download_config_specs").UsingPost()
+                Request.Create().WithPath("/v1/download_config_specs/secret-server-key.json").UsingGet()
             ).RespondWith(this);
             _server.Given(
                 Request.Create().WithPath("/v1/log_event").UsingPost()

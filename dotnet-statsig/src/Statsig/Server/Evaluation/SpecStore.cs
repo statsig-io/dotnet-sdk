@@ -365,11 +365,8 @@ namespace Statsig.Server
         {
             var (response, status) = await _requestDispatcher.FetchAsString(
                 "download_config_specs",
-                JsonConvert.SerializeObject(new Dictionary<string, object>
-                {
-                    ["sinceTime"] = LastSyncTime,
-                    ["statsigMetadata"] = SDKDetails.GetServerSDKDetails().StatsigMetadata
-                })
+                "",
+                LastSyncTime
             ).ConfigureAwait(false);
 
             var hasUpdates = ParseResponse(response);

@@ -30,7 +30,7 @@ namespace dotnet_statsig_tests
             baseURL = _server.Urls[0];
             _server.ResetLogEntries();
             _server.Given(
-                Request.Create().WithPath("/v1/download_config_specs").UsingPost()
+                Request.Create().WithPath("/v1/download_config_specs/secret-server-key.json").UsingGet()
             ).RespondWith(this);
             _server.Given(
                 Request.Create().WithPath("/v1/log_event").UsingPost()
