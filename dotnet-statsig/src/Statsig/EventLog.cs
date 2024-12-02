@@ -97,7 +97,8 @@ namespace Statsig
             string ruleID,
             List<IReadOnlyDictionary<string, string>> secondaryExposures,
             ExposureCause cause,
-            string? reason = null
+            string? reason = null,
+            bool? rulePassed = null
         )
         {
             var metadata = new Dictionary<string, string>
@@ -109,6 +110,11 @@ namespace Statsig
             if (reason != null)
             {
                 metadata["reason"] = reason;
+            }
+
+            if (rulePassed != null)
+            {
+                metadata["rulePassed"] = rulePassed.Value ? "true" : "false";
             }
 
             if (cause == ExposureCause.Manual)

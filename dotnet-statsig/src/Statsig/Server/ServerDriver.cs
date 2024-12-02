@@ -189,7 +189,7 @@ namespace Statsig.Server
                 NormalizeUser(user);
                 var evaluation = evaluator.GetConfig(user, configName, null);
                 var config = evaluation.ConfigValue;
-                LogConfigExposureImpl(user, configName, config, ExposureCause.Manual, evaluation.Reason);
+                LogConfigExposureImpl(user, configName, config, ExposureCause.Manual, evaluation.Reason, evaluation.GateValue.Value);
             });
         }
 
@@ -227,7 +227,7 @@ namespace Statsig.Server
                 NormalizeUser(user);
                 var evaluation = evaluator.GetConfig(user, experimentName, userPersistedValues);
                 var config = evaluation.ConfigValue;
-                LogConfigExposureImpl(user, experimentName, config, ExposureCause.Manual, evaluation.Reason);
+                LogConfigExposureImpl(user, experimentName, config, ExposureCause.Manual, evaluation.Reason, evaluation.GateValue.Value);
             });
         }
 
@@ -541,27 +541,28 @@ namespace Statsig.Server
                 var configValue = new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(evaluation.Reason));
                 if (shouldLogExposure)
                 {
-                    LogConfigExposureImpl(user, configName, configValue, ExposureCause.Automatic, evaluation.Reason);
+                    LogConfigExposureImpl(user, configName, configValue, ExposureCause.Automatic, evaluation.Reason, evaluation.GateValue.Value);
                 }
                 return configValue;
             }
 
             if (shouldLogExposure)
             {
-                LogConfigExposureImpl(user, configName, evaluation.ConfigValue, ExposureCause.Automatic, evaluation.Reason);
+                LogConfigExposureImpl(user, configName, evaluation.ConfigValue, ExposureCause.Automatic, evaluation.Reason, evaluation.GateValue.Value);
             }
 
             return evaluation.ConfigValue;
         }
 
         private void LogConfigExposureImpl(StatsigUser user, string configName, DynamicConfig config,
-            ExposureCause cause, string reason)
+            ExposureCause cause, string reason, bool rulePassed)
         {
             _eventLogger.Enqueue(EventLog.CreateConfigExposureLog(user, configName,
                 config?.RuleID ?? "",
                 config?.SecondaryExposures ?? new List<IReadOnlyDictionary<string, string>>(),
                 cause,
-                reason.ToString()
+                reason.ToString(),
+                rulePassed
             ));
         }
 
