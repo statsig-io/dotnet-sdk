@@ -299,7 +299,7 @@ namespace Statsig.Server.Evaluation
 
         internal async Task<Dictionary<string, StickyValue>?> GetUserPersistedValues(StatsigUser user, string idType)
         {
-            return await _persistentStore.Load(user, idType);
+            return await _persistentStore.Load(user, idType) ?? new Dictionary<string, StickyValue>();
         }
 
         internal List<string> GetSpecNames(string type)
