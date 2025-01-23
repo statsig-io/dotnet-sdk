@@ -371,11 +371,17 @@ namespace Statsig.Server.Evaluation
                 }
 
                 var hashedName = HashName(kv.Value.Name, hash);
-                var config = includeLocalOverrides ? GetConfig(user, kv.Key, null).ConfigValue : Evaluate(user, kv.Value, 0).ConfigValue;
+                var eval = includeLocalOverrides ? GetConfig(user, kv.Key, null) : Evaluate(user, kv.Value, 0);
+                var config = eval.ConfigValue;
                 var entry = ConfigSpecToInitResponse(hashedName, kv.Value, config, hash);
                 if (kv.Value.IDType != null)
                 {
                     entry["id_type"] = kv.Value.IDType;
+                }
+
+                if (kv.Value.Entity == "dynamic_config")
+                {
+                    entry["passed"] = eval.GateValue.Value;
                 }
 
                 if (kv.Value.Entity != "dynamic_config" && kv.Value.Entity != "autotune")
