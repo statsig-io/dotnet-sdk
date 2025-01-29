@@ -174,7 +174,7 @@ namespace Statsig.Server.Evaluation
                 return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
             }
 
-            var spec = _store.FeatureGates.ContainsKey(gateName.ToLowerInvariant()) ? _store.FeatureGates[gateName.ToLowerInvariant()] : null;
+            var spec = _store.FeatureGates.ContainsKey(gateName) ? _store.FeatureGates[gateName] : null;
 
             if (spec == null)
             {
@@ -203,7 +203,7 @@ namespace Statsig.Server.Evaluation
                 return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
             }
 
-            var spec = _store.DynamicConfigs.ContainsKey(configName.ToLowerInvariant()) ? _store.DynamicConfigs[configName.ToLowerInvariant()] : null;
+            var spec = _store.DynamicConfigs.ContainsKey(configName) ? _store.DynamicConfigs[configName] : null;
 
             if (spec == null)
             {
@@ -250,7 +250,7 @@ namespace Statsig.Server.Evaluation
                 return new ConfigEvaluation(EvaluationResult.Fail, EvaluationReason.Unrecognized);
             }
 
-            var spec = _store.LayerConfigs.ContainsKey(layerName.ToLowerInvariant()) ? _store.LayerConfigs[layerName.ToLowerInvariant()] : null;
+            var spec = _store.LayerConfigs.ContainsKey(layerName) ? _store.LayerConfigs[layerName] : null;
 
             if (spec == null)
             {

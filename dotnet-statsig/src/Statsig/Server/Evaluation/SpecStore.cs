@@ -438,7 +438,7 @@ namespace Statsig.Server
                         var gateSpec = ConfigSpec.FromJObject(gate);
                         if (gateSpec != null)
                         {
-                            newGates[gateSpec.Name.ToLowerInvariant()] = gateSpec;
+                            newGates[gateSpec.Name] = gateSpec;
                         }
                     }
                     catch
@@ -458,7 +458,7 @@ namespace Statsig.Server
                         var configSpec = ConfigSpec.FromJObject(config);
                         if (configSpec != null)
                         {
-                            newConfigs[configSpec.Name.ToLowerInvariant()] = configSpec;
+                            newConfigs[configSpec.Name] = configSpec;
                         }
                     }
                     catch
@@ -478,7 +478,7 @@ namespace Statsig.Server
                         var configSpec = ConfigSpec.FromJObject(config);
                         if (configSpec != null)
                         {
-                            newLayerConfigs[configSpec.Name.ToLowerInvariant()] = configSpec;
+                            newLayerConfigs[configSpec.Name] = configSpec;
                         }
                     }
                     catch
