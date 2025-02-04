@@ -75,37 +75,37 @@ namespace Statsig.Server.Evaluation
                 switch (field)
                 {
                     case "os_name":
-                    {
-                        var os = parser.ParseOS(agentString);
-                        alreadyParsed[field] = os.Family;
-                        return os.Family;
-                    }
-                    case "os_version":
-                    {
-                        var os = parser.ParseOS(agentString);
-                        var version = string.Join(".", new []
                         {
+                            var os = parser.ParseOS(agentString);
+                            alreadyParsed[field] = os.Family;
+                            return os.Family;
+                        }
+                    case "os_version":
+                        {
+                            var os = parser.ParseOS(agentString);
+                            var version = string.Join(".", new[]
+                            {
                             os.Major, os.Minor, os.Patch
                         }.Where(v => !string.IsNullOrEmpty(v)).ToArray());
-                        alreadyParsed[field] = version;
-                        return version;
-                    }
+                            alreadyParsed[field] = version;
+                            return version;
+                        }
                     case "browser_name":
-                    {
-                        var userAgent = parser.ParseUserAgent(agentString);
-                        alreadyParsed[field] = userAgent.Family;
-                        return userAgent.Family;
-                    }
-                    case "browser_version":
-                    {
-                        var userAgent = parser.ParseUserAgent(agentString);
-                        var version = string.Join(".", new[]
                         {
+                            var userAgent = parser.ParseUserAgent(agentString);
+                            alreadyParsed[field] = userAgent.Family;
+                            return userAgent.Family;
+                        }
+                    case "browser_version":
+                        {
+                            var userAgent = parser.ParseUserAgent(agentString);
+                            var version = string.Join(".", new[]
+                            {
                             userAgent.Major, userAgent.Minor, userAgent.Patch
                         }.Where(v => !string.IsNullOrEmpty(v)).ToArray());
-                        alreadyParsed[field] = version;
-                        return version;
-                    }
+                            alreadyParsed[field] = version;
+                            return version;
+                        }
                 }
             }
             catch (Exception)
@@ -190,6 +190,16 @@ namespace Statsig.Server.Evaluation
                 return false;
             }
 
+            var valueStr = value.ToString();
+            if (value.GetType().IsArray)
+            {
+                valueStr = string.Join(",", (object[])value);
+            }
+            else if (value is IEnumerable<object> enumerable)
+            {
+                valueStr = string.Join(",", enumerable);
+            }
+
             try
             {
                 foreach (var t in array)
@@ -199,12 +209,12 @@ namespace Statsig.Server.Evaluation
                         continue;
                     }
 
-                    if (ignoreCase && func(value.ToString()!.ToLowerInvariant(), t.ToString()!.ToLowerInvariant()))
+                    if (ignoreCase && func(valueStr!.ToLowerInvariant(), t.ToString()!.ToLowerInvariant()))
                     {
                         return true;
                     }
 
-                    if (func(value.ToString()!, t.ToString()!))
+                    if (func(valueStr!, t.ToString()!))
                     {
                         return true;
                     }
