@@ -213,7 +213,7 @@ namespace dotnet_statsig_tests
         {
             await StatsigServer.Initialize(
                "secret-server-key",
-               new StatsigOptions(_server.Urls[0] + "/v1")
+               new StatsigServerOptions(_server.Urls[0] + "/v1")
            );
         }
     }

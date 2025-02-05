@@ -39,6 +39,11 @@ namespace Statsig
         /// </summary>
         public IUserPersistentStorage UserPersistentStorage;
 
+        /// <summary>
+        /// Allows setting environment to a custom value. Will take precedence over the StatsigEnvironment value.
+        /// </summary>
+        public string? CustomEnvironment;
+
         public StatsigServerOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null) : base(
             apiUrlBase, environment)
         {

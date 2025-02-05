@@ -217,7 +217,7 @@ namespace dotnet_statsig_tests
         {
             _serverDriver = new ServerDriver(
                 "secret-server-key",
-                new StatsigOptions(_server.Urls[0] + "/v1") { RulesetsSyncInterval = 0.01, IDListsSyncInterval = 0.01 }
+                new StatsigServerOptions(_server.Urls[0] + "/v1") { RulesetsSyncInterval = 0.01, IDListsSyncInterval = 0.01 }
             );
             await _serverDriver.Initialize();
         }

@@ -20,6 +20,7 @@ namespace Statsig.Server
 #endif
     {
         private readonly StatsigOptions _options;
+        private readonly StatsigServerOptions? _serverOpts;
         internal readonly string _serverSecret;
         private bool _initialized;
         private bool _disposed;
@@ -33,11 +34,11 @@ namespace Statsig.Server
 
         public ServerDriver(string serverSecret, StatsigOptions? options = null)
         {
-            options ??= new StatsigOptions();
+            options ??= new StatsigServerOptions();
 
             _serverSecret = serverSecret;
             _options = options;
-            var serverOpts = _options as StatsigServerOptions ?? null;
+            _serverOpts = _options as StatsigServerOptions ?? null;
 
             _errorBoundary = new ErrorBoundary(serverSecret, SDKDetails.GetServerSDKDetails());
             _errorBoundary.Swallow("Constructor", () =>
@@ -47,8 +48,8 @@ namespace Statsig.Server
                 _eventLogger = new EventLogger(
                     _requestDispatcher,
                     sdkDetails,
-                    serverOpts?.LoggingBufferMaxSize ?? Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
-                    serverOpts?.LoggingIntervalSeconds ?? Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC,
+                    _serverOpts?.LoggingBufferMaxSize ?? Constants.SERVER_MAX_LOGGER_QUEUE_LENGTH,
+                    _serverOpts?.LoggingIntervalSeconds ?? Constants.SERVER_MAX_LOGGER_WAIT_TIME_IN_SEC,
                     _errorBoundary,
                     Constants.SERVER_DEDUPE_INTERVAL
                 );
@@ -654,6 +655,12 @@ namespace Statsig.Server
 
         private void NormalizeUser(StatsigUser user)
         {
+            var customEnv = _serverOpts?.CustomEnvironment;
+            if (user != null && customEnv != null)
+            {
+                user.SetEnvironment(customEnv);
+                return;
+            }
             if (user != null && _options.StatsigEnvironment != null && _options.StatsigEnvironment.Values.Count > 0)
             {
                 user.statsigEnvironment = _options.StatsigEnvironment.Values;

@@ -96,7 +96,7 @@ namespace dotnet_statsig_tests
 
         private async Task TestConsistency(string apiURLBase)
         {
-            var driver = new ServerDriver(secret, new StatsigOptions(apiURLBase));
+            var driver = new ServerDriver(secret, new StatsigServerOptions(apiURLBase));
             await driver.Initialize();
             var testData = await FetchTestData(apiURLBase);
             foreach (var data in testData)

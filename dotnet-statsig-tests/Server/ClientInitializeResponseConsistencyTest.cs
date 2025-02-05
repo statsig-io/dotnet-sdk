@@ -41,7 +41,7 @@ namespace dotnet_statsig_tests
             return Task.CompletedTask;
         }
 
-        [Fact (Skip = "Disabled until optimizations are complete")]
+        [Fact(Skip = "Disabled until optimizations are complete")]
         public async void TestProd()
         {
             await TestConsistency("https://statsigapi.net/v1");
@@ -77,7 +77,7 @@ namespace dotnet_statsig_tests
 
         private async Task TestConsistency(string apiUrlBase)
         {
-            var driver = new ServerDriver(_serverKey, new StatsigOptions(apiUrlBase));
+            var driver = new ServerDriver(_serverKey, new StatsigServerOptions(apiUrlBase));
             await driver.Initialize();
             var serverResponse = await FetchTestData(apiUrlBase);
             var sdkResponse = JsonConvert.SerializeObject(driver.GenerateInitializeResponse(_user));

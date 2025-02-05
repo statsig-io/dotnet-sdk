@@ -299,7 +299,7 @@ namespace dotnet_statsig_tests
             await StatsigServer.Initialize
             (
                 "secret-fake-key",
-                new Statsig.StatsigOptions(_server.Urls[0] + "/v1")
+                new Statsig.StatsigServerOptions(_server.Urls[0] + "/v1")
             );
             var nowSeconds = Convert.ToInt32(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
 

@@ -109,7 +109,7 @@ namespace dotnet_statsig_tests
         [Fact]
         public async void TestStore()
         {
-            var opts = new StatsigOptions(_server.Urls[0] + "/v1") { IDListsSyncInterval = 1 };
+            var opts = new StatsigServerOptions(_server.Urls[0] + "/v1") { IDListsSyncInterval = 1 };
             var dispatcher = new RequestDispatcher("secret-123", opts, SDKDetails.GetServerSDKDetails(), "my-session");
             var store = new SpecStore(opts, dispatcher, "secret-123", new ErrorBoundary("secret-123", SDKDetails.GetServerSDKDetails()));
             await store.Initialize();

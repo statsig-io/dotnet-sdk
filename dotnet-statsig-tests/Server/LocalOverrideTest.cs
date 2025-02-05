@@ -118,11 +118,11 @@ namespace dotnet_statsig_tests
         public async void TestOverrideGate()
         {
             await Start();
-            
+
             _serverDriver.OverrideGate("override_gate", true, "1");
             _serverDriver.OverrideGate("override_gate", false, "2");
             _serverDriver.OverrideGate("global_gate", true);
-            
+
             var user1 = new StatsigUser
             {
                 UserID = "1",
@@ -251,7 +251,7 @@ namespace dotnet_statsig_tests
         {
             _serverDriver = new ServerDriver(
                 "secret-server-key",
-                new StatsigOptions(_server.Urls[0] + "/v1") { RulesetsSyncInterval = 0.01, IDListsSyncInterval = 0.01 }
+                new StatsigServerOptions(_server.Urls[0] + "/v1") { RulesetsSyncInterval = 0.01, IDListsSyncInterval = 0.01 }
             );
             await _serverDriver.Initialize();
         }
