@@ -924,6 +924,42 @@ namespace Statsig.Server.Evaluation
                     result = value != target;
                     break;
 
+                // array ops
+                case "array_contains_any":
+                case "array_contains_none":
+                case "array_contains_all":
+                case "not_array_contains_all":
+                    var valueArray = value as JArray;
+                    if (valueArray == null)
+                    {
+                        result = false;
+                        break;
+                    }
+                    var valueArrayObj = valueArray.ToObject<object[]>();
+                    if (valueArrayObj == null)
+                    {
+                        result = false;
+                        break;
+                    }
+                    if (op == "array_contains_any")
+                    {
+                        result = ArrayContainsAny(targetArray, valueArrayObj);
+                    }
+                    if (op == "array_contains_none")
+                    {
+                        result = !ArrayContainsAny(targetArray, valueArrayObj);
+                    }
+                    if (op == "array_contains_all")
+                    {
+                        result = ArrayContainsAll(targetArray, valueArrayObj);
+                    }
+                    if (op == "not_array_contains_all")
+                    {
+                        result = !ArrayContainsAll(targetArray, valueArrayObj);
+                    }
+
+                    break;
+
                 // dates
                 case "before":
                     result = CompareTimes(value, target, (DateTimeOffset t1, DateTimeOffset t2) => (t1 < t2));

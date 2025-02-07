@@ -180,8 +180,33 @@ namespace Statsig.Server.Evaluation
             return false;
         }
 
-        // Return true if the array contains the value, using case-insensitive comparison for strings
+        internal static bool ArrayContainsAny(object[] array, object[] value)
+        {
+            foreach (var val in array)
+            {
+                if (MatchStringInArray(value, val, true, (s1, s2) => s1 == s2))
+                {
+                    return true;
+                }
+            }
 
+            return false;
+        }
+
+        internal static bool ArrayContainsAll(object[] array, object[] value)
+        {
+            foreach (var val in array)
+            {
+                if (!MatchStringInArray(value, val, true, (s1, s2) => s1 == s2))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Return true if the array contains the value, using case-insensitive comparison for strings
         internal static bool MatchStringInArray(object[] array, object? value, bool ignoreCase,
             Func<string, string, bool> func)
         {
