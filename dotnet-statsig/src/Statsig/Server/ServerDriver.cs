@@ -478,7 +478,12 @@ namespace Statsig.Server
 
             if (evaluation.Result == EvaluationResult.Unsupported)
             {
-                return new FeatureGate(gateName, false, null, null, EvaluationReason.Unsupported, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
+                var gateValue = new FeatureGate(gateName, false, null, null, EvaluationReason.Unsupported, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
+                if (shouldLogExposure)
+                {
+                    LogGateExposureImpl(user, gateName, gateValue, ExposureCause.Automatic, evaluation.Reason);
+                }
+                return gateValue;
             }
 
             if (evaluation.Reason == EvaluationReason.Unrecognized || evaluation.Reason == EvaluationReason.Uninitialized)
@@ -534,7 +539,12 @@ namespace Statsig.Server
 
             if (evaluation.Result == EvaluationResult.Unsupported)
             {
-                return new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
+                var configValue = new DynamicConfig(configName, null, null, null, null, null, false, false, evaluator.GetEvaluationDetails(EvaluationReason.Unsupported));
+                if (shouldLogExposure)
+                {
+                    LogConfigExposureImpl(user, configName, configValue, ExposureCause.Automatic, evaluation.Reason, evaluation.GateValue.Value);
+                }
+                return configValue;
             }
 
             if (evaluation.Reason == EvaluationReason.Unrecognized || evaluation.Reason == EvaluationReason.Uninitialized)
