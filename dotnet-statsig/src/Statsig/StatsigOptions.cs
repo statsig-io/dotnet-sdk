@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using Statsig.Lib;
 using Statsig.Server.Interfaces;
 
@@ -81,6 +82,8 @@ namespace Statsig
         public double RulesetsSyncInterval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC;
         public double IDListsSyncInterval = Constants.SERVER_ID_LISTS_SYNC_INTERVAL_IN_SEC;
         public int ClientRequestTimeoutMs = 0;
+
+        public HttpClient? HttpClient { get; set; } = null;
 
         private Dictionary<string, string> _additionalHeaders;
         private Func<IIDStore>? _idStoreFactory = null;

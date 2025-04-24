@@ -128,10 +128,22 @@ namespace Statsig.Network
                 {
                     url = (CDNBaseUrl.EndsWith("/") ? CDNBaseUrl + endpoint : CDNBaseUrl + "/" + endpoint) + "/" + Key + ".json?sinceTime=" + sinceTime;
                 }
-                var client = new HttpClient(new HttpClientHandler()
+
+                var client = _options.HttpClient;
+
+                if (client == null)
                 {
-                    AutomaticDecompression = DecompressionMethods.GZip
-                });
+                    var handler = new HttpClientHandler()
+                    {
+                        AutomaticDecompression = DecompressionMethods.GZip
+                    };
+                    client = new HttpClient(handler);
+                    if (timeoutInMs > 0)
+                    {
+                        client.Timeout = TimeSpan.FromMilliseconds(timeoutInMs);
+                    }
+                }
+
                 using var request = new HttpRequestMessage(endpoint.Equals("download_config_specs") ? HttpMethod.Get : HttpMethod.Post, url);
                 if (zipped)
                 {
@@ -166,11 +178,6 @@ namespace Statsig.Network
                     {
                         request.Headers.Add(kv.Key, kv.Value);
                     }
-                }
-
-                if (timeoutInMs > 0)
-                {
-                    client.Timeout = TimeSpan.FromMilliseconds(timeoutInMs);
                 }
 
                 var response = await client.SendAsync(request).ConfigureAwait(false);
