@@ -15,11 +15,25 @@ namespace Statsig.Lib
         private SDKDetails _sdkDetails;
         private HashSet<string> _seen;
 
-        public ErrorBoundary(string sdkKey, SDKDetails sdkDetails)
+        private HttpClient _client;
+
+        public ErrorBoundary(string sdkKey, SDKDetails sdkDetails, StatsigOptions options)
         {
             _sdkKey = sdkKey;
             _sdkDetails = sdkDetails;
             _seen = new HashSet<string>();
+            if (options.Proxy != null)
+            {
+                var handler = new HttpClientHandler();
+                handler.UseProxy = true;
+                handler.Proxy = options.Proxy;
+                _client = new HttpClient(handler);
+            }
+            else
+            {
+                _client = new HttpClient();
+            }
+            _client.Timeout = TimeSpan.FromSeconds(3);
         }
 
         public async Task Swallow(string tag, Func<Task> task)
@@ -98,9 +112,6 @@ namespace Statsig.Lib
 
                 _seen.Add(name);
 
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(3);
-
                 using var request = new HttpRequestMessage(HttpMethod.Post, ExceptionEndpoint);
 
                 var info = ex?.StackTrace ?? ex?.Message ?? "No Info";
@@ -125,7 +136,7 @@ namespace Statsig.Lib
                     request.Headers.Add(kv.Key, kv.Value);
                 }
 
-                await client.SendAsync(request).ConfigureAwait(false);
+                await _client.SendAsync(request).ConfigureAwait(false);
             }
             catch
             {

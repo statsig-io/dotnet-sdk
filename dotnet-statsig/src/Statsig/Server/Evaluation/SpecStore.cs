@@ -204,58 +204,54 @@ namespace Statsig.Server
         {
             try
             {
-                var client = new HttpClient();
-                using (var request = new HttpRequestMessage(HttpMethod.Get, list.URL))
+                var response = await _requestDispatcher.DownloadIDList(list).ConfigureAwait(false);
+
+                if (response == null)
                 {
-                    request.Headers.Add("Range", string.Format("bytes={0}-", list.Size));
-                    var response = await client.SendAsync(request).ConfigureAwait(false);
-                    if (response == null)
-                    {
-                        return;
-                    }
+                    return;
+                }
 
-                    if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
+                if ((int)response.StatusCode >= 200 && (int)response.StatusCode < 300)
+                {
+                    using (var memoryStream = new MemoryStream())
                     {
-                        using (var memoryStream = new MemoryStream())
+                        await response.Content.CopyToAsync(memoryStream).ConfigureAwait(false);
+                        var contentLength = memoryStream.Length;
+                        memoryStream.Seek(0, SeekOrigin.Begin);
+
+                        using (var reader = new StreamReader(memoryStream))
                         {
-                            await response.Content.CopyToAsync(memoryStream).ConfigureAwait(false);
-                            var contentLength = memoryStream.Length;
-                            memoryStream.Seek(0, SeekOrigin.Begin);
-
-                            using (var reader = new StreamReader(memoryStream))
+                            var next = reader.Peek();
+                            if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
                             {
-                                var next = reader.Peek();
-                                if (next < 0 || (((char)next) != '+' && ((char)next) != '-'))
+                                IDList? removed;
+                                if (_idLists.TryRemove(list.Name, out removed))
                                 {
-                                    IDList? removed;
-                                    if (_idLists.TryRemove(list.Name, out removed))
-                                    {
-                                        removed.Dispose();
-                                    }
-                                    return;
+                                    removed.Dispose();
                                 }
-
-                                string? line;
-                                while ((line = reader.ReadLine()) != null)
-                                {
-                                    if (string.IsNullOrEmpty(line))
-                                    {
-                                        continue;
-                                    }
-                                    var id = line.Substring(1);
-                                    if (line[0] == '+')
-                                    {
-                                        list.Store.Add(id);
-                                    }
-                                    else if (line[0] == '-')
-                                    {
-                                        list.Store.Remove(id);
-                                    }
-                                }
-
-                                list.Store.TrimExcess();
-                                list.Size = list.Size + contentLength;
+                                return;
                             }
+
+                            string? line;
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                if (string.IsNullOrEmpty(line))
+                                {
+                                    continue;
+                                }
+                                var id = line.Substring(1);
+                                if (line[0] == '+')
+                                {
+                                    list.Store.Add(id);
+                                }
+                                else if (line[0] == '-')
+                                {
+                                    list.Store.Remove(id);
+                                }
+                            }
+
+                            list.Store.TrimExcess();
+                            list.Size = list.Size + contentLength;
                         }
                     }
                 }

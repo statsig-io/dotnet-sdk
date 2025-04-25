@@ -40,7 +40,7 @@ namespace Statsig.Server
             _options = options;
             _serverOpts = _options as StatsigServerOptions ?? null;
 
-            _errorBoundary = new ErrorBoundary(serverSecret, SDKDetails.GetServerSDKDetails());
+            _errorBoundary = new ErrorBoundary(serverSecret, SDKDetails.GetServerSDKDetails(), _options);
             _errorBoundary.Swallow("Constructor", () =>
             {
                 var sdkDetails = SDKDetails.GetServerSDKDetails();

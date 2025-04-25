@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Statsig.Lib;
 
 namespace Statsig.Network
 {
@@ -26,6 +27,8 @@ namespace Statsig.Network
         private readonly StatsigOptions _options;
         private readonly SDKDetails _sdkDetails;
         private readonly string _sessionID;
+
+        private readonly HttpClient _client;
 
         public RequestDispatcher(
             string key,
@@ -51,6 +54,16 @@ namespace Statsig.Network
             _options = options;
             _sdkDetails = sdkDetails;
             _sessionID = sessionID;
+            var handler = new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.GZip
+            };
+            if (options.Proxy != null)
+            {
+                handler.UseProxy = true;
+                handler.Proxy = options.Proxy;
+            }
+            _client = new HttpClient(handler);
         }
 
         public async Task<IReadOnlyDictionary<string, JToken>?> Fetch(
@@ -129,19 +142,9 @@ namespace Statsig.Network
                     url = (CDNBaseUrl.EndsWith("/") ? CDNBaseUrl + endpoint : CDNBaseUrl + "/" + endpoint) + "/" + Key + ".json?sinceTime=" + sinceTime;
                 }
 
-                var client = _options.HttpClient;
-
-                if (client == null)
+                if (timeoutInMs > 0)
                 {
-                    var handler = new HttpClientHandler()
-                    {
-                        AutomaticDecompression = DecompressionMethods.GZip
-                    };
-                    client = new HttpClient(handler);
-                    if (timeoutInMs > 0)
-                    {
-                        client.Timeout = TimeSpan.FromMilliseconds(timeoutInMs);
-                    }
+                    _client.Timeout = TimeSpan.FromMilliseconds(timeoutInMs);
                 }
 
                 using var request = new HttpRequestMessage(endpoint.Equals("download_config_specs") ? HttpMethod.Get : HttpMethod.Post, url);
@@ -180,7 +183,7 @@ namespace Statsig.Network
                     }
                 }
 
-                var response = await client.SendAsync(request).ConfigureAwait(false);
+                var response = await _client.SendAsync(request).ConfigureAwait(false);
                 if (response == null)
                 {
                     return (null, InitializeResult.Success);
@@ -243,6 +246,16 @@ namespace Statsig.Network
         {
             await Task.Delay(backoff * 1000).ConfigureAwait(false);
             return await FetchAsString(endpoint, body, 0, retries - 1, backoff * BackoffMultiplier, timeoutInMs, additionalHeaders, zipped).ConfigureAwait(false);
+        }
+
+        internal async Task<HttpResponseMessage?> DownloadIDList(IDList list)
+        {
+            using (var request = new HttpRequestMessage(HttpMethod.Get, list.URL))
+            {
+                request.Headers.Add("Range", string.Format("bytes={0}-", list.Size));
+                return await _client.SendAsync(request).ConfigureAwait(false);
+
+            }
         }
     }
 }

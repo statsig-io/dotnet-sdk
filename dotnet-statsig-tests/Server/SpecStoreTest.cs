@@ -111,7 +111,7 @@ namespace dotnet_statsig_tests
         {
             var opts = new StatsigServerOptions(_server.Urls[0] + "/v1") { IDListsSyncInterval = 1 };
             var dispatcher = new RequestDispatcher("secret-123", opts, SDKDetails.GetServerSDKDetails(), "my-session");
-            var store = new SpecStore(opts, dispatcher, "secret-123", new ErrorBoundary("secret-123", SDKDetails.GetServerSDKDetails()));
+            var store = new SpecStore(opts, dispatcher, "secret-123", new ErrorBoundary("secret-123", SDKDetails.GetServerSDKDetails(), opts));
             await store.Initialize();
             var expectedIDLists = SpecStoreResponseData.getIDListExpectedResults(_server.Urls[0]);
             TestStoreHelper(store, expectedIDLists, 0);

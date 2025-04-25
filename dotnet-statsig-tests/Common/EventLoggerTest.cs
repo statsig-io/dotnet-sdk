@@ -33,8 +33,9 @@ public class EventLoggerTest : IAsyncLifetime, IResponseProvider
         ).RespondWith(this);
 
         var sdkDetails = SDKDetails.GetClientSDKDetails();
-        var dispatcher = new RequestDispatcher("a-key", new StatsigOptions(apiUrlBase: _server.Urls[0]), sdkDetails, "my-session");
-        var errorBoundary = new ErrorBoundary("a-key", SDKDetails.GetServerSDKDetails());
+        var options = new StatsigOptions(apiUrlBase: _server.Urls[0]);
+        var dispatcher = new RequestDispatcher("a-key", options, sdkDetails, "my-session");
+        var errorBoundary = new ErrorBoundary("a-key", SDKDetails.GetServerSDKDetails(), options);
         _logger = new EventLogger(dispatcher, sdkDetails, maxQueueLength: 3, maxThresholdSecs: ThresholdSeconds, errorBoundary);
         _onLogCountdown = new CountdownEvent(1);
         return Task.CompletedTask;
