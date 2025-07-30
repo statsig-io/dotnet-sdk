@@ -60,7 +60,7 @@ namespace dotnet_statsig_tests
             (
                 "client-fake-key",
                 user,
-                new StatsigOptions(_server.Urls[0] + "/v1")
+                new StatsigOptions(apiUrlBase: _server.Urls[0] + "/v1")
             );
             var nowSeconds = Convert.ToInt32(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
 
@@ -186,7 +186,7 @@ namespace dotnet_statsig_tests
             var stableID = metadata["stableID"];
             var sessionID = metadata["sessionID"];
 
-            var newClient = new ClientDriver("client-fake-key-2", new Statsig.StatsigOptions(_server.Urls[0] + "/v1"));
+            var newClient = new ClientDriver("client-fake-key-2", new Statsig.StatsigOptions(apiUrlBase: _server.Urls[0] + "/v1"));
 
             await newClient.Initialize(null);
             requestBody = _server.LogEntries.ElementAt(2).RequestMessage.Body;
@@ -299,7 +299,7 @@ namespace dotnet_statsig_tests
             await StatsigServer.Initialize
             (
                 "secret-fake-key",
-                new Statsig.StatsigServerOptions(_server.Urls[0] + "/v1")
+                new Statsig.StatsigServerOptions(apiUrlBase: _server.Urls[0] + "/v1")
             );
             var nowSeconds = Convert.ToInt32(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
 
@@ -398,6 +398,61 @@ namespace dotnet_statsig_tests
             Assert.Null(evt.SecondaryExposures);
             Assert.True(evt.User.UserID.Equals("123"));
             Assert.InRange(Convert.ToInt32(evt.Time / 1000), nowSeconds - 2, nowSeconds + 2);
+        }
+
+        [Fact]
+        public void TestUrlForDownloadConfigSpecsOption()
+        {
+            var urlForDownloadConfigSpecs = "https://my-custom-cdn.com/v1";
+            var options = new Statsig.StatsigServerOptions(
+                "https://api.example.com/v1"
+            );
+            options.ApiUrlForDownloadConfigSpecs = urlForDownloadConfigSpecs;
+            Assert.Equal(urlForDownloadConfigSpecs, options.ApiUrlForDownloadConfigSpecs);
+        }
+
+        [Fact]
+        public async Task TestCustomDcsUrlDoesNotAffectLogEvents()
+        {
+            _server.ResetLogEntries();
+            var cdnBase = _server.Urls[0] + "/cdn";
+            var apiBase = _server.Urls[0] + "/v1";
+
+            // stub for download_config_specs on custom CDN
+            var dcsPath = "/cdn/download_config_specs/secret-key.json";
+            _server.Given(
+                Request.Create().WithPath(dcsPath).UsingGet()
+            ).RespondWith(
+                Response.Create().WithStatusCode(200).WithBody("{}")
+            );
+
+            // stub for log_event on api base
+            _server.Given(
+                Request.Create().WithPath("/v1/log_event").UsingPost()
+            ).RespondWith(
+                Response.Create().WithStatusCode(200)
+            );
+
+            var options = new Statsig.StatsigServerOptions(apiUrlBase: apiBase);
+            options.ApiUrlForDownloadConfigSpecs = cdnBase;
+
+            var dispatcher = new Statsig.Network.RequestDispatcher(
+                "secret-key",
+                options,
+                Statsig.SDKDetails.GetServerSDKDetails(),
+                "session-1"
+            );
+
+            // Trigger a download_config_specs request
+            await dispatcher.Fetch("download_config_specs", "");
+            // Trigger a log_event request
+            await dispatcher.Fetch("log_event", "{}");
+
+            // Assertions
+            Assert.Contains(_server.LogEntries, entry => entry.RequestMessage.Url.Contains(dcsPath));
+            Assert.Contains(_server.LogEntries, entry => entry.RequestMessage.Url.Contains("/v1/log_event"));
+            // Ensure log_event did not hit CDN base
+            Assert.DoesNotContain(_server.LogEntries, entry => entry.RequestMessage.Url.Contains(cdnBase) && entry.RequestMessage.Url.Contains("log_event"));
         }
     }
 }

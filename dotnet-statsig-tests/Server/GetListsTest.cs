@@ -34,7 +34,7 @@ namespace dotnet_statsig_tests.Server
 
             await StatsigServer.Initialize(
                 "secret-key",
-                new StatsigServerOptions(_server.Urls[0] + "/v1")
+                new StatsigServerOptions(apiUrlBase: _server.Urls[0] + "/v1")
             );
         }
 

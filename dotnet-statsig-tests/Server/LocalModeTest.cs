@@ -65,7 +65,7 @@ public class LocalModeTest : IAsyncLifetime, IResponseProvider
 
     private async Task InitializeWithLocalMode(bool localMode)
     {
-        _driver = new ServerDriver("secret-key", new StatsigServerOptions(_server.Urls[0])
+        _driver = new ServerDriver("secret-key", new StatsigServerOptions(apiUrlBase: _server.Urls[0])
         {
             LocalMode = localMode
         });

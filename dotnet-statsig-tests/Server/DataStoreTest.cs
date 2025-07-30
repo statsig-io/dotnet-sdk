@@ -133,7 +133,7 @@ public class DataStoreTest : IAsyncLifetime, IResponseProvider
             Store = new Dictionary<string, string>()
         };
 
-        await StatsigServer.Initialize("secret-key", new StatsigServerOptions(_server.Urls[0])
+        await StatsigServer.Initialize("secret-key", new StatsigServerOptions(apiUrlBase: _server.Urls[0])
         {
             DataStore = store
         });
@@ -155,7 +155,7 @@ public class DataStoreTest : IAsyncLifetime, IResponseProvider
             OnWriteCountdownEvent = onDummyStoreWriteCountdownEvent
         };
 
-        await StatsigServer.Initialize("secret-key", new StatsigServerOptions(_server.Urls[0])
+        await StatsigServer.Initialize("secret-key", new StatsigServerOptions(apiUrlBase: _server.Urls[0])
         {
             DataStore = store
         });

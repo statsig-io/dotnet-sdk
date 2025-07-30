@@ -159,7 +159,7 @@ namespace dotnet_statsig_tests
             await StatsigClient.Initialize(
                "client-sdk-key",
                new StatsigUser() { UserID = "dloomb" },
-               new StatsigOptions(_server.Urls[0] + "/v1")
+               new StatsigOptions(apiUrlBase: _server.Urls[0] + "/v1")
            );
         }
     }

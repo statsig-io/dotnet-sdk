@@ -45,8 +45,8 @@ namespace Statsig
         /// </summary>
         public string? CustomEnvironment;
 
-        public StatsigServerOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null) : base(
-            apiUrlBase, environment)
+        public StatsigServerOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null)
+            : base(apiUrlBase, environment)
         {
         }
     }
@@ -68,15 +68,16 @@ namespace Statsig
         /// </summary>
         public int LoggingIntervalSeconds = Constants.CLIENT_MAX_LOGGER_WAIT_TIME_IN_SEC;
 
-        public StatsigClientOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null) : base(
-            apiUrlBase, environment)
+        public StatsigClientOptions(string? apiUrlBase = null, StatsigEnvironment? environment = null)
+            : base(apiUrlBase, environment)
         {
         }
     }
 
     public class StatsigOptions
     {
-        public string ApiUrlBase { get; }
+        public string ApiUrlBase { get; set; }
+        public string? ApiUrlForDownloadConfigSpecs { get; set; } = null;
         public StatsigEnvironment StatsigEnvironment { get; }
         public string? PersistentStorageFolder { get; set; }
         public double RulesetsSyncInterval = Constants.SERVER_CONFIG_SPECS_SYNC_INTERVAL_IN_SEC;

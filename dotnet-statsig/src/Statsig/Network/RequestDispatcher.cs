@@ -20,7 +20,7 @@ namespace Statsig.Network
 
         public string Key { get; }
         public string ApiBaseUrl { get; }
-        public string CDNBaseUrl { get; }
+        public string ApiBaseUrlForDownloadConfigSpecs { get; }
         public IReadOnlyDictionary<string, string> AdditionalHeaders { get; }
 
         private readonly JsonSerializer _defaultSerializer;
@@ -40,9 +40,18 @@ namespace Statsig.Network
             ApiBaseUrl = string.IsNullOrWhiteSpace(options.ApiUrlBase)
                 ? Constants.DEFAULT_API_URL_BASE
                 : options.ApiUrlBase;
-            CDNBaseUrl = string.IsNullOrWhiteSpace(options.ApiUrlBase)
-                ? Constants.DEFAULT_CDN_URL_BASE
-                : options.ApiUrlBase;
+            if (!string.IsNullOrWhiteSpace(options.ApiUrlForDownloadConfigSpecs))
+            {
+                ApiBaseUrlForDownloadConfigSpecs = options.ApiUrlForDownloadConfigSpecs;
+            }
+            else if (!string.IsNullOrWhiteSpace(options.ApiUrlBase))
+            {
+                ApiBaseUrlForDownloadConfigSpecs = options.ApiUrlBase;
+            }
+            else
+            {
+                ApiBaseUrlForDownloadConfigSpecs = Constants.DEFAULT_CDN_URL_BASE;
+            }
             Key = key;
             AdditionalHeaders = options.AdditionalHeaders;
 
@@ -139,7 +148,7 @@ namespace Statsig.Network
                 var url = ApiBaseUrl.EndsWith("/") ? ApiBaseUrl + endpoint : ApiBaseUrl + "/" + endpoint;
                 if (endpoint.Equals("download_config_specs"))
                 {
-                    url = (CDNBaseUrl.EndsWith("/") ? CDNBaseUrl + endpoint : CDNBaseUrl + "/" + endpoint) + "/" + Key + ".json?sinceTime=" + sinceTime;
+                    url = (ApiBaseUrlForDownloadConfigSpecs.EndsWith("/") ? ApiBaseUrlForDownloadConfigSpecs + endpoint : ApiBaseUrlForDownloadConfigSpecs + "/" + endpoint) + "/" + Key + ".json?sinceTime=" + sinceTime;
                 }
 
                 if (timeoutInMs > 0)
