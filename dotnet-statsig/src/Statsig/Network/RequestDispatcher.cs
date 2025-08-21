@@ -148,7 +148,11 @@ namespace Statsig.Network
                 var url = ApiBaseUrl.EndsWith("/") ? ApiBaseUrl + endpoint : ApiBaseUrl + "/" + endpoint;
                 if (endpoint.Equals("download_config_specs"))
                 {
-                    url = (ApiBaseUrlForDownloadConfigSpecs.EndsWith("/") ? ApiBaseUrlForDownloadConfigSpecs + endpoint : ApiBaseUrlForDownloadConfigSpecs + "/" + endpoint) + "/" + Key + ".json?sinceTime=" + sinceTime;
+                    url = (ApiBaseUrlForDownloadConfigSpecs.EndsWith("/") ? ApiBaseUrlForDownloadConfigSpecs + endpoint : ApiBaseUrlForDownloadConfigSpecs + "/" + endpoint) + "/" + Key + ".json";
+                    if (sinceTime > 0)
+                    {
+                        url += "?sinceTime=" + sinceTime;
+                    }
                 }
 
                 if (timeoutInMs > 0)
