@@ -277,12 +277,12 @@ namespace Statsig.Server.Evaluation
         {
             if (long.TryParse(val.ToString(), out long epochTime))
             {
-                try
+                // < 1e10 = definitely seconds
+                if (Math.Abs(epochTime) < 10_000_000_000)
                 {
-                    // Throws if epochTime is out of range, usually means unit is in milliseconds instead
                     return DateTimeOffset.FromUnixTimeSeconds(epochTime);
                 }
-                catch
+                else
                 {
                     return DateTimeOffset.FromUnixTimeMilliseconds(epochTime);
                 }
