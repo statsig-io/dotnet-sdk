@@ -7,7 +7,7 @@
     <RootNamespace>statsig_dotnet</RootNamespace>
     <PackOnBuild>true</PackOnBuild>
     <PackageId>Statsig</PackageId>
-    <Version>2.3.2</Version>
+    <Version>2.4.0</Version>
     <Authors>Statsig Inc.</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <RepositoryUrl>https://github.com/statsig-io/dotnet-sdk.git</RepositoryUrl>
