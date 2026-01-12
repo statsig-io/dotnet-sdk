@@ -44,7 +44,7 @@ namespace Statsig.Network
             {
                 ApiBaseUrlForDownloadConfigSpecs = options.ApiUrlForDownloadConfigSpecs;
             }
-            else if (!string.IsNullOrWhiteSpace(options.ApiUrlBase))
+            else if (options.ApiUrlBase != Constants.DEFAULT_API_URL_BASE)
             {
                 ApiBaseUrlForDownloadConfigSpecs = options.ApiUrlBase;
             }
