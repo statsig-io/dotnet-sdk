@@ -11,10 +11,10 @@ jobs:
     timeout-minutes: 10
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
 
       - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v2
+        uses: actions/setup-dotnet@8e6bd2905eef86446227f003dda1deb3916c4aaf # v2
         with:
           dotnet-version: "6.x.x"
 
