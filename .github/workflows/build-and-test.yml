@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     timeout-minutes: 10
-    runs-on: windows-latest
+    runs-on: blacksmith-2vcpu-windows-2025
     steps:
       - uses: actions/checkout@v2
 
